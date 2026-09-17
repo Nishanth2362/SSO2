@@ -1,0 +1,347 @@
+@using SSO.Domain.Entities
+@{
+    var tenant = ViewBag.TenantBranding as Tenants;
+    var rawLogo = tenant?.LogoUrl?.Replace("\\", "/");
+    var tenantName = tenant?.Name ?? "Identity Hub";
+    var logo = !string.IsNullOrEmpty(rawLogo) ? "/" + rawLogo : "/pwa-icon-512.png";
+    var cspNonce = Context.Items["CSPNonce"]?.ToString();
+}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    @if (!string.IsNullOrEmpty(cspNonce))
+    {
+        <meta name="csp-nonce" content="@cspNonce" />
+    }
+    <title>@tenantName — @ViewData["Title"]</title>
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Secure, fast, and modern Enterprise Single Sign-On Portal. Experience seamless identity verification.">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- CSS Stylesheet -->
+    <link rel="stylesheet" href="~/css/auth-modern.css" asp-append-version="true">
+    <!-- Lucide Icons (CDN) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <!-- Canvas for interactive background -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Diagonal swipe overlay for major page transitions -->
+    <div class="swipe-overlay" id="swipe-overlay" aria-hidden="true">
+        <div class="swipe-skew"></div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container" aria-live="polite">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="toast toast-success" id="temp-toast-success">
+                <i data-lucide="check-circle" class="toast-icon"></i>
+                <div class="toast-body">
+                    <span class="toast-title">Success</span>
+                    <span class="toast-message">@TempData["SuccessMessage"]</span>
+                </div>
+                <button type="button" class="toast-close"><i data-lucide="x"></i></button>
+                <div class="toast-progress"></div>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="toast toast-error" id="temp-toast-error">
+                <i data-lucide="alert-circle" class="toast-icon"></i>
+                <div class="toast-body">
+                    <span class="toast-title">Error</span>
+                    <span class="toast-message">@TempData["ErrorMessage"]</span>
+                </div>
+                <button type="button" class="toast-close"><i data-lucide="x"></i></button>
+                <div class="toast-progress"></div>
+            </div>
+        }
+    </div>
+
+    <!-- Theme Toggle Controls -->
+    <button class="theme-toggle-btn" id="theme-toggle-btn" aria-label="Toggle Dark/Light theme" title="Toggle Theme">
+        <i data-lucide="sun" class="sun-icon"></i>
+        <i data-lucide="moon" class="moon-icon"></i>
+    </button>
+
+    <!-- Main Container -->
+    <main class="app-container">
+
+        <!-- Left Hero/Branding Side (Desktop view, hidden on mobile or stacked) -->
+        <section class="hero-section" aria-label="Welcome panel">
+            <div class="hero-glass-overlay"></div>
+            <div class="hero-content">
+                <!-- Logo -->
+                <div class="logo-container">
+                    <div class="logo-img-wrapper">
+                        @if (!string.IsNullOrEmpty(logo))
+                        {
+                            <img src="@logo" alt="@tenantName Logo" class="logo-img" />
+                        }
+                        else
+                        {
+                            <div class="logo-fallback-icon" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; background: var(--accent-gradient);">
+                                <i data-lucide="shield-check" style="color: white; width: 28px; height: 28px;"></i>
+                            </div>
+                        }
+                    </div>
+                    <div class="logo-text-group">
+                        <span class="logo-text">@tenantName</span>
+                    </div>
+                </div>
+
+                <!-- Animated Illustration / Core Graphics -->
+                <div class="illustration-container">
+                    <div class="sphere-glow"></div>
+                    <div class="shield-circle">
+                        <div class="rotating-ring ring-outer"></div>
+                        <div class="rotating-ring ring-middle"></div>
+                        <div class="rotating-ring ring-inner"></div>
+                        <div class="shield-core">
+                            <i data-lucide="key-round" class="core-icon"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Typography Messaging -->
+                <div class="hero-messaging" id="hero-messaging" style="opacity: 0; transition: opacity 0.5s ease;">
+                    <h1 class="hero-title" id="hero-title">Welcome Back!</h1>
+                    <p class="hero-subtitle" id="hero-subtitle">Securely access your workspace.</p>
+                    <div class="hero-username-container" id="hero-username-container" style="display: none;">
+                        <span class="hero-username-wrapper" style="position: relative; display: inline-flex; align-items: center;">
+                            <span class="hero-username" id="hero-username"></span>
+                            <span class="typewriter-cursor" id="typewriter-cursor">|</span>
+                        </span>
+                        <i data-lucide="check-circle" class="hero-verified-icon" id="hero-verified-icon" style="opacity: 0; transform: scale(0.7); transition: opacity 300ms ease, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);"></i>
+                    </div>
+                </div>
+
+                <!-- Trust badge / Footer -->
+                <div class="hero-footer">
+                    @* <div class="trust-badge">
+                        <i data-lucide="lock" class="badge-lock-icon"></i>
+                        <span>SOC2 Type II Certified</span>
+                    </div> *@
+                    <span class="copyright">Powered by <a href="https://auxinz.io"><span class="brand-name-gradient">Planurix</span></a></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Mobile / Tablet Branding Header (visible only when hero is hidden) -->
+        <header class="mobile-header" aria-label="Brand header">
+            <div class="logo-container">
+                <div class="logo-img-wrapper">
+                    @if (!string.IsNullOrEmpty(logo))
+                    {
+                        <img src="@logo" alt="@tenantName Logo" class="logo-img" />
+                    }
+                    else
+                    {
+                        <div class="logo-fallback-icon" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; background: var(--accent-gradient);">
+                            <i data-lucide="shield-check" style="color: white; width: 28px; height: 28px;"></i>
+                        </div>
+                    }
+                </div>
+                <div class="logo-text-group">
+                    <span class="logo-text">@tenantName</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Right Interaction/Form Side -->
+        <section class="form-section" aria-label="Sign-in and Registration form">
+            <!-- Wrapper for parallax tilt & container border-glow -->
+            <div class="auth-card-wrapper" id="auth-card-wrapper">
+                <div class="auth-card-glow" id="auth-card-glow"></div>
+                <div class="auth-card" id="auth-card">
+
+                    <!-- Outer dynamic height container -->
+                    <div class="card-inner-slider" id="card-inner-slider">
+                        @RenderBody()
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- Mobile Footer — Powered by Auxinzio (visible on ≤1024px) -->
+        <footer class="mobile-footer">
+            <span>Powered by <a href="https://auxinz.io"><span class="brand-name-gradient">Planurix</span></a></span>
+        </footer>
+
+    </main>
+
+    <script src="~/js/jquery-3.7.1.min.js" nonce="@cspNonce"></script>
+    <partial name="_ValidationScriptsPartial" />
+    
+    <!-- Lucide Initialization and Interactive Canvas -->
+    <script nonce="@cspNonce">
+        lucide.createIcons();
+
+        // Theme Toggle
+        const themeBtn = document.getElementById('theme-toggle-btn');
+        const htmlElement = document.documentElement;
+        themeBtn.addEventListener('click', () => {
+            if (htmlElement.getAttribute('data-theme') === 'dark') {
+                htmlElement.setAttribute('data-theme', 'light');
+            } else {
+                htmlElement.setAttribute('data-theme', 'dark');
+            }
+        });
+
+        // 3D Tilt Effect on Auth Card
+        const cardWrapper = document.getElementById('auth-card-wrapper');
+        const authCard = document.getElementById('auth-card');
+        
+        cardWrapper.addEventListener('mousemove', (e) => {
+            const rect = cardWrapper.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Update glow position
+            cardWrapper.style.setProperty('--mouse-x', `${x}px`);
+            cardWrapper.style.setProperty('--mouse-y', `${y}px`);
+            
+            // Calculate tilt (max 5 degrees)
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const tiltX = ((y - centerY) / centerY) * -5;
+            const tiltY = ((x - centerX) / centerX) * 5;
+            
+            authCard.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+        });
+        
+        cardWrapper.addEventListener('mouseleave', () => {
+            authCard.style.transform = 'rotateX(0deg) rotateY(0deg)';
+        });
+
+        // Interactive Canvas Background
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let particles = [];
+        
+        function resizeCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = (Math.random() - 0.5) * 0.5;
+                this.speedY = (Math.random() - 0.5) * 0.5;
+                this.color = Math.random() > 0.5 ? 'rgba(6, 182, 212, 0.4)' : 'rgba(255, 255, 255, 0.2)';
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x > width) this.x = 0;
+                if (this.x < 0) this.x = width;
+                if (this.y > height) this.y = 0;
+                if (this.y < 0) this.y = height;
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        for (let i = 0; i < 70; i++) {
+            particles.push(new Particle());
+        }
+        
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+                
+                // Connect particles
+                for (let j = i; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 100) {
+                        ctx.beginPath();
+                        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                        ctx.strokeStyle = isDark ? `rgba(6, 182, 212, ${0.15 - dist/1000})` : `rgba(34, 197, 94, ${0.1 - dist/1000})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Global Premium Toast Controller for TempData notifications
+        const authToasts = document.querySelectorAll('#toast-container > .toast');
+        authToasts.forEach(toast => {
+            // Animate in
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+            });
+
+            // Progress bar countdown
+            const progressBar = toast.querySelector('.toast-progress');
+            const duration = 4000;
+            let startTime = null;
+
+            function animateProgress(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const progress = timestamp - startTime;
+                const percentage = Math.max(0, 100 - (progress / duration) * 100);
+                if (progressBar) {
+                    progressBar.style.width = `${percentage}%`;
+                }
+
+                if (progress < duration) {
+                    requestAnimationFrame(animateProgress);
+                }
+            }
+            requestAnimationFrame(animateProgress);
+
+            // Auto dismiss timer
+            const dismissTimer = setTimeout(() => {
+                dismissAuthToast(toast);
+            }, duration);
+
+            // Close button listener
+            const closeBtn = toast.querySelector('.toast-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    clearTimeout(dismissTimer);
+                    dismissAuthToast(toast);
+                });
+            }
+        });
+
+        function dismissAuthToast(toast) {
+            toast.classList.remove('show');
+            toast.classList.add('hide');
+            toast.addEventListener('transitionend', () => {
+                toast.remove();
+            });
+        }
+    </script>
+    
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

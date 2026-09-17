@@ -1,0 +1,820 @@
+@{
+    ViewData["Title"] = "Token Management";
+    var canExportTokens = (await AuthorizationService.AuthorizeAsync(User, Permissions.Users.Export)).Succeeded;
+    var canRevokeToken = (await AuthorizationService.AuthorizeAsync(User, Permissions.Users.Delete)).Succeeded;
+    var canEditSettings = (await AuthorizationService.AuthorizeAsync(User, Permissions.Users.Edit)).Succeeded
+                       || (await AuthorizationService.AuthorizeAsync(User, Permissions.Users.View)).Succeeded
+                       || User.IsInRole("SuperAdmin") || User.IsInRole("CoreGuardian");
+}
+
+<style>
+    /* Token Lifetime Settings Modal Overlay */
+    .token-settings-overlay {
+        position: fixed !important;
+        inset: 0 !important;
+        background: rgba(0, 0, 0, 0.65) !important;
+        backdrop-filter: blur(8px) !important;
+        -webkit-backdrop-filter: blur(8px) !important;
+        z-index: 999999 !important;
+        display: none;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 20px !important;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+
+    .token-settings-overlay.open {
+        display: flex !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+
+    .token-settings-dialog {
+        width: 100% !important;
+        max-width: 520px !important;
+        background: var(--bg-surface, #ffffff) !important;
+        border: 1px solid var(--border-subtle, #e2e8f0) !important;
+        border-radius: 20px !important;
+        box-shadow: 0 25px 60px rgba(0,0,0,0.35) !important;
+        overflow: hidden !important;
+        animation: tokenModalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @@keyframes tokenModalPop {
+        0% { transform: scale(0.92); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Full-page background for seamless integration - Electric Cyan Theme */
+    body {
+        background: linear-gradient(150deg,
+                        rgba(6, 182, 212, 0.08) 0%,
+                        rgba(2, 132, 199, 0.03) 25%,
+                        rgba(207, 250, 254, 0.3) 60%,
+                        rgba(255, 255, 255, 0.95) 100%) !important;
+        background-attachment: fixed !important;
+        background-repeat: no-repeat !important;
+        background-size: cover !important;
+    }
+
+    html[data-theme="dark"] body {
+        background: linear-gradient(150deg,
+                        rgba(6, 182, 212, 0.16) 0%,
+                        rgba(2, 132, 199, 0.06) 25%,
+                        rgba(22, 78, 99, 0.45) 60%,
+                        rgba(9, 12, 20, 0.96) 100%) !important;
+        background-attachment: fixed !important;
+        background-repeat: no-repeat !important;
+        background-size: cover !important;
+    }
+
+    .page-wrapper, .content-wrapper, .container-xl, main, #content, .page-body {
+        background: transparent !important;
+    }
+
+    .th-page-card {
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        overflow: visible;
+        margin-bottom: 8px;
+    }
+
+    .tokens-hero {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        flex-wrap: wrap;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        padding: 12px 4px 6px;
+        margin-bottom: 0;
+        overflow: hidden;
+    }
+
+    /* Scattered Background Pattern (8-12% opacity outline SVGs) - Electric Cyan Theme */
+    .tokens-hero-bg-pattern {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 0;
+    }
+
+    .hero-bg-icon {
+        position: absolute;
+        stroke: #06b6d4;
+        stroke-width: 1.5;
+        fill: none;
+        opacity: 0.10;
+        transition: opacity 0.3s ease;
+    }
+
+    html[data-theme="dark"] .hero-bg-icon {
+        stroke: #22d3ee;
+        opacity: 0.12;
+    }
+
+    .hero-bg-icon.icon-key-1      { top: 8%; left: 1%; width: 32px; height: 32px; transform: rotate(-12deg); }
+    .hero-bg-icon.icon-token-1    { top: 14%; left: 36%; width: 26px; height: 26px; transform: rotate(10deg); }
+    .hero-bg-icon.icon-link-1     { bottom: 10%; left: 18%; width: 30px; height: 30px; transform: rotate(-8deg); }
+    .hero-bg-icon.icon-shield-1   { top: 58%; left: 3%; width: 28px; height: 28px; transform: rotate(6deg); }
+    .hero-bg-icon.icon-refresh-1  { top: 10%; left: 22%; width: 28px; height: 28px; transform: rotate(-10deg); }
+    .hero-bg-icon.icon-clock-1    { top: 62%; left: 44%; width: 26px; height: 26px; transform: rotate(-14deg); }
+    .hero-bg-icon.icon-lock-1     { top: 12%; right: 44%; width: 28px; height: 28px; transform: rotate(18deg); }
+    .hero-bg-icon.icon-award-1    { bottom: 8%; right: 36%; width: 32px; height: 32px; transform: rotate(-10deg); }
+    .hero-bg-icon.icon-layers-1   { top: 10%; right: 26%; width: 26px; height: 26px; transform: rotate(8deg); }
+
+    .th-hero-left { 
+        position: relative; 
+        display: flex; 
+        align-items: center; 
+        gap: 18px; 
+        min-width: 260px; 
+        flex: 1 1 320px; 
+        z-index: 1; 
+    }
+    .th-hero-icon {
+        width: 52px; 
+        height: 52px; 
+        flex-shrink: 0; 
+        border-radius: 14px;
+        background: linear-gradient(135deg, #06b6d4, #0284c7);
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        color: #fff;
+        box-shadow: 0 6px 16px rgba(6, 182, 212, 0.25);
+    }
+    .th-hero-title {
+        font-size: 1.7rem !important;
+        font-weight: 800 !important;
+        color: var(--text-main);
+        letter-spacing: -0.02em;
+        margin: 0 0 6px;
+        line-height: 1.2;
+    }
+    .th-hero-subtitle {
+        font-size: 0.86rem;
+        color: var(--text-muted);
+        margin: 0;
+        max-width: 480px;
+        line-height: 1.5;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       COMPACT KPI CARDS (Electric Cyan Theme)
+       ═══════════════════════════════════════════════════════════ */
+    .sub-kpi-container {
+        position: relative;
+        display: flex;
+        gap: 14px;
+        align-items: stretch;
+        z-index: 1;
+        flex-wrap: wrap;
+        margin-left: 0;
+        margin-right: 0;
+    }
+    .sub-kpi-card {
+        cursor: pointer;
+        user-select: none;
+        width: 178px;
+        flex-shrink: 0;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        padding: 10px 14px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 6px 16px -8px rgba(15,23,42,0.08);
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+    .sub-kpi-card:hover { 
+        transform: translateY(-2px); 
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05), 0 10px 24px -8px rgba(15,23,42,0.14); 
+    }
+    .sub-kpi-card.active {
+        border-color: #06b6d4 !important;
+        box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.18), var(--shadow-sm) !important;
+    }
+
+    .sub-kpi-card .tabler-stat-header { 
+        display: flex; 
+        align-items: center; 
+        gap: 10px; 
+        margin-bottom: 8px; 
+    }
+    .sub-kpi-card .tabler-stat-title { 
+        font-size: 0.66rem; 
+        font-weight: 700; 
+        letter-spacing: 0.04em; 
+        text-transform: uppercase; 
+        color: #64748b; 
+        line-height: 1.3; 
+    }
+    html[data-theme="dark"] .sub-kpi-card .tabler-stat-title { 
+        color: #94a3b8; 
+    }
+    .sub-kpi-card .tabler-stat-value { 
+        font-size: 1.6rem; 
+        font-weight: 800; 
+        color: var(--text-main); 
+        line-height: 1; 
+    }
+    .tabler-stat-icon {
+        width: 38px; 
+        height: 38px; 
+        border-radius: 10px; 
+        flex-shrink: 0;
+        display: flex; 
+        align-items: center; 
+        justify-content: center;
+        transition: transform 0.2s ease;
+    }
+    .sub-kpi-card:hover .tabler-stat-icon { 
+        transform: scale(1.08); 
+    }
+    .tabler-stat-icon.total-icon { 
+        background: rgba(6, 182, 212, 0.14) !important; 
+        color: #06b6d4 !important; 
+    }
+    .tabler-stat-icon.valid-icon { 
+        background: rgba(16, 185, 129, 0.14) !important; 
+        color: #10b981 !important; 
+    }
+    .tabler-stat-icon.revoked-icon { 
+        background: rgba(239, 68, 68, 0.14) !important; 
+        color: #ef4444 !important; 
+    }
+
+    .kpi-mini-visual {
+        position: absolute;
+        right: 10px;
+        bottom: 6px;
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+</style>
+
+<div class="breadcrumbs">
+    <span>Auxinz SSO Server</span>
+    <a href="#">Security</a>
+    <span class="current">Token Management</span>
+</div>
+
+<div class="th-page-card">
+    <div class="tokens-hero">
+        <!-- Scattered background outline icons -->
+        <div class="tokens-hero-bg-pattern">
+            <!-- Key -->
+            <svg class="hero-bg-icon icon-key-1" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.778-7.778zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+            <!-- Token Coin -->
+            <svg class="hero-bg-icon icon-token-1" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M10 9h4M10 15h4M12 9v6"></path></svg>
+            <!-- Chain Link -->
+            <svg class="hero-bg-icon icon-link-1" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+            <!-- Shield Check -->
+            <svg class="hero-bg-icon icon-shield-1" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
+            <!-- Refresh Token -->
+            <svg class="hero-bg-icon icon-refresh-1" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+            <!-- Clock -->
+            <svg class="hero-bg-icon icon-clock-1" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <!-- Lock -->
+            <svg class="hero-bg-icon icon-lock-1" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <!-- Award -->
+            <svg class="hero-bg-icon icon-award-1" viewBox="0 0 24 24"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+            <!-- Layers -->
+            <svg class="hero-bg-icon icon-layers-1" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+            <!-- Sparkles & Geometry -->
+            <svg class="hero-bg-icon" style="top:18%; left:48%; width:16px; height:16px;" viewBox="0 0 24 24"><path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5Z" fill="#06b6d4" opacity="0.16"></path></svg>
+            <svg class="hero-bg-icon" style="top:62%; right:22%; width:14px; height:14px;" viewBox="0 0 24 24"><path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5Z" fill="#0284c7" opacity="0.18"></path></svg>
+            <svg class="hero-bg-icon" style="top:25%; right:14%; width:10px; height:10px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#06b6d4" opacity="0.25"></circle></svg>
+        </div>
+
+        <div class="th-hero-left">
+            <div class="th-hero-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.778-7.778zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="th-hero-title">Token Management</h1>
+                <p class="th-hero-subtitle">View and manage active authorization and refresh tokens across all applications.</p>
+            </div>
+        </div>
+
+        <!-- Compact KPI cards -->
+        <div class="sub-kpi-container">
+            <!-- Card 1: Total Tokens -->
+            <div class="tabler-card tabler-stat-card sub-kpi-card" id="kpiTotalTokens" data-value="all">
+                <div class="tabler-card-body">
+                    <div class="tabler-stat-header">
+                        <div class="tabler-stat-icon total-icon">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.778-7.778zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+                            </svg>
+                        </div>
+                        <span class="tabler-stat-title">Total Tokens</span>
+                    </div>
+                    <div class="tabler-stat-main">
+                        <div class="tabler-stat-value" id="totalTokensKpi">—</div>
+                    </div>
+                    <svg class="kpi-mini-visual" width="52" height="40" viewBox="0 0 52 40" fill="none">
+                        <rect x="4" y="18" width="12" height="20" rx="1.5" fill="#06b6d4" opacity="0.16" />
+                        <rect x="18" y="8" width="14" height="30" rx="1.5" fill="#06b6d4" opacity="0.22" />
+                        <rect x="34" y="14" width="12" height="24" rx="1.5" fill="#06b6d4" opacity="0.16" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Card 2: Active / Valid -->
+            <div class="tabler-card tabler-stat-card sub-kpi-card" id="kpiValidTokens" data-value="valid">
+                <div class="tabler-card-body">
+                    <div class="tabler-stat-header">
+                        <div class="tabler-stat-icon valid-icon">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                <polyline points="9 12 11 14 15 10"></polyline>
+                            </svg>
+                        </div>
+                        <span class="tabler-stat-title">Active Valid</span>
+                    </div>
+                    <div class="tabler-stat-main">
+                        <div class="tabler-stat-value" id="validTokensKpi">—</div>
+                    </div>
+                    <svg class="kpi-mini-visual" width="52" height="30" viewBox="0 0 52 30" fill="none">
+                        <path d="M2,26 8,17 15,21 23,9 31,14 40,4 50,10 50,30 2,30 Z" fill="#10b981" opacity="0.16" />
+                        <polyline points="2,26 8,17 15,21 23,9 31,14 40,4 50,10" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Card 3: Revoked -->
+            <div class="tabler-card tabler-stat-card sub-kpi-card" id="kpiRevokedTokens" data-value="revoked">
+                <div class="tabler-card-body">
+                    <div class="tabler-stat-header">
+                        <div class="tabler-stat-icon revoked-icon">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                            </svg>
+                        </div>
+                        <span class="tabler-stat-title">Revoked</span>
+                    </div>
+                    <div class="tabler-stat-main">
+                        <div class="tabler-stat-value" id="revokedTokensKpi">—</div>
+                    </div>
+                    <svg class="kpi-mini-visual" width="42" height="34" viewBox="0 0 42 34" fill="none">
+                        <circle cx="30" cy="17" r="5" fill="#ef4444" opacity="0.5" />
+                        <circle cx="16" cy="10" r="2.6" fill="#ef4444" opacity="0.35" />
+                        <circle cx="22" cy="22" r="2" fill="#ef4444" opacity="0.35" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="panel">
+    <div class="table-filters-data" style="display:none;">
+        <div class="filter-group-item">
+            <label>Status</label>
+            <select name="Status" class="form-select">
+                <option value="">All Statuses</option>
+                <option value="valid">Valid</option>
+                <option value="revoked">Revoked</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-toolbar">
+        <div class="table-filters">
+            <div style="position: relative;">
+                <svg style="position: absolute; left: 10px; top: 10px; color: var(--text-muted);"
+                     width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" class="form-input" placeholder="Search by subject..."
+                       style="padding-left: 32px; width: 250px;">
+            </div>
+        </div>
+        @if (canEditSettings)
+        {
+            <button type="button" class="btn btn-primary btn-toolbar" id="btnOpenTokenSettingsModal" onclick="openTokenSettingsModal()" style="display: inline-flex; align-items: center; gap: 6px; margin-left: auto;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+                <span>Token Settings</span>
+            </button>
+        }
+        @if (canExportTokens)
+        {
+            <div class="smart-export-dropdown-wrapper" style="@(canEditSettings ? "margin-left: 8px;" : "margin-left: auto;")">
+                <button type="button" class="btn btn-secondary smart-export-dropdown-btn smart-export-btn btn-toolbar" id="exportTokensBtn" title="More Options">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="1.5"></circle>
+                        <circle cx="12" cy="5" r="1.5"></circle>
+                        <circle cx="12" cy="19" r="1.5"></circle>
+                    </svg>
+                </button>
+                <span class="smart-export-badge" id="tokensSelectionBadge"></span>
+                <div class="smart-export-menu glass-dropdown">
+                    <button type="button" class="dropdown-item smart-import-option" onclick="window.openImportModal('Tokens')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Import
+                    </button>
+                    <button type="button" class="dropdown-item smart-export-option" onclick="window.smartExport('tokenTable','/Home/ExportTokens')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Export
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="table-responsive">
+        <table id="tokenTable" class="data-table table-hoverable manual-init">
+            <thead>
+                <tr>
+                    <th class="text-center" style="width: 48px;"><input type="checkbox" class="master-select-cb" data-table="tokenTable"></th>
+                    <th class="text-left">Subject</th>
+                    <th class="text-center">Type</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-center">Creation Date</th>
+                    <th class="text-center">Expiration Date</th>
+                    <th class="text-left">Reference ID</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TOKEN LIFETIME SETTINGS MODAL
+     ═══════════════════════════════════════════════════════════ -->
+<div id="tokenSettingsModal" class="token-settings-overlay" onclick="if(event.target === this) closeTokenSettingsModal();">
+    <div class="token-settings-dialog">
+        <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(6, 182, 212, 0.08), transparent);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #06b6d4, #0284c7); color: #fff; display: flex; align-items: center; justify-content: center;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-main);">Token Lifetime Settings</h3>
+                    <p style="margin: 0; font-size: 0.78rem; color: var(--text-muted);">Configure active validity periods for all client tokens.</p>
+                </div>
+            </div>
+            <button type="button" class="btn-close" onclick="closeTokenSettingsModal()" style="background: none; border: none; font-size: 1.4rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+        </div>
+        
+        <form id="tokenSettingsForm" onsubmit="saveTokenSettings(event)" style="padding: 24px;">
+            @Html.AntiForgeryToken()
+            <div style="display: flex; flex-direction: column; gap: 18px;">
+                
+                <div>
+                    <label style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; color: var(--text-main); margin-bottom: 6px;">
+                        <span>Access Token Lifetime (Minutes)</span>
+                        <span id="txtAccessTokenHours" style="color: #06b6d4; font-weight: 700; font-size: 0.78rem;">1 hour</span>
+                    </label>
+                    <input type="number" id="inpAccessTokenLifetime" class="form-input" min="1" max="1440" required style="width: 100%;" oninput="updateTimeBadge('inpAccessTokenLifetime', 'txtAccessTokenHours', 'min')">
+                    <p style="font-size: 0.72rem; color: var(--text-muted); margin: 4px 0 0;">Short-lived token for API authorization. Default: 60 mins (1 hour).</p>
+                </div>
+
+                <div>
+                    <label style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; color: var(--text-main); margin-bottom: 6px;">
+                        <span>Refresh Token Lifetime (Days)</span>
+                        <span id="txtRefreshTokenDays" style="color: #10b981; font-weight: 700; font-size: 0.78rem;">14 days</span>
+                    </label>
+                    <input type="number" id="inpRefreshTokenLifetime" class="form-input" min="1" max="365" required style="width: 100%;" oninput="updateTimeBadge('inpRefreshTokenLifetime', 'txtRefreshTokenDays', 'day')">
+                    <p style="font-size: 0.72rem; color: var(--text-muted); margin: 4px 0 0;">Long-lived token used for silent background renewal. Default: 14 days.</p>
+                </div>
+
+                <div>
+                    <label style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; color: var(--text-main); margin-bottom: 6px;">
+                        <span>Authorization Code Lifetime (Minutes)</span>
+                        <span id="txtAuthCodeMins" style="color: #6366f1; font-weight: 700; font-size: 0.78rem;">5 mins</span>
+                    </label>
+                    <input type="number" id="inpAuthCodeLifetime" class="form-input" min="1" max="60" required style="width: 100%;" oninput="updateTimeBadge('inpAuthCodeLifetime', 'txtAuthCodeMins', 'min')">
+                    <p style="font-size: 0.72rem; color: var(--text-muted); margin: 4px 0 0;">Single-use PKCE exchange window. Default: 5 mins.</p>
+                </div>
+
+            </div>
+
+            <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                <button type="button" class="btn btn-secondary" onclick="resetTokenSettings()" style="display: inline-flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                    Reset Defaults
+                </button>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-neutral" onclick="closeTokenSettingsModal()">Cancel</button>
+                    <button type="submit" id="btnSaveTokenSettings" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px;">
+                        Save Settings
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(function () {
+        const canRevokeToken = @canRevokeToken.ToString().ToLower();
+        const $panel = $('#tokenTable').closest('.panel');
+        const $customSearch = $panel.find('.table-toolbar .form-input');
+
+        const dt = $('#tokenTable').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: {
+                url: '/Home/GetTokens',
+                type: 'POST',
+                data: function (d) {
+                    if ($customSearch.length > 0) {
+                        d.customSearchValue = $customSearch.val();
+                    }
+                }
+            },
+            responsive: false,
+            dom: '<"table-toolbar datatables-injected"<"table-filters">f>t<"if-table-footer-wrap"<"footer-right"<"if-pill-pagination-mount">>>',
+            drawCallback: function(settings) {
+                const api = this.api();
+                window.renderPillPagination(api, '.if-pill-pagination-mount', 'tokens');
+
+                const info = api.page.info();
+                const rows = api.rows({ page: 'current' }).data().toArray();
+                const total = info.recordsTotal;
+                const validCount = rows.filter(r => r.status === 'valid' || r.isRevoked === false || (r.statusName && r.statusName.toLowerCase().indexOf('valid') !== -1)).length;
+                const validRatio = rows.length > 0 ? validCount / rows.length : 0;
+                $('#totalTokensKpi').text(total || '—');
+                $('#validTokensKpi').text(Math.round(validRatio * total) || '—');
+                $('#revokedTokensKpi').text(Math.round((1 - validRatio) * total) || '—');
+            },
+            columns: [
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center align-middle',
+                    render: function (data, type, row) {
+                        return '<input type="checkbox" class="row-select-cb" data-row-id="' + (row.id || '') + '">';
+                    }
+                },
+                {
+                    data: 'subject',
+                    className: 'text-left align-middle',
+                    render: function (data, type, row) {
+                        return `<div class="cell-flex">
+                                    <div class="cell-avatar status-active">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                            <circle cx="12" cy="7" r="4"></circle>
+                                        </svg>
+                                    </div>
+                                    <div class="cell-text">
+                                        <h5>${data || 'N/A'}</h5>
+                                        <p>Ref ID: ${row.referenceId || 'N/A'}</p>
+                                    </div>
+                                </div>`;
+                    }
+                },
+                {
+                    data: 'type',
+                    className: 'text-center align-middle',
+                    render: function (data) {
+                        return `<span class="badge badge-neutral">${data || 'Unknown'}</span>`;
+                    }
+                },
+                {
+                    data: 'status',
+                    className: 'text-center align-middle',
+                    render: function (data) {
+                        if (data === 'valid') return '<span class="badge badge-success">Valid</span>';
+                        if (data === 'revoked') return '<span class="badge badge-error">Revoked</span>';
+                        return `<span class="badge badge-neutral">${data}</span>`;
+                    }
+                },
+                {
+                    data: 'creationDate',
+                    className: 'text-center align-middle',
+                    render: function (data) {
+                        if (!data) return '-';
+                        return new Date(data).toLocaleString();
+                    }
+                },
+                {
+                    data: 'expirationDate',
+                    className: 'text-center align-middle',
+                    render: function (data) {
+                        if (!data) return '-';
+                        return new Date(data).toLocaleString();
+                    }
+                },
+                { 
+                    data: 'referenceId', 
+                    visible: false, 
+                    className: 'text-left align-middle',
+                    render: function(d){ 
+                        return `<span style="font-family: monospace; font-size: 0.72rem; color: var(--text-muted);">${d || 'N/A'}</span>`; 
+                    } 
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    className: 'text-center align-middle',
+                    render: function (data, type, row) {
+                        if (row.status === 'revoked') {
+                            return `<div style="display: flex; align-items: center; justify-content: center;"><span class="text-muted">Revoked</span></div>`;
+                        }
+                        if (canRevokeToken) {
+                            return `<div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                        <button class="btn btn-error btn-sm" onclick="revokeToken('${row.id}')">
+                                            Revoke
+                                        </button>
+                                    </div>`;
+                        }
+                        return '';
+                    }
+                }
+            ]
+        });
+
+        if ($customSearch.length > 0) {
+            let searchTimeout;
+            $customSearch.on('keyup', function () {
+                clearTimeout(searchTimeout);
+                const val = this.value;
+                searchTimeout = setTimeout(() => {
+                    dt.search(val).draw();
+                }, 400);
+            });
+        }
+
+        // Initialize row selection for smart export
+        window.initRowSelection('tokenTable', 'id');
+    });
+
+    function revokeToken(id) {
+        if (!confirm('Are you sure you want to revoke this token immediately? This action cannot be undone.')) return;
+        
+        $.ajax({
+            url: '/Home/RevokeToken',
+            type: 'POST',
+            data: { id: id },
+            success: function (response) {
+                if(response && response.succeeded) {
+                    $('#tokenTable').DataTable().ajax.reload();
+                    if (window.appToast) {
+                        window.appToast.show('delete', 'Token Revoked', response.message || 'Token has been revoked immediately.');
+                    }
+                } else {
+                    if (window.appToast) {
+                        window.appToast.show('error', 'Revocation Failed', response.message || 'Failed to revoke the token.');
+                    }
+                }
+            },
+            error: function () {
+                if (window.appToast) {
+                    window.appToast.show('error', 'Error', 'An error occurred while revoking the token.');
+                }
+            }
+        });
+    }
+
+    // ── Token Settings Modal Functions ─────────────────────────────────────────
+
+    function openTokenSettingsModal() {
+        const $modal = $('#tokenSettingsModal');
+        $modal.addClass('open').css('display', 'flex');
+        
+        $.ajax({
+            url: '/Home/GetTokenLifetimeSettings',
+            type: 'GET',
+            success: function(res) {
+                if (res && res.succeeded && res.data) {
+                    $('#inpAccessTokenLifetime').val(res.data.accessTokenLifetimeMinutes || 60);
+                    $('#inpRefreshTokenLifetime').val(res.data.refreshTokenLifetimeDays || 14);
+                    $('#inpAuthCodeLifetime').val(res.data.authorizationCodeLifetimeMinutes || 5);
+                    
+                    updateTimeBadge('inpAccessTokenLifetime', 'txtAccessTokenHours', 'min');
+                    updateTimeBadge('inpRefreshTokenLifetime', 'txtRefreshTokenDays', 'day');
+                    updateTimeBadge('inpAuthCodeLifetime', 'txtAuthCodeMins', 'min');
+                }
+            },
+            error: function() {
+                if (window.appToast) {
+                    window.appToast.show('error', 'Error', 'Failed to load token lifetime settings.');
+                }
+            }
+        });
+    }
+
+    function closeTokenSettingsModal() {
+        const $modal = $('#tokenSettingsModal');
+        $modal.removeClass('open').css('display', 'none');
+    }
+
+    function updateTimeBadge(inpId, badgeId, type) {
+        const val = parseInt($('#' + inpId).val()) || 0;
+        let text = '';
+        if (type === 'min') {
+            if (val >= 60) {
+                const hrs = (val / 60).toFixed(1).replace('.0', '');
+                text = `${val} mins (${hrs} hr${hrs > 1 ? 's' : ''})`;
+            } else {
+                text = `${val} mins`;
+            }
+        } else if (type === 'day') {
+            text = `${val} day${val > 1 ? 's' : ''}`;
+        }
+        $('#' + badgeId).text(text);
+    }
+
+    function saveTokenSettings(e) {
+        e.preventDefault();
+        
+        const payload = {
+            accessTokenLifetimeMinutes: parseInt($('#inpAccessTokenLifetime').val()) || 60,
+            refreshTokenLifetimeDays: parseInt($('#inpRefreshTokenLifetime').val()) || 14,
+            authorizationCodeLifetimeMinutes: parseInt($('#inpAuthCodeLifetime').val()) || 5
+        };
+
+        const token = $('input[name="__RequestVerificationToken"]').val();
+
+        $('#btnSaveTokenSettings').prop('disabled', true).text('Saving...');
+
+        $.ajax({
+            url: '/Home/UpdateTokenLifetimeSettings',
+            type: 'POST',
+            contentType: 'application/json',
+            headers: {
+                'RequestVerificationToken': token
+            },
+            data: JSON.stringify(payload),
+            success: function(res) {
+                $('#btnSaveTokenSettings').prop('disabled', false).text('Save Settings');
+                if (res && res.succeeded) {
+                    closeTokenSettingsModal();
+                    if (window.appToast) {
+                        window.appToast.show('success', 'Settings Updated', res.messages ? res.messages[0] : 'Token lifetime settings saved successfully.');
+                    }
+                } else {
+                    if (window.appToast) {
+                        window.appToast.show('error', 'Update Failed', res.messages ? res.messages[0] : 'Failed to update settings.');
+                    }
+                }
+            },
+            error: function() {
+                $('#btnSaveTokenSettings').prop('disabled', false).text('Save Settings');
+                if (window.appToast) {
+                    window.appToast.show('error', 'Error', 'An error occurred while saving token settings.');
+                }
+            }
+        });
+    }
+
+    function resetTokenSettings() {
+        if (!confirm('Are you sure you want to reset token lifetime settings to system defaults (from appsettings.json)?')) return;
+
+        const token = $('input[name="__RequestVerificationToken"]').val();
+
+        $.ajax({
+            url: '/Home/ResetTokenLifetimeSettings',
+            type: 'POST',
+            headers: {
+                'RequestVerificationToken': token
+            },
+            success: function(res) {
+                if (res && res.succeeded && res.data) {
+                    $('#inpAccessTokenLifetime').val(res.data.accessTokenLifetimeMinutes);
+                    $('#inpRefreshTokenLifetime').val(res.data.refreshTokenLifetimeDays);
+                    $('#inpAuthCodeLifetime').val(res.data.authorizationCodeLifetimeMinutes);
+                    
+                    updateTimeBadge('inpAccessTokenLifetime', 'txtAccessTokenHours', 'min');
+                    updateTimeBadge('inpRefreshTokenLifetime', 'txtRefreshTokenDays', 'day');
+                    updateTimeBadge('inpAuthCodeLifetime', 'txtAuthCodeMins', 'min');
+
+                    if (window.appToast) {
+                        window.appToast.show('info', 'Settings Reset', 'Token lifetime settings reset to system defaults.');
+                    }
+                }
+            },
+            error: function() {
+                if (window.appToast) {
+                    window.appToast.show('error', 'Error', 'Failed to reset settings.');
+                }
+            }
+        });
+    }
+</script>

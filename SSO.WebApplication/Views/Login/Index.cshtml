@@ -1,0 +1,283 @@
+@using SSO.Domain.Entities
+@model SSO.Application.Requests.Identity.TokenRequest;
+@{
+    var tenant = ViewBag.TenantBranding as Tenants;
+    var rawLogo = tenant?.LogoUrl?.Replace("\\", "/");
+    var logo = !string.IsNullOrEmpty(rawLogo) ? "/" + rawLogo : "/pwa-icon-512.png";
+    var tenantName = tenant?.Name ?? "SSO Login";
+    ViewData["Title"] = "Sign In";
+    ViewData["ChalkSubtitle"] = "Identity System";
+
+    bool showMethodChooser = ViewBag.ShowMethodChooser == true;
+    bool isMobileOnly = ViewBag.IsMobileOtpOnly == true;
+    bool isCredentialsOnly = ViewBag.IsCredentialsOnly == true;
+    
+    string currentFlow = Model?.LoginFlow ?? "credentials";
+    if (isMobileOnly) currentFlow = "mobile";
+    if (isCredentialsOnly) currentFlow = "credentials";
+}
+
+<style>
+    .auth-method-switcher {
+        display: flex;
+        background: var(--bg-surface-hover);
+        border-radius: var(--radius-md);
+        padding: 4px;
+        margin-bottom: 24px;
+    }
+    .auth-method-btn {
+        flex: 1;
+        text-align: center;
+        padding: 8px 0;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+        border-radius: var(--radius-sm);
+        transition: all 0.2s;
+    }
+    .auth-method-btn.active {
+        background: var(--bg-surface);
+        color: var(--text-primary);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .otp-resend-link {
+        font-size: 0.8rem;
+        color: var(--brand-primary);
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        margin-top: 8px;
+    }
+    .otp-resend-link.disabled {
+        color: var(--text-muted);
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+</style>
+
+<button type="button" id="loginBackButton" class="chalk-back-btn-top" style="display:@(Model?.Step > 1 ? "flex" : "none");" aria-label="Go back" onclick="if(window.goBackToStep1) window.goBackToStep1(event);">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+    </svg>
+</button>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    var msg = TempData["SuccessMessage"].ToString();
+    <div class="chalk-alert chalk-alert-success reg-success-card" style="margin-bottom: 20px; border-left: 4px solid #10B981; background: rgba(16, 185, 129, 0.12); border-radius: 12px; padding: 14px 16px; display: flex; align-items: flex-start; gap: 12px; box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15); animation: popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div style="background: rgba(16, 185, 129, 0.25); border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #10B981;">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+        </div>
+        <div style="flex: 1;">
+            <div style="font-weight: 600; color: #10B981; font-size: 0.92rem; letter-spacing: 0.2px;">Account Ready!</div>
+            <div style="font-size: 0.84rem; color: #E2E8F0; margin-top: 3px; line-height: 1.4;">@msg</div>
+        </div>
+    </div>
+}
+
+<div class="chalk-card-header">
+     <h2 class="chalk-card-title" id="loginCardTitle">
+         @(Model?.Step == 1 ? "Sign In" : Model?.Step == 2 ? "Welcome Back" : "Verification")
+     </h2>
+</div>
+
+<!-- Step Progress Indicator -->
+<div class="chalk-step-indicator" id="stepIndicator">
+    <div class="chalk-step-node @(Model?.Step > 1 ? "chalk-step-completed" : "chalk-step-active")" id="stepNode1">
+        <div class="chalk-step-circle">
+            <svg class="chalk-step-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span class="chalk-step-number">1</span>
+        </div>
+        <span class="chalk-step-label">Identity</span>
+    </div>
+    
+    <div class="chalk-step-line @(Model?.Step > 1 ? "chalk-step-active" : "")" id="stepLine1"></div>
+    
+    <div class="chalk-step-node @(Model?.Step > 2 ? "chalk-step-completed" : Model?.Step == 2 ? "chalk-step-active" : "")" id="stepNode2">
+        <div class="chalk-step-circle">
+            <svg class="chalk-step-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span class="chalk-step-number">2</span>
+        </div>
+        <span class="chalk-step-label" id="step2Label">Password</span>
+    </div>
+</div>
+
+@{
+    var hasModelLevelErrors = !ViewData.ModelState.IsValid && ViewData.ModelState.ContainsKey(string.Empty) && ViewData.ModelState[string.Empty].Errors.Count > 0;
+    var firstError = ViewData.ModelState.Values.SelectMany(v => v.Errors).FirstOrDefault()?.ErrorMessage;
+    var initialError = TempData["ErrorMessage"]?.ToString() ?? (!hasModelLevelErrors ? firstError : null);
+    var hasAnyError = !string.IsNullOrEmpty(initialError) || hasModelLevelErrors;
+}
+<div class="chalk-alert chalk-alert-error" id="loginAlertBox" style="display:@(hasAnyError ? "block" : "none");">
+    <div id="loginAlertMessage">
+        @if (!string.IsNullOrEmpty(initialError))
+        {
+            <span>@initialError</span>
+        }
+        else if (hasModelLevelErrors)
+        {
+            <div asp-validation-summary="ModelOnly" class="chalk-validation-summary"></div>
+        }
+    </div>
+</div>
+
+@if (TempData["InfoMessage"] != null)
+{
+    <div class="chalk-alert chalk-alert-info" id="infoAlertBox">
+        @TempData["InfoMessage"]
+    </div>
+}
+
+<form method="post" asp-action="Index" asp-controller="Login" asp-route-returnUrl="@Model?.ReturnUrl" id="loginForm" autocomplete="off">
+    <!-- Dummy inputs to permanently block Chrome/Edge autofill -->
+    <input type="text" style="display:none !important;" tabindex="-1" autocomplete="new-password" aria-hidden="true">
+    <input type="password" style="display:none !important;" tabindex="-1" autocomplete="new-password" aria-hidden="true">
+
+    <input type="hidden" asp-for="ReturnUrl" />
+    <input type="hidden" asp-for="Step" id="currentStep" />
+    <input type="hidden" asp-for="LoginFlow" id="loginFlowInput" value="@currentFlow" />
+
+    @if (showMethodChooser)
+    {
+        <div class="auth-method-switcher" id="methodSwitcher" style="display:@(Model?.Step == 1 ? "flex" : "none");">
+            <div class="auth-method-btn @(currentFlow == "credentials" ? "active" : "")" data-flow="credentials">Password</div>
+            <div class="auth-method-btn @(currentFlow == "mobile" ? "active" : "")" data-flow="mobile">Mobile OTP</div>
+        </div>
+    }
+
+    <!-- User Identity Preview Card (Steps > 1) -->
+    <div class="chalk-user-preview" id="userPreview" style="display:@(Model?.Step > 1 ? "block" : "none");">
+        <div class="chalk-user-preview-card">
+            <div class="chalk-user-avatar">
+                <span id="avatarLetter">@(string.IsNullOrEmpty(Model?.UserName) && string.IsNullOrEmpty(Model?.PhoneOrEmail) ? "U" : (Model?.UserName ?? Model?.PhoneOrEmail ?? "U").Substring(0,1).ToUpper())</span>
+            </div>
+            <div class="chalk-user-info">
+                <p class="chalk-user-name" id="previewUserName">@(currentFlow == "mobile" ? Model?.PhoneOrEmail : Model?.UserName)</p>
+            </div>
+            <button type="button" class="chalk-edit-identity-btn" id="changeAccountButton" aria-label="Edit username" onclick="if(window.goBackToStep1) window.goBackToStep1(event);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- STEP 1: Identifier (Credentials Flow) -->
+    <div class="form-group" id="group-credentials-identifier" style="display:@(Model?.Step == 1 && currentFlow == "credentials" ? "block" : "none");">
+        <div class="chalk-input-wrap">
+            <svg class="chalk-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+            </svg>
+            <input type="text" class="form-input" asp-for="UserName" placeholder="Email or username" autocomplete="off" readonly onfocus="this.removeAttribute('readonly');" onclick="this.removeAttribute('readonly');" onmouseover="this.removeAttribute('readonly');" maxlength="256" data-val="true" data-val-required="Email or username is required.">
+            <button type="button" class="clear-input-btn" aria-label="Clear text" tabindex="-1" style="display: none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="m15 9-6 6"></path>
+                    <path d="m9 9 6 6"></path>
+                </svg>
+            </button>
+        </div>
+        <span asp-validation-for="UserName" class="text-danger"></span>
+    </div>
+
+    <!-- STEP 1: Identifier (Mobile OTP Flow) -->
+    <div class="form-group" id="group-mobile-identifier" style="display:@(Model?.Step == 1 && currentFlow == "mobile" ? "block" : "none");">
+        <div class="chalk-input-wrap">
+            <svg class="chalk-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            </svg>
+            <input type="text" class="form-input" asp-for="PhoneOrEmail" placeholder="Email or phone number" autocomplete="off" readonly onfocus="this.removeAttribute('readonly');" onclick="this.removeAttribute('readonly');" onmouseover="this.removeAttribute('readonly');" data-val="true" data-val-required="Email or phone number is required.">
+            <button type="button" class="clear-input-btn" aria-label="Clear text" tabindex="-1" style="display: none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="m15 9-6 6"></path>
+                    <path d="m9 9 6 6"></path>
+                </svg>
+            </button>
+        </div>
+        <span asp-validation-for="PhoneOrEmail" class="text-danger"></span>
+    </div>
+
+    <!-- STEP 2: Password (Credentials Flow) -->
+    <div class="form-group" id="group-credentials-password" style="display:@(Model?.Step == 2 && currentFlow == "credentials" ? "block" : "none");">
+        <div class="chalk-input-wrap">
+            <svg class="chalk-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <input type="password" class="form-input" asp-for="Password" placeholder="Password" autocomplete="current-password">
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility(this)" aria-label="Toggle password visibility">
+                <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <svg class="eye-off-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+            </button>
+        </div>
+        <span asp-validation-for="Password" class="text-danger"></span>
+        
+        <div class="chalk-checkbox-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 10px;">
+            <div style="display: flex; align-items: center; gap: 0.625rem;">
+                <input type="checkbox" id="remember" asp-for="RememberMe">
+                <label for="remember">Remember me</label>
+            </div>
+            <a asp-action="ForgotPassword" asp-controller="Login" asp-route-returnUrl="@(Model?.ReturnUrl ?? string.Empty)" class="chalk-link-forgot-inline">
+                Forgot Password?
+            </a>
+        </div>
+    </div>
+
+    <!-- STEP 2 (Mobile Flow) OR STEP 3 (Credentials Flow) : OTP Verification -->
+    <div class="form-group" id="group-otp" style="display:@((Model?.Step == 2 && currentFlow == "mobile") || Model?.Step == 3 ? "block" : "none");">
+        <div class="chalk-input-wrap">
+            <svg class="chalk-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+            </svg>
+            <input type="text" class="form-input" asp-for="TwoFactorCode" placeholder="6-digit verification code" autocomplete="one-time-code" maxlength="6" inputmode="numeric">
+        </div>
+        <span asp-validation-for="TwoFactorCode" class="text-danger"></span>
+        <div class="chalk-checkbox-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 10px;">
+            <div style="display: flex; align-items: center; gap: 0.625rem;">
+                <input type="checkbox" id="rememberOtp" name="RememberMe" value="true" @(Model?.RememberMe == true ? "checked" : "")>
+                <label for="rememberOtp">Remember me</label>
+            </div>
+            <a class="otp-resend-link" id="resendOtpBtn">Resend Code</a>
+        </div>
+    </div>
+
+    <button type="submit" class="chalk-btn" id="loginContinueButton">
+        <span id="loginContinueText">@(Model?.Step > 1 ? "Sign In" : "Continue")</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14"></path>
+            <path d="m12 5 7 7-7 7"></path>
+        </svg>
+    </button>
+</form>
+
+<!-- Links (Conditional based on client public registration configuration) -->
+@if (ViewBag.AllowRegistration == true)
+{
+    <div class="chalk-links">
+        <div class="chalk-links-divider">
+            <span class="chalk-link">New user? </span>
+            <a asp-action="Register" asp-controller="Login" asp-route-returnUrl="@(Model?.ReturnUrl ?? string.Empty)" class="chalk-link-bold">Sign Up</a>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="~/js/login.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,129 @@
+@{
+    Layout = null;
+}
+@Html.AntiForgeryToken()
+
+<div class="modal-body">
+    <div style="padding: 20px;">
+        <div class="form-group">
+            <label class="form-label">Excel File</label>
+            <div class="file-upload-container" id="excelDropZone" style="border: 2px dashed var(--border-color); border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.2s;">
+                <input type="file" id="importExcelFile" accept=".xlsx, .xls" style="display: none;">
+                <div style="color: var(--brand-primary); margin-bottom: 12px;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                </div>
+                <h4 id="fileNameDisplay">Click to browse or drag and drop</h4>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">Supports .xlsx and .xls formats</p>
+            </div>
+        </div>
+
+        <div style="margin-top: 24px; padding: 16px; background: var(--bg-neutral); border-radius: 8px;">
+            <h5 style="margin-bottom: 8px; color: var(--text-primary);">Excel Requirements:</h5>
+            <ul style="color: var(--text-muted); font-size: 0.85rem; padding-left: 20px;">
+                <li>Headers: <strong>Scope Name</strong>, <strong>Display Name</strong>, <strong>Permission Code</strong>, <strong>Permission Description</strong></li>
+                <li>Multiple permissions per scope are supported by adding multiple rows with same Scope Name.</li>
+                <li style="margin-top: 8px;"><a href="/Home/DownloadScopeImportTemplate" style="color: var(--brand-primary); text-decoration: underline;">Download Excel Template</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" onclick="window.closeModal()">Cancel</button>
+    <button type="button" class="btn btn-primary" id="submitImportScopes" disabled>
+        Start Import
+    </button>
+</div>
+
+<script>
+    $(function() {
+    const $fileInput = $('#importExcelFile');
+    const $dropZone = $('#excelDropZone');
+    const $nameDisplay = $('#fileNameDisplay');
+    const $submitBtn = $('#submitImportScopes');
+    const allowedExtensions = ['.xlsx', '.xls'];
+    const maxBytes = 10 * 1024 * 1024;
+
+    function resetImportSelection(message) {
+    $fileInput.val('');
+    $nameDisplay.text(message || 'Click to browse or drag and drop').css('color', '');
+    $submitBtn.prop('disabled', true);
+    }
+
+    $dropZone.on('click', () => $fileInput[0].click());
+
+    $fileInput.on('change', function() {
+    if (this.files && this.files[0]) {
+    const file = this.files[0];
+    const normalizedName = file.name.toLowerCase();
+    const hasValidExtension = allowedExtensions.some(ext => normalizedName.endsWith(ext));
+
+    if (!hasValidExtension) {
+    Swal.fire('Invalid File', 'Please choose an Excel file in .xlsx or .xls format.', 'warning');
+    resetImportSelection();
+    return;
+    }
+
+    if (file.size > maxBytes) {
+    Swal.fire('File Too Large', 'Excel imports must be 10 MB or smaller.', 'warning');
+    resetImportSelection();
+    return;
+    }
+
+    $nameDisplay.text(file.name).css('color', 'var(--brand-primary)');
+    $submitBtn.prop('disabled', false);
+    }
+    });
+
+    $dropZone.on('dragover', function(e) {
+    e.preventDefault();
+    $(this).css('border-color', 'var(--brand-primary)');
+    }).on('dragleave', function() {
+    $(this).css('border-color', 'var(--border-color)');
+    }).on('drop', function(e) {
+    e.preventDefault();
+    const files = e.originalEvent.dataTransfer.files;
+    if (files.length) {
+    $fileInput[0].files = files;
+    $fileInput.trigger('change');
+    }
+    $(this).css('border-color', 'var(--border-color)');
+    });
+
+    $('#submitImportScopes').off('click').on('click', function() {
+    const file = $fileInput[0].files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('__RequestVerificationToken', $('input[name="__RequestVerificationToken"]').val());
+
+    const $btn = $(this);
+    $btn.prop('disabled', true).html('Importing...');
+
+    $.ajax({
+    url: '/Home/ImportScopes?clientId=@ViewBag.ClientId',
+    type: 'POST',
+    data: formData,
+    processData: false,
+    contentType: false,
+    success: function(result) {
+    if (result.succeeded) {
+    window.closeModal();
+    if (window.onModalSuccess) window.onModalSuccess(result);
+    } else {
+    $btn.prop('disabled', false).html('Start Import');
+    }
+    },
+    error: function() {
+    Swal.fire('Error', 'Server communication failed.', 'error');
+    $btn.prop('disabled', false).html('Start Import');
+    }
+    });
+    });
+    });
+</script>

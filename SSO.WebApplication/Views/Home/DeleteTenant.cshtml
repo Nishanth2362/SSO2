@@ -1,0 +1,78 @@
+@{
+    Layout = null;
+}
+@model SSO.Application.Features.Tenants.Commands.Delete.DeleteTenantCommand
+
+<form id="deleteTenantForm">
+    <input type="hidden" asp-for="Id" />
+    <div class="modal-body" style="padding: 20px;">
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0 0 16px; line-height: 1.5;">
+            This cannot be undone. Type <strong style="color: var(--text-main); font-weight: 700;">DELETE</strong> to confirm.
+        </p>
+        <div style="margin-bottom: 8px;">
+            <input type="text" class="form-input delete-confirm-input" placeholder="Type DELETE to confirm" autocomplete="off" style="width: 100%; height: 40px; padding: 0 12px; font-size: 0.88rem; border-radius: var(--radius-md, 8px); border: 1px solid var(--border-subtle); background: var(--bg-base); color: var(--text-main);" />
+        </div>
+    </div>
+    <!-- Modal Footer -->
+    <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--border-subtle);">
+        <button type="button" class="btn btn-secondary" onclick="window.closeModal()">Cancel</button>
+        <button type="submit" class="btn btn-error btn-delete-confirm" id="confirmDeleteTenant" disabled style="opacity: 0.5; cursor: not-allowed;">
+            Delete forever
+        </button>
+    </div>
+</form>
+
+<script>
+    $('.delete-confirm-input').off('input keyup paste change').on('input keyup paste change', function() {
+        const val = $(this).val().trim();
+        const $btn = $('#confirmDeleteTenant');
+        if (val === 'DELETE') {
+            $btn.prop('disabled', false).css({ opacity: '1', cursor: 'pointer' });
+        } else {
+            $btn.prop('disabled', true).css({ opacity: '0.5', cursor: 'not-allowed' });
+        }
+    });
+
+    $('#deleteTenantForm').off('submit').on('submit', function(e) {
+        e.preventDefault();
+        const $input = $(this).find('.delete-confirm-input');
+        if ($input.length && $input.val().trim() !== 'DELETE') return;
+
+        const $btn = $('#confirmDeleteTenant');
+        $btn.prop('disabled', true).html('Deleting...');
+
+        const formData = $(this).serialize();
+
+        $.post('/Home/DeleteTenant', formData, function(result) {
+            if (result.succeeded) {
+                window.closeModal();
+                if (window.appToast) {
+                    window.appToast.show('delete', 'Tenant Deleted', result.messages ? result.messages[0] : 'Tenant has been deleted successfully.');
+                }
+                if (window.onModalSuccess) {
+                    window.onModalSuccess(result);
+                } else {
+                    if(window.dt) {
+                        window.dt.ajax.reload();
+                    } else if($('#tenantTable').length) {
+                        $('#tenantTable').DataTable().ajax.reload();
+                    } else {
+                        location.reload();
+                    }
+                }
+            } else {
+                if (window.appToast) {
+                    window.appToast.show('error', 'Delete Failed', result.messages ? result.messages[0] : 'Failed to delete tenant.');
+                }
+                $btn.prop('disabled', false).html('Delete forever');
+            }
+        }).fail(function(xhr) {
+            window.showRequestError({
+                title: 'Unable to Delete Tenant',
+                xhr: xhr,
+                fallbackMessage: 'We could not delete this tenant right now. Please try again.'
+            });
+            $btn.prop('disabled', false).html('Delete forever');
+        });
+    });
+</script>

@@ -1,0 +1,1571 @@
+@{
+    Layout = null;
+    var clients = ViewBag.Clients as List<SSO.Domain.Entities.ApplicationClient> ?? new List<SSO.Domain.Entities.ApplicationClient>();
+    if (string.IsNullOrEmpty(Model.Currency))
+    {
+        Model.Currency = "INR";
+    }
+    string themeQuery = Context.Request.Query["theme"].ToString().ToLower();
+    bool isCyanTheme = themeQuery == "cyan";
+}
+@model SSO.Application.Features.Tenants.Commands.AddEdit.AddEditTenentCommand
+
+@using SSO.Common.Constants.Application
+
+<style>
+    /* Theme color variables: Default Original (Tenants module Violet #7C5CFC) vs Cyan (#06B6D4) */
+    #createTenantForm {
+        --ct-primary: #7C5CFC;
+        --ct-primary-dark: #6366F1;
+        --ct-gradient: linear-gradient(135deg, #7C5CFC 0%, #6366F1 100%);
+        --ct-shadow: 0 4px 12px rgba(124, 92, 252, 0.35);
+        --ct-focus-shadow: 0 0 0 3px rgba(124, 92, 252, 0.15);
+        --ct-light-bg: rgba(124, 92, 252, 0.04);
+        --ct-icon-bg: rgba(124, 92, 252, 0.1);
+        --ct-banner-bg: #F5F3FF;
+    }
+
+    #createTenantForm.ct-cyan-theme {
+        --ct-primary: #06B6D4;
+        --ct-primary-dark: #0891B2;
+        --ct-gradient: linear-gradient(135deg, #06B6D4 0%, #0891B2 100%);
+        --ct-shadow: 0 4px 12px rgba(6, 182, 212, 0.35);
+        --ct-focus-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+        --ct-light-bg: rgba(6, 182, 212, 0.03);
+        --ct-icon-bg: rgba(6, 182, 212, 0.1);
+        --ct-banner-bg: #ECFEFF;
+    }
+    /* ═══════════════════════════════════════════════════════════
+       CREATE TENANT REDESIGNED MODAL STYLES (Fixed Viewport & Visible Footer)
+       ═══════════════════════════════════════════════════════════ */
+    
+    /* Modal Backdrop & Center Positioning */
+    #appModal {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 16px !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Fixed Dialog Sizing - Fits view height, no card scrolling */
+    #appModal .modal-dialog {
+        max-width: 1100px !important;
+        width: 92vw !important;
+        max-height: calc(100vh - 32px) !important;
+        height: auto !important;
+        border-radius: 20px !important;
+        background: #ffffff !important;
+        box-shadow: 0 25px 70px rgba(15, 23, 42, 0.18) !important;
+        border: 1px solid #E5E7EB !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+        margin: auto !important;
+    }
+
+    html[data-theme="dark"] #appModal .modal-dialog {
+        background: #11141f !important;
+        border-color: #1e2436 !important;
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    #appModal #modalContent {
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+    }
+
+    #createTenantForm {
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        height: 100% !important;
+        margin: 0 !important;
+    }
+
+    /* Fixed Header at Top */
+    #appModal .modal-header {
+        flex-shrink: 0 !important;
+        padding: 16px 24px 12px 24px !important;
+        border-bottom: 1px solid #F1F5F9 !important;
+        background: #ffffff !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+    }
+
+    html[data-theme="dark"] #appModal .modal-header {
+        background: #11141f !important;
+        border-color: #1e2436 !important;
+    }
+
+    #appModal .modal-title {
+        font-size: 1.55rem !important;
+        font-weight: 800 !important;
+        color: #0F172A !important;
+        letter-spacing: -0.02em !important;
+        margin: 0 !important;
+    }
+
+    html[data-theme="dark"] #appModal .modal-title {
+        color: #F8FAFC !important;
+    }
+
+    #appModal .modal-subtitle {
+        font-size: 0.82rem !important;
+        color: #64748B !important;
+        margin-top: 2px !important;
+        font-weight: 400 !important;
+    }
+
+    #appModal .modal-icon {
+        display: none !important;
+    }
+
+    #appModal .modal-close-btn {
+        width: 34px !important;
+        height: 34px !important;
+        border-radius: 10px !important;
+        background: #F8FAFC !important;
+        border: 1px solid #E5E7EB !important;
+        color: #64748B !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+    }
+
+    #appModal .modal-close-btn:hover {
+        background: #F1F5F9 !important;
+        color: #0F172A !important;
+    }
+
+    /* Main Content Wrapper - Scrollable internal body if viewport is small */
+    .ct-modal-wrapper {
+        flex: 1 1 auto !important;
+        padding: 16px 24px !important;
+        overflow-y: auto !important;
+        min-height: 0 !important;
+    }
+
+    /* TWO-COLUMN LAYOUT (Left Form 70% | Right Summary 30%) */
+    .ct-wizard-layout {
+        display: flex;
+        gap: 24px;
+        align-items: flex-start;
+    }
+
+    .ct-form-section {
+        flex: 1 1 660px;
+        min-width: 0;
+    }
+
+    .ct-summary-section {
+        width: 290px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 0;
+    }
+
+    /* STEPPER HEADER (5-step Horizontal Progress Bar) */
+    .wizard-steps-header {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        position: relative !important;
+        margin-bottom: 16px !important;
+        padding: 0 4px !important;
+    }
+
+    .wizard-steps-header::before {
+        content: "" !important;
+        position: absolute !important;
+        top: 14px !important;
+        left: 35px !important;
+        right: 35px !important;
+        height: 2px !important;
+        background: #E2E8F0 !important;
+        z-index: 0 !important;
+    }
+
+    html[data-theme="dark"] .wizard-steps-header::before {
+        background: #1e2436 !important;
+    }
+
+    .wizard-step-indicator {
+        position: relative !important;
+        z-index: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        cursor: default !important;
+    }
+
+    .wizard-step-indicator .step-number {
+        width: 28px !important;
+        height: 28px !important;
+        border-radius: 50% !important;
+        background: #F1F5F9 !important;
+        border: 2px solid #E2E8F0 !important;
+        color: #64748B !important;
+        font-weight: 700 !important;
+        font-size: 12px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.25s ease !important;
+    }
+
+    html[data-theme="dark"] .wizard-step-indicator .step-number {
+        background: #181c2b !important;
+        border-color: #262d42 !important;
+        color: #94A3B8 !important;
+    }
+
+    .wizard-step-indicator.active .step-number {
+        background: var(--ct-primary) !important;
+        border-color: var(--ct-primary) !important;
+        color: #ffffff !important;
+        box-shadow: var(--ct-shadow) !important;
+    }
+
+    .wizard-step-indicator.completed .step-number {
+        background: #22C55E !important;
+        border-color: #22C55E !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3) !important;
+        font-size: 0 !important;
+    }
+
+    .wizard-step-indicator.completed .step-number::after {
+        content: "✓" !important;
+        font-size: 13px !important;
+        font-weight: 800 !important;
+    }
+
+    .wizard-step-indicator .step-label {
+        font-size: 0.72rem !important;
+        font-weight: 600 !important;
+        color: #94A3B8 !important;
+        margin-top: 5px !important;
+        white-space: nowrap !important;
+        transition: color 0.2s ease !important;
+    }
+
+    .wizard-step-indicator.active .step-label {
+        color: var(--ct-primary) !important;
+        font-weight: 700 !important;
+    }
+
+    .wizard-step-indicator.completed .step-label {
+        color: #22C55E !important;
+        font-weight: 600 !important;
+    }
+
+    /* SECTION CARDS & FORM DESIGN */
+    .ct-card-section {
+        background: #ffffff;
+        border: 1px solid #E5E7EB;
+        border-radius: 14px;
+        padding: 14px 18px;
+        margin-bottom: 14px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+    }
+
+    html[data-theme="dark"] .ct-card-section {
+        background: #181c2b;
+        border-color: #262d42;
+    }
+
+    .ct-card-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #F1F5F9;
+    }
+
+    html[data-theme="dark"] .ct-card-header {
+        border-color: #262d42;
+    }
+
+    .ct-card-icon {
+        color: var(--ct-primary);
+        display: flex;
+        align-items: center;
+    }
+
+    .ct-card-title {
+        font-size: 0.98rem;
+        font-weight: 700;
+        color: #0F172A;
+        margin: 0;
+    }
+
+    html[data-theme="dark"] .ct-card-title {
+        color: #F8FAFC;
+    }
+
+    .ct-card-subtitle {
+        font-size: 0.76rem;
+        margin-top: 1px;
+    }
+
+    .ct-grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    @@media (max-width: 640px) {
+        .ct-grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .modal-field {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 10px;
+    }
+
+    .modal-label {
+        font-size: 0.78rem !important;
+        font-weight: 600 !important;
+        color: #334155 !important;
+        margin-bottom: 3px !important;
+    }
+
+    html[data-theme="dark"] .modal-label {
+        color: #CBD5E1 !important;
+    }
+
+    .required-star {
+        color: #EF4444;
+        margin-left: 2px;
+    }
+
+    .modal-input, .modal-select {
+        height: 40px !important;
+        padding: 0 12px !important;
+        border-radius: 10px !important;
+        border: 1px solid #E5E7EB !important;
+        background: #ffffff !important;
+        color: #0F172A !important;
+        font-size: 0.84rem !important;
+        font-weight: 500 !important;
+        outline: none !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+        transition: all 0.2s ease !important;
+        box-sizing: border-box !important;
+        width: 100% !important;
+    }
+
+    html[data-theme="dark"] .modal-input, html[data-theme="dark"] .modal-select {
+        background: #11141f !important;
+        border-color: #262d42 !important;
+        color: #F8FAFC !important;
+    }
+
+    .modal-input:hover, .modal-select:hover {
+        border-color: #CBD5E1 !important;
+    }
+
+    .modal-input:focus, .modal-select:focus {
+        border-color: var(--ct-primary) !important;
+        box-shadow: var(--ct-focus-shadow) !important;
+    }
+
+    .field-hint {
+        font-size: 0.72rem !important;
+        color: #64748B !important;
+        margin-top: 3px !important;
+        line-height: 1.3 !important;
+    }
+
+    /* Activation Settings Toggle Cards */
+    .ct-toggle-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        background: #F8FAFC;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: border-color 0.2s ease;
+    }
+
+    html[data-theme="dark"] .ct-toggle-card {
+        background: #11141f;
+        border-color: #262d42;
+    }
+
+    .ct-toggle-card:hover {
+        border-color: #CBD5E1;
+    }
+
+    .ct-toggle-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .ct-toggle-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: var(--ct-icon-bg);
+        color: var(--ct-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .ct-toggle-label {
+        font-weight: 700;
+        font-size: 0.84rem;
+        color: #0F172A;
+    }
+
+    html[data-theme="dark"] .ct-toggle-label {
+        color: #F8FAFC;
+    }
+
+    .ct-toggle-desc {
+        font-size: 0.72rem;
+        color: #64748B;
+        margin-top: 1px;
+    }
+
+    /* Toggle Switch Component */
+    .toggle-switch {
+        position: relative;
+        width: 42px;
+        height: 22px;
+        flex-shrink: 0;
+    }
+
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-track {
+        position: absolute;
+        inset: 0;
+        background-color: #CBD5E1;
+        border-radius: 22px;
+        cursor: pointer;
+        transition: background-color 0.25s ease;
+    }
+
+    .toggle-thumb {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 18px;
+        height: 18px;
+        background-color: #ffffff;
+        border-radius: 50%;
+        transition: transform 0.25s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .toggle-switch input:checked + .toggle-track {
+        background-color: var(--ct-primary);
+    }
+
+    .toggle-switch input:checked + .toggle-track .toggle-thumb {
+        transform: translateX(20px);
+    }
+
+    /* Client Applications Responsive 2-Column Grid (Step 5) */
+    .ct-apps-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-top: 6px;
+    }
+
+    @@media (max-width: 640px) {
+        .ct-apps-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .ct-app-card {
+        margin-bottom: 0 !important;
+        height: 100% !important;
+        box-sizing: border-box !important;
+        padding: 10px 14px !important;
+        display: flex;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 10px !important;
+    }
+
+    .ct-app-card.is-hidden {
+        display: none !important;
+    }
+
+    .ct-app-info {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .ct-app-info .ct-toggle-label {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .ct-app-info .ct-toggle-desc {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Database Mode Radio Cards (Step 2) */
+    .ct-db-cards-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .ct-db-card {
+        border: 2px solid #E5E7EB;
+        border-radius: 12px;
+        padding: 12px 14px;
+        background: #ffffff;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+    }
+
+    html[data-theme="dark"] .ct-db-card {
+        background: #11141f;
+        border-color: #262d42;
+    }
+
+    .ct-db-card:hover {
+        border-color: var(--ct-primary);
+        transform: translateY(-2px);
+        box-shadow: var(--ct-shadow);
+    }
+
+    .ct-db-card.active {
+        border-color: var(--ct-primary) !important;
+        background: var(--ct-light-bg) !important;
+        box-shadow: var(--ct-focus-shadow) !important;
+    }
+
+    .ct-db-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+    }
+
+    .ct-db-card-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        background: var(--ct-icon-bg);
+        color: var(--ct-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ct-db-card-radio {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 2px solid #CBD5E1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ct-db-card.active .ct-db-card-radio {
+        border-color: var(--ct-primary);
+        background: var(--ct-primary);
+    }
+
+    .ct-db-card.active .ct-db-card-radio::after {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #ffffff;
+    }
+
+    .ct-db-card-title {
+        font-size: 0.90rem;
+        font-weight: 700;
+        color: #0F172A;
+        margin: 0 0 6px 0;
+    }
+
+    html[data-theme="dark"] .ct-db-card-title {
+        color: #F8FAFC;
+    }
+
+    .ct-db-features {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .ct-db-features li {
+        font-size: 0.74rem;
+        color: #64748B;
+        margin-bottom: 3px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .ct-db-features li svg {
+        color: #22C55E;
+        flex-shrink: 0;
+    }
+
+    /* Branding Upload Dropzone (Step 4) */
+    .ct-upload-box {
+        border: 2px dashed #CBD5E1;
+        border-radius: 12px;
+        padding: 14px;
+        text-align: center;
+        background: #F8FAFC;
+        transition: all 0.2s ease;
+    }
+
+    html[data-theme="dark"] .ct-upload-box {
+        background: #11141f;
+        border-color: #262d42;
+    }
+
+    .ct-upload-box:hover {
+        border-color: var(--ct-primary);
+        background: var(--ct-light-bg);
+    }
+
+    .ct-upload-cloud-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--ct-icon-bg);
+        color: var(--ct-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 6px;
+    }
+
+    .ct-upload-text {
+        font-size: 0.76rem;
+        color: #64748B;
+        margin-bottom: 6px;
+    }
+
+    .ct-upload-browse-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: 8px;
+        background: #ffffff;
+        border: 1px solid #CBD5E1;
+        color: #334155;
+        font-size: 0.76rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .ct-upload-browse-btn:hover {
+        border-color: var(--ct-primary);
+        color: var(--ct-primary);
+    }
+
+    /* RIGHT SIDEBAR — TENANT SUMMARY CARD */
+    .ct-summary-card {
+        background: #ffffff;
+        border: 1px solid #E5E7EB;
+        border-radius: 16px;
+        padding: 14px;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+    }
+
+    html[data-theme="dark"] .ct-summary-card {
+        background: #181c2b;
+        border-color: #262d42;
+    }
+
+    .ct-summary-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 700;
+        font-size: 0.88rem;
+        color: var(--ct-primary);
+        margin-bottom: 10px;
+    }
+
+    .ct-summary-banner-box {
+        width: 100%;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 10px;
+        background: var(--ct-banner-bg);
+    }
+
+    .ct-summary-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .ct-summary-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.76rem;
+    }
+
+    .ct-summary-key {
+        color: #64748B;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .ct-summary-key svg {
+        color: #94A3B8;
+    }
+
+    .ct-summary-val {
+        font-weight: 700;
+        color: #0F172A;
+        text-align: right;
+    }
+
+    html[data-theme="dark"] .ct-summary-val {
+        color: #F8FAFC;
+    }
+
+    .summary-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.70rem;
+        font-weight: 700;
+    }
+
+    .badge-purple { background: var(--ct-icon-bg); color: var(--ct-primary); }
+    .badge-blue { background: var(--ct-icon-bg); color: var(--ct-primary); }
+    .badge-green { background: rgba(34, 197, 94, 0.1); color: #22C55E; }
+    .badge-gray { background: rgba(100, 116, 139, 0.1); color: #64748B; }
+
+    /* FOOTER BUTTONS — FIXED AT BOTTOM */
+    .wizard-footer {
+        flex-shrink: 0 !important;
+        padding: 12px 24px !important;
+        border-top: 1px solid #F1F5F9 !important;
+        background: #ffffff !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        margin-top: auto !important;
+    }
+
+    html[data-theme="dark"] .wizard-footer {
+        background: #11141f !important;
+        border-color: #1e2436 !important;
+    }
+
+    .wizard-footer-left, .wizard-footer-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .btn-primary.wizard-btn-next, .btn-primary.wizard-btn-save {
+        background: var(--ct-gradient) !important;
+        border: none !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        height: 40px !important;
+        padding: 0 20px !important;
+        border-radius: 10px !important;
+        font-size: 0.84rem !important;
+        box-shadow: var(--ct-shadow) !important;
+        transition: all 0.25s ease !important;
+        display: inline-flex;
+        align-items: center !important;
+        gap: 6px !important;
+        cursor: pointer !important;
+    }
+
+    /* Force respect inline display:none from jQuery hide/show */
+    .wizard-footer button[style*="display: none"],
+    .wizard-footer button[style*="display:none"] {
+        display: none !important;
+    }
+
+    .btn-primary.wizard-btn-next:hover, .btn-primary.wizard-btn-save:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 6px 18px rgba(6, 182, 212, 0.45) !important;
+    }
+
+    .btn-secondary.wizard-btn-back, .btn-secondary.wizard-btn-prev {
+        background: #ffffff !important;
+        border: 1px solid #E5E7EB !important;
+        color: #475569 !important;
+        font-weight: 600 !important;
+        height: 40px !important;
+        padding: 0 18px !important;
+        border-radius: 10px !important;
+        font-size: 0.84rem !important;
+        transition: all 0.2s ease !important;
+        cursor: pointer !important;
+    }
+
+    html[data-theme="dark"] .btn-secondary.wizard-btn-back, html[data-theme="dark"] .btn-secondary.wizard-btn-prev {
+        background: #181c2b !important;
+        border-color: #262d42 !important;
+        color: #CBD5E1 !important;
+    }
+
+    .btn-secondary.wizard-btn-back:hover, .btn-secondary.wizard-btn-prev:hover {
+        background: #F8FAFC !important;
+        border-color: #CBD5E1 !important;
+        color: #0F172A !important;
+    }
+
+    /* Modal Step Hide/Show Transition */
+    .wizard-step {
+        display: none;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+    }
+
+    .wizard-step.active {
+        display: block;
+        opacity: 1;
+    }
+</style>
+
+<form id="createTenantForm" class="wizard-container @(isCyanTheme ? "ct-cyan-theme" : "")" novalidate>
+    <input type="hidden" asp-for="Id" />
+    @Html.AntiForgeryToken()
+
+    <div class="modal-body ct-modal-wrapper">
+        <div class="ct-wizard-layout">
+            
+            <!-- LEFT SECTION: FORM & STEPPER (~70%) -->
+            <div class="ct-form-section">
+
+                <!-- STEP 1: IDENTITY & ACCESS -->
+                <div class="wizard-step active" data-title="Identity &amp; Access">
+                    
+                    <!-- Section 1: Tenant Information -->
+                    <div class="ct-card-section">
+                        <div class="ct-card-header">
+                            <span class="ct-card-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                            </span>
+                            <h4 class="ct-card-title">Tenant Information</h4>
+                        </div>
+                        <div class="ct-grid-2">
+                            <div class="modal-field">
+                                <label class="modal-label" for="tenantName">
+                                    Organization Name <span class="required-star">*</span>
+                                </label>
+                                <input id="tenantName" asp-for="Name" type="text" class="modal-input"
+                                       placeholder="Planurix SSO" required autocomplete="off">
+                                <span class="field-hint">The display name for this tenant organization.</span>
+                                <span class="ct-error-msg" id="errName" style="color: #EF4444; display:none; font-size:0.75rem; margin-top:4px;">Organization name is required.</span>
+                            </div>
+                            <div class="modal-field">
+                                <label class="modal-label" for="tenantCode">
+                                    Tenant Code / Slug <span class="required-star">*</span>
+                                </label>
+                                <input id="tenantCode" asp-for="Code" type="text" class="modal-input"
+                                       placeholder="planurix_sso" required autocomplete="off" pattern="^[a-z0-9_]+$">
+                                <span class="field-hint">Unique slug - lowercase, no spaces.</span>
+                                <span class="ct-error-msg" id="errCode" style="color: #EF4444; display:none; font-size:0.75rem; margin-top:4px;">Code must be lowercase letters, numbers and underscores.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Activation Settings -->
+                    <div class="ct-card-section">
+                        <div class="ct-card-header">
+                            <span class="ct-card-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                            </span>
+                            <h4 class="ct-card-title">Activation Settings</h4>
+                        </div>
+                        
+                        <label class="ct-toggle-card" for="tenantIsActive">
+                            <div class="ct-toggle-left">
+                                <div class="ct-toggle-icon">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                                </div>
+                                <div>
+                                    <div class="ct-toggle-label">Activate Immediately</div>
+                                    <div class="ct-toggle-desc">Tenant will be created in an active state and ready to use.</div>
+                                </div>
+                            </div>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="tenantIsActive" asp-for="IsActive">
+                                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                            </div>
+                        </label>
+                    </div>
+
+                </div>
+
+                <!-- STEP 2: DATABASE -->
+                <div class="wizard-step" data-title="Database">
+                    <div class="ct-card-section">
+                        <div class="ct-card-header">
+                            <span class="ct-card-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+                            </span>
+                            <div>
+                                <h4 class="ct-card-title">Database Configuration</h4>
+                                <div class="ct-card-subtitle">Choose the database strategy for this tenant.</div>
+                            </div>
+                        </div>
+
+                        <!-- Visual DB Mode Selection Cards -->
+                        <div class="ct-db-cards-grid">
+                            <div class="ct-db-card active" id="cardDbShared" onclick="selectDbMode('@SSO.Domain.Enums.TenantDatabaseMode.Shared')">
+                                <div class="ct-db-card-header">
+                                    <div class="ct-db-card-icon">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+                                    </div>
+                                    <div class="ct-db-card-radio"></div>
+                                </div>
+                                <h5 class="ct-db-card-title">Shared Database</h5>
+                                <ul class="ct-db-features">
+                                    <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Cost-effective</li>
+                                    <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Faster provisioning</li>
+                                    <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Shared resources</li>
+                                    <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Recommended for most tenants</li>
+                                </ul>
+                            </div>
+
+                            <div class="ct-db-card" id="cardDbSeparate" onclick="selectDbMode('@SSO.Domain.Enums.TenantDatabaseMode.Separate')">
+                                <div class="ct-db-card-header">
+                                    <div class="ct-db-card-icon" style="background: rgba(24, 167, 223, 0.1); color: #18a7df;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                                    </div>
+                                    <div class="ct-db-card-radio"></div>
+                                </div>
+                                <h5 class="ct-db-card-title">Isolated Database</h5>
+                                <ul class="ct-db-features">
+                                    <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Maximum security</li>
+                                    <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Dedicated database</li>
+                                    <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Full resource isolation</li>
+                                    <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Recommended for large tenants</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Preserved Hidden Select for Binding -->
+                        <div class="modal-field" style="display:none;">
+                            <label class="modal-label" for="tenantDbMode">Database Mode *</label>
+                            <select id="tenantDbMode" asp-for="DatabaseMode" class="modal-select" required>
+                                <option value="@SSO.Domain.Enums.TenantDatabaseMode.Shared">Shared DB</option>
+                                <option value="@SSO.Domain.Enums.TenantDatabaseMode.Separate">Isolated DB</option>
+                            </select>
+                        </div>
+
+                        <!-- Dynamic Separate DB Fields -->
+                        <div class="ct-grid-2">
+                            <div class="modal-field" id="dbProviderGroup" style="@(Model.DatabaseMode == SSO.Domain.Enums.TenantDatabaseMode.Shared ? "display:none;" : "")">
+                                <label class="modal-label" for="tenantDatabaseProvider">
+                                    Database Provider <span class="required-star">*</span>
+                                </label>
+                                <select id="tenantDatabaseProvider" asp-for="DatabaseProvider" class="modal-select">
+                                    <option value="">Select provider...</option>
+                                    <option value="@ApplicationConstants.DBProvider.SqlServer">SQL Server</option>
+                                    <option value="@ApplicationConstants.DBProvider.Mysql">MySQL</option>
+                                    <option value="@ApplicationConstants.DBProvider.PostgreSql">PostgreSQL</option>
+                                    <option value="@ApplicationConstants.DBProvider.Oracle">Oracle</option>
+                                </select>
+                                <span class="field-hint">Dedicated database engine for this tenant.</span>
+                            </div>
+                            <div class="modal-field" id="dbNameGroup" style="@(Model.DatabaseMode == SSO.Domain.Enums.TenantDatabaseMode.Shared ? "display:none;" : "")">
+                                <label class="modal-label" for="tenantDatabaseName">
+                                    Database Name <span class="required-star">*</span>
+                                </label>
+                                <input id="tenantDatabaseName" asp-for="DatabaseName" type="text" class="modal-input"
+                                       placeholder="e.g. acme_identity" autocomplete="off" maxlength="128">
+                                <span class="field-hint">Store only the DB name; secrets stay outside.</span>
+                            </div>
+                        </div>
+
+                        <div class="modal-field" style="margin-top: 6px;">
+                            <label class="modal-label">Data Location (Optional)</label>
+                            <select class="modal-select">
+                                <option value="default">Default Region</option>
+                                <option value="us">United States (US-East)</option>
+                                <option value="eu">Europe (Frankfurt)</option>
+                                <option value="ap">Asia Pacific (Mumbai)</option>
+                            </select>
+                            <span class="field-hint">Select the preferred data region for this tenant.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 3: CONTACT & BILLING -->
+                <div class="wizard-step" data-title="Contact &amp; Billing">
+                    <!-- Contact Details Section -->
+                    <div class="ct-card-section">
+                        <div class="ct-card-header">
+                            <span class="ct-card-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                            </span>
+                            <h4 class="ct-card-title">Contact Details</h4>
+                        </div>
+                        <div class="ct-grid-2">
+                            <div class="modal-field">
+                                <label class="modal-label" for="tenantEmail">Email Address <span class="required-star">*</span></label>
+                                <input id="tenantEmail" asp-for="Email" type="email" class="modal-input" placeholder="support@auxinz.io">
+                            </div>
+                            <div class="modal-field">
+                                <label class="modal-label" for="tenantPhone">Phone Number <span class="required-star">*</span></label>
+                                <input id="tenantPhone" asp-for="Phone" type="text" class="modal-input" placeholder="+1 555-0123">
+                            </div>
+                            <div class="modal-field">
+                                <label class="modal-label" for="tenantWebsite">Website</label>
+                                <input id="tenantWebsite" asp-for="Website" type="text" class="modal-input" placeholder="https://auxinz.io">
+                            </div>
+                            <div class="modal-field">
+                                <label class="modal-label" for="tenantCurrency">
+                                    Preferred Currency <span class="required-star">*</span>
+                                </label>
+                                <select id="tenantCurrency" asp-for="Currency" class="modal-select" required>
+                                    <option value="INR">INR (₹) - Indian Rupee</option>
+                                    <option value="USD">USD ($) - US Dollar</option>
+                                    <option value="EUR">EUR (€) - Euro</option>
+                                    <option value="GBP">GBP (£) - British Pound</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Billing Address Section -->
+                    <div class="ct-card-section">
+                        <div class="ct-card-header">
+                            <span class="ct-card-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                            </span>
+                            <h4 class="ct-card-title">Billing Address</h4>
+                        </div>
+                        <div class="modal-field">
+                            <label class="modal-label" for="tenantAddress">Billing Address</label>
+                            <input id="tenantAddress" asp-for="BillingAddress" type="text" class="modal-input" placeholder="123 Street, City, State - 600001, Country">
+                            <span class="field-hint">Address used for invoicing and official communication.</span>
+                        </div>
+                        <div class="modal-field">
+                            <label class="modal-label" for="tenantGracePeriod">Grace Period (Days)</label>
+                            <input id="tenantGracePeriod" asp-for="GracePeriodDays" type="number" class="modal-input" placeholder="7" min="0">
+                            <span class="field-hint">Days allowed before SSO is blocked for unpaid invoices.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 4: BRANDING -->
+                <div class="wizard-step" data-title="Branding &amp; Apps">
+                    <div class="ct-card-section">
+                        <div class="ct-card-header">
+                            <span class="ct-card-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                            </span>
+                            <h4 class="ct-card-title">Branding Assets</h4>
+                        </div>
+                        <div class="ct-grid-2">
+                            <!-- Logo Upload Box -->
+                            <div class="modal-field">
+                                <label class="modal-label">Organization Logo</label>
+                                <div class="ct-upload-box">
+                                    <div class="ct-upload-cloud-icon">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 16l-4-4-4 4"></path><path d="M12 12v9"></path><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg>
+                                    </div>
+                                    <div class="ct-upload-text">Drag &amp; drop logo or</div>
+                                    <label for="tenantLogo" class="ct-upload-browse-btn">Browse Files</label>
+                                    <div class="field-hint" style="margin-top:6px;">PNG, JPG or WEBP • Max 512x512px</div>
+                                </div>
+                                <input id="tenantLogo" name="LogoFile" type="file" style="display:none;" accept="image/*">
+                                
+                                <div id="logoFileBlock" class="upload-preview-card" style="display:none; margin-top:8px;">
+                                    <div class="upload-img-preview-area"><img id="logoPreview" src="" alt="Logo" class="upload-img-preview" /></div>
+                                    <div class="upload-info-bar">
+                                        <div id="logoFileName" class="upload-filename"></div>
+                                        <button type="button" id="btnRemoveLogo" class="upload-btn upload-btn-remove">Remove</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Favicon Upload Box -->
+                            <div class="modal-field">
+                                <label class="modal-label">Organization Favicon</label>
+                                <div class="ct-upload-box">
+                                    <div class="ct-upload-cloud-icon">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 16l-4-4-4 4"></path><path d="M12 12v9"></path><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg>
+                                    </div>
+                                    <div class="ct-upload-text">Drag &amp; drop favicon or</div>
+                                    <label for="tenantFavicon" class="ct-upload-browse-btn">Browse Files</label>
+                                    <div class="field-hint" style="margin-top:6px;">ICO, PNG or GIF • Shown in browser tabs</div>
+                                </div>
+                                <input id="tenantFavicon" name="FaviconFile" type="file" style="display:none;" accept="image/x-icon,image/png,image/gif">
+
+                                <div id="faviconFileBlock" class="upload-preview-card" style="display:none; margin-top:8px;">
+                                    <div class="upload-img-preview-area"><img id="faviconPreview" src="" alt="Favicon" class="upload-img-preview" /></div>
+                                    <div class="upload-info-bar">
+                                        <div id="faviconFileName" class="upload-filename"></div>
+                                        <button type="button" id="btnRemoveFavicon" class="upload-btn upload-btn-remove">Remove</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-field" style="margin-top: 8px;">
+                            <label class="modal-label" for="tenantBackgroundText">Chalkboard Background Formulas / Phrases</label>
+                            <textarea id="tenantBackgroundText" asp-for="BackgroundText" class="modal-input" style="min-height: 56px; font-family: monospace; resize: vertical; padding: 8px 12px !important;" placeholder="e.g. E = mc²&#10;Discovery&#10;Innovation"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 5: CLIENT APPLICATIONS (SEPARATE FINAL STEP) -->
+                <div class="wizard-step" data-title="Client Applications">
+                    <div class="ct-card-section">
+                        <div class="ct-card-header">
+                            <span class="ct-card-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                            </span>
+                            <div>
+                                <h4 class="ct-card-title">Client Applications <span class="required-star">*</span></h4>
+                                <div class="ct-card-subtitle">Enable required client applications for this tenant.</div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden Multi-Select for Data Binding -->
+                        <select id="tenantClientIds" name="ClientIds" multiple="multiple" class="no-custom-select" data-no-custom-select="true" data-multiselect-initialized="true" style="display:none !important;">
+                            @foreach (var client in clients) {
+                                var isSelected = Model.ClientIds != null && Model.ClientIds.Contains(client.Id);
+                                <option value="@client.Id" selected="@(isSelected ? "selected" : null)">@client.DisplayName</option>
+                            }
+                        </select>
+
+                        <!-- Clean Live Search Input Field for Client Applications -->
+                        <div class="ct-app-search-box" style="position: relative; margin: 12px 0 14px 0;">
+                            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748B; display: flex; align-items: center; pointer-events: none; z-index: 2;">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                            </span>
+                            <input type="text" id="clientAppSearchInput" class="modal-input" style="padding-left: 36px !important;" placeholder="Search client applications..." autocomplete="off" />
+                        </div>
+
+                        <!-- Responsive 2-Column Grid of Compact Toggle Cards -->
+                        <div class="ct-apps-grid">
+                            @if (clients.Any()) {
+                                foreach (var client in clients) {
+                                    var isChecked = Model.ClientIds != null && Model.ClientIds.Contains(client.Id);
+                                    var searchText = $"{client.DisplayName} {client.ClientId}".ToLower();
+                                    <label class="ct-toggle-card ct-app-card" for="app_toggle_@client.Id" data-search-text="@searchText">
+                                        <div class="ct-toggle-left">
+                                            <div class="ct-toggle-icon">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                                            </div>
+                                            <div class="ct-app-info">
+                                                <div class="ct-toggle-label">@client.DisplayName</div>
+                                                <div class="ct-toggle-desc">Client ID: @client.ClientId</div>
+                                            </div>
+                                        </div>
+                                        <div class="toggle-switch">
+                                            <input type="checkbox" id="app_toggle_@client.Id" class="client-app-toggle" data-client-id="@client.Id" @(isChecked ? "checked" : "")>
+                                            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                                        </div>
+                                    </label>
+                                }
+                            } else {
+                                <div style="font-size: 0.82rem; color: #64748B; text-align: center; padding: 12px; grid-column: 1 / -1;">No client applications available.</div>
+                            }
+                        </div>
+                        <span class="field-hint" style="margin-top: 8px;">Enable the required client applications for this tenant boundary.</span>
+                    </div>
+                </div>
+
+            </div><!-- /ct-form-section -->
+
+            <!-- RIGHT SECTION: TENANT SUMMARY SIDEBAR (~30%) -->
+            <div class="ct-summary-section">
+                <div class="ct-summary-card">
+                    <div class="ct-summary-header">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                        Tenant Summary
+                    </div>
+
+                    <!-- Isometric 3D Building Banner Illustration (Modern Blue Palette) -->
+                    <div class="ct-summary-banner-box">
+                        <svg width="100%" height="95" viewBox="0 0 240 95" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="240" height="95" rx="12" fill="url(#summary_sky)"/>
+                            <defs>
+                                <linearGradient id="summary_sky" x1="0" y1="0" x2="240" y2="95" gradientUnits="userSpaceOnUse">
+                                    <stop stop-color="#EFF6FF"/>
+                                    <stop offset="1" stop-color="#DBEAFE"/>
+                                </linearGradient>
+                            </defs>
+                            <ellipse cx="45" cy="24" rx="20" ry="8" fill="#FFFFFF" opacity="0.85"/>
+                            <ellipse cx="195" cy="18" rx="22" ry="9" fill="#FFFFFF" opacity="0.85"/>
+                            <path d="M80 32 L120 16 L160 32 V82 H80 Z" fill="#2563EB"/>
+                            <path d="M120 16 L160 32 V82 H120 Z" fill="#1D4ED8"/>
+                            <rect x="90" y="38" width="9" height="9" rx="2" fill="#93C5FD"/>
+                            <rect x="104" y="38" width="9" height="9" rx="2" fill="#93C5FD"/>
+                            <rect x="126" y="38" width="9" height="9" rx="2" fill="#60A5FA"/>
+                            <rect x="140" y="38" width="9" height="9" rx="2" fill="#60A5FA"/>
+                            <rect x="90" y="52" width="9" height="9" rx="2" fill="#93C5FD"/>
+                            <rect x="104" y="52" width="9" height="9" rx="2" fill="#93C5FD"/>
+                            <rect x="126" y="52" width="9" height="9" rx="2" fill="#60A5FA"/>
+                            <rect x="140" y="52" width="9" height="9" rx="2" fill="#60A5FA"/>
+                            <rect x="90" y="66" width="9" height="9" rx="2" fill="#93C5FD"/>
+                            <rect x="104" y="66" width="9" height="9" rx="2" fill="#93C5FD"/>
+                            <rect x="126" y="66" width="9" height="9" rx="2" fill="#60A5FA"/>
+                            <rect x="140" y="66" width="9" height="9" rx="2" fill="#60A5FA"/>
+                            <path d="M52 46 L80 34 V82 H52 Z" fill="#3B82F6"/>
+                            <rect x="61" y="54" width="7" height="7" rx="1.5" fill="#DBEAFE"/>
+                            <rect x="61" y="66" width="7" height="7" rx="1.5" fill="#DBEAFE"/>
+                            <path d="M160 40 L188 52 V82 H160 Z" fill="#1E40AF"/>
+                            <rect x="168" y="56" width="7" height="7" rx="1.5" fill="#93C5FD"/>
+                            <rect x="168" y="68" width="7" height="7" rx="1.5" fill="#93C5FD"/>
+                        </svg>
+                    </div>
+
+                    <div class="ct-summary-list">
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                                Organization Name
+                            </span>
+                            <span class="ct-summary-val" id="summaryOrgName">Planurix SSO</span>
+                        </div>
+
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>
+                                Tenant Code
+                            </span>
+                            <span class="ct-summary-val" id="summaryTenantCode" style="font-family: monospace;">planurix_sso</span>
+                        </div>
+
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+                                Database
+                            </span>
+                            <span class="ct-summary-val" id="summaryDatabase">Not selected</span>
+                        </div>
+
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                Subscription
+                            </span>
+                            <span class="summary-badge badge-blue">Default</span>
+                        </div>
+
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                Status
+                            </span>
+                            <span class="summary-badge badge-green" id="summaryStatus">Active</span>
+                        </div>
+
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                                Users
+                            </span>
+                            <span class="ct-summary-val">0</span>
+                        </div>
+
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                                Applications
+                            </span>
+                            <span class="ct-summary-val" id="summaryApps">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /ct-summary-section -->
+
+        </div>
+    </div><!-- /modal-body -->
+
+    <!-- REMARKS FIELD (Edit mode only) -->
+    @await Html.PartialAsync("_EditRemarksPartial", Model.Id != Guid.Empty)
+
+    <!-- FOOTER BUTTONS -->
+    <div class="modal-footer wizard-footer">
+        <!-- Buttons injected dynamically by initWizardForm with matching styling -->
+        <button type="submit" class="btn btn-primary" id="submitCreateTenant" style="display:none;">
+            @(Model.Id == Guid.Empty ? "Create Tenant" : "Update Tenant")
+        </button>
+    </div>
+</form>
+
+<script>
+    function selectDbMode(mode) {
+        $('#tenantDbMode').val(mode).trigger('change');
+        if (mode === '@SSO.Domain.Enums.TenantDatabaseMode.Separate' || mode === 'Separate') {
+            $('#cardDbSeparate').addClass('active');
+            $('#cardDbShared').removeClass('active');
+        } else {
+            $('#cardDbShared').addClass('active');
+            $('#cardDbSeparate').removeClass('active');
+        }
+        syncSummary();
+    }
+
+    function syncSummary() {
+        const orgName = $('#tenantName').val() || 'Planurix SSO';
+        const code = $('#tenantCode').val() || 'planurix_sso';
+        const dbMode = $('#tenantDbMode').val();
+        const isActive = $('#tenantIsActive').is(':checked');
+        const clientsVal = $('#tenantClientIds').val();
+        const appsCount = Array.isArray(clientsVal) ? clientsVal.length : 0;
+
+        $('#summaryOrgName').text(orgName);
+        $('#summaryTenantCode').text(code);
+
+        if (dbMode === '@SSO.Domain.Enums.TenantDatabaseMode.Separate' || dbMode === 'Separate') {
+            $('#summaryDatabase').html('<span class="summary-badge badge-purple">Isolated Database</span>');
+        } else if (dbMode === '@SSO.Domain.Enums.TenantDatabaseMode.Shared' || dbMode === 'Shared') {
+            $('#summaryDatabase').html('<span class="summary-badge badge-blue">Shared Database</span>');
+        } else {
+            $('#summaryDatabase').text('Not selected');
+        }
+
+        if (isActive) {
+            $('#summaryStatus').attr('class', 'summary-badge badge-green').text('Active');
+        } else {
+            $('#summaryStatus').attr('class', 'summary-badge badge-gray').text('Inactive');
+        }
+
+        $('#summaryApps').text(appsCount > 0 ? appsCount + ' Selected' : '0');
+    }
+
+    $(function() {
+        // Add ct-modal-open class to appModal for large modal sizing
+        $('#appModal').addClass('ct-modal-open');
+
+        // Override Header Title & Subtitle text to match reference
+        $('#modalTitle').text('@(Model.Id == Guid.Empty ? "Create New Tenant" : "Update Organization")');
+        $('#modalSubtitle').text('Set up a new organization in less than 2 minutes');
+
+        /* -- DB Mode sync -- */
+        const sharedDatabaseMode = '@SSO.Domain.Enums.TenantDatabaseMode.Shared';
+        const $tenantDbMode      = $('#tenantDbMode');
+        const $dbProviderGroup   = $('#dbProviderGroup');
+        const $dbNameGroup       = $('#dbNameGroup');
+        const $tenantDbProvider  = $('#tenantDatabaseProvider');
+        const $tenantDbName      = $('#tenantDatabaseName');
+
+        function syncDbMode() {
+            const isShared = $tenantDbMode.val() === sharedDatabaseMode;
+            $dbProviderGroup.toggle(!isShared);
+            $dbNameGroup.toggle(!isShared);
+            $tenantDbProvider.prop('required', !isShared);
+            $tenantDbName.prop('required', !isShared);
+            if (isShared) { $tenantDbProvider.val(''); $tenantDbName.val(''); }
+        }
+        $tenantDbMode.off('change.dbmode').on('change.dbmode', function() {
+            syncDbMode();
+            syncSummary();
+        });
+        syncDbMode();
+
+        /* -- Client Application Toggles Sync -- */
+        $('.client-app-toggle').off('change.apptoggle').on('change.apptoggle', function () {
+            const clientId = $(this).data('client-id');
+            const isChecked = $(this).is(':checked');
+            $(`#tenantClientIds option[value="${clientId}"]`).prop('selected', isChecked);
+            $('#tenantClientIds').trigger('change');
+            syncSummary();
+        });
+
+        /* -- Client Application Live Search Filter -- */
+        $('#clientAppSearchInput').off('input.appsearch keyup.appsearch').on('input.appsearch keyup.appsearch', function () {
+            const query = $(this).val().toLowerCase().trim();
+            let visibleCount = 0;
+
+            $('.ct-app-card').each(function () {
+                const text = ($(this).attr('data-search-text') || $(this).text()).toLowerCase();
+                if (!query || text.indexOf(query) !== -1) {
+                    $(this).removeClass('is-hidden').attr('style', 'display: flex !important;');
+                    visibleCount++;
+                } else {
+                    $(this).addClass('is-hidden').attr('style', 'display: none !important;');
+                }
+            });
+
+            if (visibleCount === 0 && query.length > 0) {
+                if ($('#noMatchingAppsMsg').length === 0) {
+                    $('.ct-app-search-box').after(`
+                        <div id="noMatchingAppsMsg" style="font-size: 0.82rem; font-weight: 600; color: #ef4444; margin: -6px 0 12px 2px; display: flex; align-items: center; gap: 6px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                            No applications found matching your search.
+                        </div>`);
+                }
+            } else {
+                $('#noMatchingAppsMsg').remove();
+            }
+        });
+
+        /* -- Live sync summary -- */
+        $('#tenantName, #tenantCode, #tenantIsActive, #tenantClientIds').on('input change', syncSummary);
+        syncSummary();
+
+        /* ── Helper: truncate filename ── */
+        function truncateFilename(name, maxLength = 20) {
+            if (!name || name.length <= maxLength) return name;
+            return name.substring(0, maxLength) + '...';
+        }
+
+        /* ── Helper: bind upload ── */
+        function bindUpload(opts) {
+            $('#' + opts.inputId).on('change', function () {
+                const file = this.files[0];
+                if (!file) return;
+                const displayName = truncateFilename(file.name, 20);
+                $('#' + opts.fileNameId).text(displayName).attr('title', file.name);
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    $('#' + opts.previewImgId).attr('src', e.target.result);
+                };
+                reader.readAsDataURL(file);
+                $('#' + opts.fileBlockId).show();
+            });
+
+            $('#' + opts.removeBtnId).on('click', function () {
+                $('#' + opts.inputId).val('');
+                $('#' + opts.previewImgId).attr('src', '');
+                $('#' + opts.fileNameId).text('');
+                $('#' + opts.fileBlockId).hide();
+            });
+        }
+
+        bindUpload({ inputId: 'tenantLogo', fileBlockId: 'logoFileBlock', previewImgId: 'logoPreview', fileNameId: 'logoFileName', removeBtnId: 'btnRemoveLogo' });
+        bindUpload({ inputId: 'tenantFavicon', fileBlockId: 'faviconFileBlock', previewImgId: 'faviconPreview', fileNameId: 'faviconFileName', removeBtnId: 'btnRemoveFavicon' });
+
+        /* -- Validation helpers -- */
+        function markValid($el, errId)   { $el.removeClass('ct-invalid'); $('#' + errId).hide(); }
+        function markInvalid($el, errId) { $el.addClass('ct-invalid');    $('#' + errId).show(); }
+
+        $('#tenantName').on('input', function () {
+            this.value.trim() ? markValid($(this), 'errName') : markInvalid($(this), 'errName');
+        });
+        $('#tenantCode').on('input', function () {
+            /^[a-z0-9_]+$/.test(this.value.trim()) ? markValid($(this), 'errCode') : markInvalid($(this), 'errCode');
+        });
+
+        // Initialize 5-Step Wizard Form (Step 1 = Next; Step 2-4 = Prev+Next; Step 5 = Prev + Create Tenant)
+        const wizard = window.initWizardForm('#createTenantForm', {
+            showCancelButton: false,
+            onStepChanging: function(currentIndex, newIndex) {
+                if (newIndex > currentIndex) {
+                    if (currentIndex === 0) {
+                        let valid = true;
+                        const $name = $('#tenantName');
+                        if (!$name.val().trim()) { markInvalid($name, 'errName'); valid = false; }
+                        
+                        const $code = $('#tenantCode');
+                        if (!/^[a-z0-9_]+$/.test($code.val().trim())) { markInvalid($code, 'errCode'); valid = false; }
+                        return valid;
+                    }
+                    if (currentIndex === 1) {
+                        let valid = true;
+                        const isShared = $tenantDbMode.val() === sharedDatabaseMode;
+                        if (!isShared) {
+                            if (!$tenantDbProvider.val()) { $tenantDbProvider.addClass('ct-invalid'); valid = false; }
+                            if (!$tenantDbName.val().trim()) { $tenantDbName.addClass('ct-invalid'); valid = false; }
+                        }
+                        return valid;
+                    }
+                }
+                return true;
+            },
+            onFinished: function() {
+                const $btn = $('.wizard-btn-save, #submitCreateTenant');
+                $btn.prop('disabled', true).html('Processing...');
+
+                $.ajax({
+                    url: '/Home/CreateTenant',
+                    type: 'POST',
+                    data: new FormData(document.getElementById('createTenantForm')),
+                    processData: false,
+                    contentType: false,
+                    success: function (result) {
+                        if (result.succeeded) {
+                            window.closeModal();
+                            if (window.appToast) {
+                                window.appToast.show('success', 'Tenant Saved', result.messages ? result.messages[0] : 'Tenant has been saved successfully.');
+                            }
+                            if (window.onModalSuccess) {
+                                window.onModalSuccess();
+                            } else if ($('#tenantTable').length) {
+                                $('#tenantTable').DataTable().ajax.reload();
+                            } else {
+                                location.reload();
+                            }
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error Saving Tenant',
+                                text: window.getPrimaryResultMessage
+                                    ? window.getPrimaryResultMessage(result, 'Unknown error')
+                                    : (result.messages?.[0] || 'Unknown error')
+                            });
+                            resetBtn();
+                        }
+                    },
+                    error: function (xhr) {
+                        window.showRequestError({
+                            title: 'Unable to Save Tenant',
+                            xhr: xhr,
+                            fallbackMessage: 'We could not save the tenant right now. Please try again.'
+                        });
+                        resetBtn();
+                    }
+                });
+
+                function resetBtn() {
+                    $btn.prop('disabled', false).html('@(Model.Id == Guid.Empty ? "Create Tenant" : "Update Tenant")');
+                }
+            }
+        });
+    });
+</script>

@@ -1,0 +1,162 @@
+@using SSO.Application.Features.Payments.Commands.AddEdit
+@using SSO.Domain.Entities
+@model RecordPaymentCommand
+
+<form id="recordPaymentForm">
+    <input type="hidden" name="InvoiceId" value="@Model.InvoiceId" />
+
+    <div class="modal-body" style="padding: 20px 24px;">
+        <div class="modal-section-label">Payment Details</div>
+        
+        <div class="modal-form-grid">
+            <!-- Amount -->
+            <div class="modal-field">
+                <label class="modal-label" for="paymentAmount">Payment Amount</label>
+                <div style="position: relative;">
+                    <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-weight: 600;">
+                        @(Model.Currency == "INR" ? "₹" : Model.Currency == "USD" ? "$" : Model.Currency == "EUR" ? "€" : Model.Currency == "GBP" ? "£" : Model.Currency + " ")
+                    </span>
+                    <input type="number" step="0.01" name="Amount" value="@Model.Amount.ToString("F2")"
+                           class="modal-input" style="padding-left: 28px;" required
+                           id="paymentAmount" />
+                </div>
+            </div>
+
+            <!-- Payment Method -->
+            <div class="modal-field">
+                <label class="modal-label" for="paymentMethod">Payment Method</label>
+                <select name="Method" class="modal-select" id="paymentMethod" onchange="toggleOfflineFields(this.value)">
+                    <optgroup label="Online">
+                        <option value="0">💳 Credit / Debit Card</option>
+                        <option value="1">🌐 PayPal</option>
+                        <option value="2">🏦 Bank Transfer</option>
+                    </optgroup>
+                    <optgroup label="Offline">
+                        <option value="3">💵 Cash</option>
+                        <option value="4">🧾 Cheque</option>
+                        <option value="5">📋 Other</option>
+                    </optgroup>
+                </select>
+            </div>
+        </div>
+
+        <div class="modal-form-grid" style="margin-top: 12px;">
+            <!-- Reference / Transaction ID -->
+            <div class="modal-field">
+                <label class="modal-label" id="refLabel" for="transactionId">Transaction Reference</label>
+                <input type="text" name="TransactionId" class="modal-input" id="transactionId"
+                       placeholder="e.g. TXN-123456 / Cheque #9001" />
+                <span class="field-hint" id="refHint" style="margin-top: 6px; display: block;">
+                    Optional for online payments. Auto-generated if left blank.
+                </span>
+            </div>
+
+            <!-- Payment Date -->
+            <div class="modal-field">
+                <label class="modal-label" for="paymentDate">Payment Date</label>
+                <input type="date" name="PaymentDate" class="modal-input"
+                       value="@DateTime.Now.ToString("yyyy-MM-dd")" required id="paymentDate" />
+            </div>
+        </div>
+
+        <!-- Offline-specific: Received By -->
+        <div class="modal-form-grid" id="receivedByGroup" style="display: none; margin-top: 12px;">
+            <div class="modal-field" style="grid-column: span 2;">
+                <label class="modal-label" for="receivedBy">Received By</label>
+                <input id="receivedBy" type="text" name="ReceivedBy" class="modal-input"
+                       placeholder="Name of person who collected the payment" />
+            </div>
+        </div>
+
+        <!-- Offline info callout -->
+        <div id="offlineNote" style="display: none; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); border-radius: 8px; padding: 14px 16px; margin-top: 16px;">
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" style="flex-shrink:0; margin-top:1px;">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+                    <strong style="color: #f59e0b;">Offline Payment</strong><br>
+                    Ensure you have collected physical proof (receipt, cheque, deposit slip) before recording this payment. 
+                    The invoice will be <strong>marked as Paid</strong> immediately.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="window.closeModal && window.closeModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="paymentSubmitBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px; vertical-align: middle;">
+                <polyline points="9 11 12 14 22 4"></polyline>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+            </svg>
+            Record Payment
+        </button>
+    </div>
+</form>
+
+<script>
+    function toggleOfflineFields(value) {
+        // 3 = Cash, 4 = Check, 5 = Other
+        const isOffline = ['3', '4', '5'].includes(String(value));
+        document.getElementById('offlineNote').style.display = isOffline ? 'block' : 'none';
+        document.getElementById('receivedByGroup').style.display = isOffline ? 'block' : 'none';
+        document.getElementById('refLabel').textContent = isOffline ? 'Cheque # / Receipt #' : 'Transaction Reference';
+        document.getElementById('refHint').textContent = isOffline
+            ? 'Enter cheque number or physical receipt reference.'
+            : 'Optional for online payments. Auto-generated if left blank.';
+    }
+
+    document.getElementById('recordPaymentForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        if (!window.validateAjaxForm(this)) {
+            return;
+        }
+
+        const btn = document.getElementById('paymentSubmitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span>Processing...</span>';
+
+        const form = e.target;
+        const data = {
+            invoiceId: form.InvoiceId.value,
+            amount: parseFloat(form.Amount.value),
+            method: parseInt(form.Method.value),
+            transactionId: form.TransactionId.value,
+            paymentDate: form.PaymentDate.value,
+        };
+
+        try {
+            const response = await fetch('/Billing/RecordPayment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+
+            if (result.succeeded) {
+                window.closeModal && window.closeModal();
+                if (window.appToast) {
+                    window.appToast.show('success', 'Payment Recorded', 'Payment recorded successfully.');
+                }
+                window.invoiceDt && window.invoiceDt.ajax.reload();
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg> Record Payment';
+            }
+        } catch (err) {
+            window.showRequestError({
+                title: 'Unable to Record Payment',
+                fallbackMessage: 'We could not record this payment right now. Please try again.'
+            });
+            btn.disabled = false;
+            btn.innerHTML = 'Record Payment';
+        }
+    });
+
+    // Trigger on load to set initial state
+    toggleOfflineFields(document.getElementById('paymentMethod').value);
+</script>

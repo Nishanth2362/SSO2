@@ -1,0 +1,1602 @@
+@using SSO.Domain.Entities
+@model ApplicationUser
+@{
+    ViewData["Title"] = "My Profile";
+    var userRoles = User.Claims.Where(c => c.Type == System.Security.Claims.ClaimTypes.Role || c.Type == "role" || c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role").Select(c => c.Value).ToList();
+    var displayRole = userRoles.Any() ? string.Join(", ", userRoles) : "User";
+    var initials = string.Join("", (Model.Name ?? "U").Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(s => s[0]).Take(2)).ToUpper();
+    var accessLevel = User.IsInRole("Administrator") ? "Global Admin" : (User.IsInRole("SSO Admin Viewer") ? "SSO Viewer" : "Standard Access");
+}
+
+<style>
+/* =======================================================================
+   FLAGSHIP PROFILE PAGE — Next-Generation SaaS Design
+   Inspired by: Vercel · Linear · Framer · Stripe · Notion
+   ======================================================================= */
+
+/* ── Google Font ── */
+@@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+/* ── SweetAlert2 glass overrides ── */
+.swal2-popup.prg-swal {
+    background: var(--bg-surface) !important;
+    backdrop-filter: blur(24px) !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    border-radius: 24px !important;
+    color: var(--text-main) !important;
+    box-shadow: 0 32px 80px rgba(0,0,0,.35) !important;
+    font-family: 'Inter', sans-serif !important;
+}
+html[data-theme="light"] .swal2-popup.prg-swal {
+    background: rgba(255,255,255,.95) !important;
+    border-color: rgba(0,0,0,.08) !important;
+    box-shadow: 0 32px 80px rgba(0,0,0,.14) !important;
+}
+.swal2-popup.prg-swal .swal2-title  { color: var(--text-main)  !important; font-weight: 800 !important; }
+.swal2-popup.prg-swal .swal2-html-container { color: var(--text-muted) !important; }
+.swal2-popup.prg-swal .swal2-confirm {
+    background: linear-gradient(135deg,#6366f1,#8b5cf6) !important;
+    color: #fff !important; border-radius: 12px !important;
+    font-weight: 700 !important; padding: 10px 24px !important;
+}
+.swal2-popup.prg-swal .swal2-cancel {
+    background: transparent !important; color: var(--text-muted) !important;
+    border: 1.5px solid var(--border-strong) !important;
+    border-radius: 12px !important; font-weight: 700 !important;
+    padding: 10px 24px !important;
+}
+
+/* ── Page canvas ── */
+.prg-page {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding-top: 60px;
+    position: relative;
+}
+
+/* ═══════════════════════════════════════════
+   AURORA HERO
+═══════════════════════════════════════════ */
+.prg-hero {
+    position: relative;
+    border-radius: 24px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 28px 40px;
+    animation: prg-hero-enter .7s cubic-bezier(.16,1,.3,1) both;
+}
+
+@@keyframes prg-hero-enter {
+    from { opacity:0; transform:translateY(24px); }
+    to   { opacity:1; transform:translateY(0); }
+}
+
+/* Aurora gradient canvas */
+.prg-hero-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #0f0c29 0%, #1a1040 25%, #0d1b3e 50%, #16013a 75%, #0a0020 100%);
+    overflow: hidden;
+}
+html[data-theme="light"] .prg-hero-bg {
+    background: linear-gradient(135deg, #312e81 0%, #4338ca 30%, #6366f1 60%, #8b5cf6 100%);
+}
+
+/* Animated aurora orbs */
+.prg-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+    pointer-events: none;
+    opacity: .7;
+    will-change: transform;
+}
+.prg-orb-1 {
+    width: 480px; height: 480px;
+    background: radial-gradient(circle, rgba(99,102,241,.6) 0%, transparent 70%);
+    top: -120px; left: -80px;
+    animation: prg-orb-drift1 12s ease-in-out infinite alternate;
+}
+.prg-orb-2 {
+    width: 360px; height: 360px;
+    background: radial-gradient(circle, rgba(139,92,246,.55) 0%, transparent 70%);
+    top: 40px; right: -60px;
+    animation: prg-orb-drift2 15s ease-in-out infinite alternate;
+}
+.prg-orb-3 {
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(236,72,153,.4) 0%, transparent 70%);
+    bottom: -60px; left: 40%;
+    animation: prg-orb-drift3 10s ease-in-out infinite alternate;
+}
+.prg-orb-4 {
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(34,211,238,.35) 0%, transparent 70%);
+    bottom: 20px; right: 25%;
+    animation: prg-orb-drift1 18s ease-in-out infinite alternate-reverse;
+}
+
+@@keyframes prg-orb-drift1 {
+    from { transform: translate(0,0) scale(1); }
+    to   { transform: translate(40px,30px) scale(1.1); }
+}
+@@keyframes prg-orb-drift2 {
+    from { transform: translate(0,0) scale(1); }
+    to   { transform: translate(-30px,40px) scale(.9); }
+}
+@@keyframes prg-orb-drift3 {
+    from { transform: translate(0,0) scale(1); }
+    to   { transform: translate(20px,-20px) scale(1.15); }
+}
+
+/* Grid overlay for texture */
+.prg-hero-grid {
+    position: absolute; inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+}
+
+/* Shimmer streak */
+.prg-hero-streak {
+    position: absolute;
+    top: 0; left: -200%;
+    width: 60%; height: 100%;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.04) 50%, transparent 60%);
+    animation: prg-streak 8s ease-in-out infinite;
+    pointer-events: none;
+}
+@@keyframes prg-streak {
+    0%   { left: -200%; }
+    100% { left: 200%; }
+}
+
+/* Noise texture overlay */
+.prg-hero-noise {
+    position: absolute; inset: 0;
+    opacity: .04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    pointer-events: none;
+}
+
+/* Hero content */
+.prg-hero-content {
+    position: relative; z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    flex-wrap: wrap;
+}
+
+/* Avatar assembly */
+.prg-avatar-assembly {
+    position: relative;
+    flex-shrink: 0;
+    animation: prg-float 4s ease-in-out infinite;
+}
+@@keyframes prg-float {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-8px); }
+}
+
+/* Outer rotating ring */
+.prg-ring-outer {
+    width: 104px; height: 104px;
+    border-radius: 50%;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+}
+.prg-ring-outer::before {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, #6366f1, #8b5cf6, #ec4899, #22d3ee, #6366f1);
+    animation: prg-ring-spin 4s linear infinite;
+    padding: 2px;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+}
+@@keyframes prg-ring-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Middle ring glow */
+.prg-ring-outer::after {
+    content: '';
+    position: absolute; inset: 4px;
+    border-radius: 50%;
+    background: rgba(99,102,241,.15);
+    animation: prg-glow-pulse 3s ease-in-out infinite;
+}
+@@keyframes prg-glow-pulse {
+    0%,100% { box-shadow: 0 0 20px rgba(99,102,241,.3); }
+    50%      { box-shadow: 0 0 40px rgba(139,92,246,.5); }
+}
+
+/* Avatar circle */
+.prg-avatar {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+    font-weight: 900;
+    color: #e0e7ff;
+    letter-spacing: -.04em;
+    user-select: none;
+    position: relative; z-index: 1;
+    border: 3px solid rgba(255,255,255,.12);
+}
+
+/* Online indicator */
+.prg-online {
+    position: absolute;
+    bottom: 6px; right: 6px;
+    z-index: 3;
+}
+.prg-online-core {
+    width: 18px; height: 18px;
+    background: #34d399;
+    border-radius: 50%;
+    border: 3px solid #0f0c29;
+    position: relative;
+}
+html[data-theme="light"] .prg-online-core { border-color: #4338ca; }
+.prg-online-core::after {
+    content: '';
+    position: absolute; inset: -5px;
+    border-radius: 50%;
+    background: rgba(52,211,153,.4);
+    animation: prg-online-pulse 2s ease-out infinite;
+}
+@@keyframes prg-online-pulse {
+    0%   { transform: scale(1); opacity: .8; }
+    100% { transform: scale(2.4); opacity: 0; }
+}
+
+/* Hero text */
+.prg-hero-text { flex: 1; min-width: 0; }
+
+.prg-hero-name {
+    font-size: 1.9rem;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -.04em;
+    line-height: 1.15;
+    margin: 0 0 8px;
+    text-shadow: 0 2px 20px rgba(0,0,0,.3);
+}
+
+.prg-hero-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.prg-hbadge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    border: 1px solid rgba(255,255,255,.15);
+    backdrop-filter: blur(8px);
+    background: rgba(255,255,255,.08);
+    color: rgba(255,255,255,.9);
+    transition: all .2s;
+}
+.prg-hbadge:hover { background: rgba(255,255,255,.14); }
+.prg-hbadge.green {
+    background: rgba(52,211,153,.15);
+    border-color: rgba(52,211,153,.3);
+    color: #6ee7b7;
+}
+.prg-hbadge.indigo {
+    background: rgba(129,140,248,.15);
+    border-color: rgba(129,140,248,.3);
+    color: #a5b4fc;
+}
+.prg-hbadge.violet {
+    background: rgba(167,139,250,.15);
+    border-color: rgba(167,139,250,.3);
+    color: #c4b5fd;
+}
+
+.prg-hero-meta {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.prg-hero-meta-item {
+    display: flex; align-items: center; gap: 7px;
+    font-size: .84rem;
+    color: rgba(255,255,255,.65);
+    font-weight: 500;
+}
+.prg-hero-meta-item svg { opacity: .7; }
+
+/* Hero action buttons */
+.prg-hero-actions {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    flex-shrink: 0;
+    padding-bottom: 4px;
+}
+
+/* Bottom gradient blend for depth */
+.prg-hero-bottom-fade {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 80px;
+    background: linear-gradient(to top, rgba(0,0,0,.25) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+@@keyframes prg-stagger-in {
+    from { opacity:0; transform:translateY(16px); }
+    to   { opacity:1; transform:translateY(0); }
+}
+
+/* ═══════════════════════════════════════════
+   MAIN CONTENT GRID
+═══════════════════════════════════════════ */
+.prg-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+/* ── Premium Glass Card ── */
+.prg-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 22px;
+    overflow: hidden;
+    transition: all .28s cubic-bezier(.16,1,.3,1);
+    position: relative;
+    animation: prg-stagger-in .5s both;
+}
+html[data-theme="dark"] .prg-card { background: rgba(20,18,30,.7); border-color: rgba(255,255,255,.06); }
+
+/* Gradient top accent line */
+.prg-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(99,102,241,.5) 30%, rgba(139,92,246,.6) 60%, transparent);
+    opacity: 0;
+    transition: opacity .3s;
+}
+.prg-card:hover::before { opacity: 1; }
+.prg-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 24px 48px -12px rgba(99,102,241,.12);
+    border-color: rgba(99,102,241,.18);
+}
+html[data-theme="dark"] .prg-card:hover {
+    box-shadow: 0 24px 48px -12px rgba(0,0,0,.6);
+}
+
+/* Card stagger delay helpers */
+.prg-card:nth-child(1) { animation-delay: .05s; }
+.prg-card:nth-child(2) { animation-delay: .12s; }
+.prg-card:nth-child(3) { animation-delay: .19s; }
+.prg-card:nth-child(4) { animation-delay: .26s; }
+
+/* Card header */
+.prg-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px 26px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+    gap: 12px;
+}
+.prg-card-title-group { display: flex; align-items: center; gap: 12px; }
+.prg-card-icon-wrap {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.prg-card:hover .prg-card-icon-wrap { transform: rotate(6deg) scale(1.08); }
+.prg-card-icon-wrap.indigo { background: linear-gradient(135deg, rgba(99,102,241,.14), rgba(139,92,246,.14)); color: #818cf8; border: 1px solid rgba(99,102,241,.15); }
+.prg-card-icon-wrap.green  { background: linear-gradient(135deg, rgba(16,185,129,.12), rgba(52,211,153,.12)); color: #34d399; border: 1px solid rgba(16,185,129,.15); }
+.prg-card-icon-wrap.amber  { background: linear-gradient(135deg, rgba(245,158,11,.12), rgba(251,191,36,.12)); color: #fbbf24; border: 1px solid rgba(245,158,11,.15); }
+.prg-card-icon-wrap.rose   { background: linear-gradient(135deg, rgba(244,63,94,.12), rgba(251,113,133,.12)); color: #fb7185; border: 1px solid rgba(244,63,94,.15); }
+.prg-card-icon-wrap svg { width: 18px; height: 18px; }
+
+.prg-card-title {
+    font-size: .96rem;
+    font-weight: 800;
+    color: var(--text-main);
+    letter-spacing: -.02em;
+    margin: 0;
+}
+.prg-card-sub {
+    font-size: .75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin: 1px 0 0;
+}
+
+/* Card body */
+.prg-card-body { padding: 22px 26px; }
+
+/* ── Info Row (read-only) ── */
+.prg-info-row {
+    display: flex;
+    align-items: center;
+    padding: 13px 0;
+    gap: 14px;
+    border-bottom: 1px solid var(--border-subtle);
+    transition: background .18s;
+}
+.prg-info-row:last-child { border-bottom: none; padding-bottom: 0; }
+.prg-info-row:first-child { padding-top: 0; }
+
+.prg-info-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    flex-shrink: 0;
+    box-shadow: 0 0 8px rgba(99,102,241,.4);
+}
+.prg-info-body { flex: 1; min-width: 0; }
+.prg-info-label {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+.prg-info-value {
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    line-height: 1.3;
+}
+
+/* ── Status badges ── */
+.prg-badge-ok {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 9px; border-radius: 999px;
+    font-size: .67rem; font-weight: 700;
+    background: rgba(16,185,129,.09); color: #10b981;
+    border: 1px solid rgba(16,185,129,.2);
+}
+.prg-badge-err {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 9px; border-radius: 999px;
+    font-size: .67rem; font-weight: 700;
+    background: rgba(239,68,68,.09); color: #f87171;
+    border: 1px solid rgba(239,68,68,.2);
+}
+.prg-badge-neutral {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 9px; border-radius: 999px;
+    font-size: .67rem; font-weight: 700;
+    background: rgba(99,102,241,.09); color: #818cf8;
+    border: 1px solid rgba(99,102,241,.2);
+}
+
+/* Inline verify button */
+.prg-inline-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 11px; border-radius: 8px;
+    font-size: .71rem; font-weight: 700;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff; border: none; cursor: pointer;
+    transition: all .2s;
+}
+.prg-inline-btn:hover { opacity: .88; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,.35); }
+
+/* ── Buttons ── */
+.prg-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 10px 20px; border-radius: 12px;
+    font-size: .83rem; font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer; outline: none; border: none;
+    transition: all .2s cubic-bezier(.4,0,.2,1);
+    position: relative; overflow: hidden;
+    white-space: nowrap;
+}
+.prg-btn svg { width: 14px; height: 14px; }
+
+/* Ripple on button click */
+.prg-btn::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle, rgba(255,255,255,.35) 0%, transparent 70%);
+    transform: scale(0);
+    opacity: 0;
+    transition: transform .5s, opacity .5s;
+    border-radius: inherit;
+}
+.prg-btn:active::after { transform: scale(2.5); opacity: 1; transition: none; }
+
+.prg-btn-primary {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: #fff;
+    box-shadow: 0 4px 16px -4px rgba(99,102,241,.45);
+}
+.prg-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px -4px rgba(99,102,241,.5); filter: brightness(1.07); }
+.prg-btn-primary:active { transform: translateY(0); }
+
+.prg-btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1.5px solid var(--border-strong);
+}
+.prg-btn-ghost:hover { background: var(--bg-surface); color: var(--text-main); border-color: var(--text-muted); }
+
+.prg-btn-hero {
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    border: 1.5px solid rgba(255,255,255,.2);
+    backdrop-filter: blur(12px);
+    padding: 10px 22px;
+}
+.prg-btn-hero:hover { background: rgba(255,255,255,.2); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+.prg-btn-hero:active { transform: translateY(0); }
+
+/* ── Edit panel (expand-in-place) ── */
+.prg-edit-panel {
+    display: none;
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-base);
+}
+html[data-theme="dark"] .prg-edit-panel { background: rgba(12,10,20,.5); }
+.prg-edit-panel.open {
+    display: block;
+    animation: prg-stagger-in .3s ease both;
+}
+.prg-edit-panel-body { padding: 22px 26px; }
+
+/* Form fields */
+.prg-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+.prg-form-grid.single { grid-template-columns: 1fr; }
+.prg-field { display: flex; flex-direction: column; gap: 6px; }
+.prg-label {
+    font-size: .76rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em;
+    color: var(--text-muted);
+}
+.prg-input-wrap { position: relative; display: flex; align-items: center; }
+.prg-input-icon {
+    position: absolute; left: 13px;
+    color: var(--text-muted); opacity: .6;
+    pointer-events: none; width: 15px; height: 15px;
+}
+.prg-input {
+    width: 100%;
+    padding: 11px 13px 11px 40px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 11px;
+    background: var(--bg-surface);
+    color: var(--text-main);
+    font-size: .88rem;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s, background .2s;
+}
+.prg-input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 4px rgba(99,102,241,.12);
+    background: var(--bg-base);
+}
+html[data-theme="dark"] .prg-input {
+    background: rgba(255,255,255,.04);
+    border-color: rgba(255,255,255,.1);
+}
+html[data-theme="dark"] .prg-input:focus {
+    background: rgba(255,255,255,.06);
+    border-color: #818cf8;
+}
+
+.prg-input-row { display: flex; align-items: center; gap: 10px; }
+.prg-input-flex { flex: 1; }
+
+.prg-edit-panel-foot {
+    padding: 14px 26px 20px;
+    display: flex; justify-content: flex-end; gap: 10px;
+}
+
+/* ── Security cards ── */
+.prg-sec-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.prg-sec-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px;
+    border: 1.5px solid var(--border-subtle);
+    border-radius: 16px;
+    background: var(--bg-base);
+    transition: all .22s cubic-bezier(.16,1,.3,1);
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+}
+html[data-theme="dark"] .prg-sec-item { background: rgba(255,255,255,.03); border-color: rgba(255,255,255,.06); }
+.prg-sec-item:hover {
+    border-color: rgba(99,102,241,.3);
+    transform: translateX(4px);
+    box-shadow: 0 6px 20px -6px rgba(99,102,241,.15);
+}
+.prg-sec-item-icon {
+    width: 46px; height: 46px;
+    border-radius: 13px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.prg-sec-item:hover .prg-sec-item-icon { transform: scale(1.12); }
+.prg-sec-item-icon.indigo { background: rgba(99,102,241,.1); color: #818cf8; border: 1px solid rgba(99,102,241,.15); }
+.prg-sec-item-icon.violet { background: rgba(139,92,246,.1); color: #a78bfa; border: 1px solid rgba(139,92,246,.15); }
+.prg-sec-item-icon svg { width: 20px; height: 20px; }
+.prg-sec-item-body { flex: 1; min-width: 0; }
+.prg-sec-item-title { font-size: .9rem; font-weight: 800; color: var(--text-main); letter-spacing: -.01em; margin-bottom: 3px; }
+.prg-sec-item-desc  { font-size: .76rem; color: var(--text-muted); line-height: 1.5; }
+.prg-sec-item-action { flex-shrink: 0; }
+
+/* ── Password form panel ── */
+.prg-pw-panel {
+    display: none;
+    margin-top: 14px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 18px;
+    overflow: hidden;
+    background: var(--bg-surface);
+}
+html[data-theme="dark"] .prg-pw-panel { background: rgba(20,18,30,.8); border-color: rgba(255,255,255,.07); }
+.prg-pw-panel.open { display: block; animation: prg-stagger-in .3s ease both; }
+.prg-pw-panel-head {
+    padding: 17px 22px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex; align-items: center; gap: 10px;
+    font-size: .9rem; font-weight: 800; color: var(--text-main);
+}
+.prg-pw-panel-head svg { color: #6366f1; width: 16px; height: 16px; }
+.prg-pw-panel-body { padding: 22px; }
+.prg-pw-panel-foot {
+    padding: 14px 22px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex; justify-content: flex-end; gap: 10px;
+    background: var(--bg-base);
+}
+html[data-theme="dark"] .prg-pw-panel-foot { background: rgba(12,10,20,.5); }
+
+/* Password input */
+.prg-pass-wrap { position: relative; display: flex; align-items: center; }
+.prg-pass-icon { position: absolute; left: 13px; color: var(--text-muted); opacity: .6; pointer-events: none; width: 15px; height: 15px; }
+.prg-pass-input {
+    width: 100%;
+    padding: 11px 40px 11px 40px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 11px;
+    background: var(--bg-surface);
+    color: var(--text-main);
+    font-size: .88rem;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+}
+.prg-pass-input:focus { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99,102,241,.12); }
+.prg-pass-toggle {
+    position: absolute; right: 12px;
+    background: none; border: none;
+    color: var(--text-muted); cursor: pointer;
+    display: flex; align-items: center; outline: none;
+    transition: color .2s;
+}
+.prg-pass-toggle:hover { color: var(--text-main); }
+
+/* Strength bar */
+.prg-strength { margin-top: 7px; display: flex; flex-direction: column; gap: 4px; }
+.prg-strength-track { height: 3px; background: var(--border-subtle); border-radius: 2px; overflow: hidden; }
+.prg-strength-bar { height: 100%; width: 0; border-radius: 2px; transition: width .4s cubic-bezier(.4,0,.2,1), background-color .3s; }
+.prg-strength-text { font-size: .7rem; font-weight: 700; color: var(--text-muted); }
+
+/* ── Roles chips ── */
+.prg-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.prg-chip {
+    padding: 3px 11px; border-radius: 999px;
+    font-size: .69rem; font-weight: 700;
+    background: rgba(99,102,241,.09); color: #818cf8;
+    border: 1px solid rgba(99,102,241,.18);
+    text-transform: uppercase; letter-spacing: .05em;
+}
+
+/* ── Aurora background behind page ── */
+.prg-page-aurora {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    overflow: hidden;
+}
+.prg-page-aurora::before {
+    content: '';
+    position: absolute;
+    width: 800px; height: 800px;
+    background: radial-gradient(circle, rgba(99,102,241,.06) 0%, transparent 70%);
+    top: -200px; right: -200px;
+    animation: prg-orb-drift1 20s ease-in-out infinite alternate;
+}
+.prg-page-aurora::after {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(139,92,246,.05) 0%, transparent 70%);
+    bottom: -150px; left: -100px;
+    animation: prg-orb-drift2 18s ease-in-out infinite alternate;
+}
+html[data-theme="light"] .prg-page-aurora::before { background: radial-gradient(circle, rgba(99,102,241,.04) 0%, transparent 70%); }
+html[data-theme="light"] .prg-page-aurora::after  { background: radial-gradient(circle, rgba(139,92,246,.04) 0%, transparent 70%); }
+
+/* ── Standalone Profile Navigation Bar ── */
+.prg-standalone-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 18px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 18px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.05);
+    animation: prg-hero-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.prg-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none !important;
+    padding: 6px 14px 6px 8px;
+    border-radius: 12px;
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.18);
+    color: var(--text-main);
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.prg-back-link:hover {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(139, 92, 246, 0.18));
+    border-color: rgba(99, 102, 241, 0.4);
+    transform: translateX(-3px);
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.2);
+}
+
+.prg-back-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+}
+
+.prg-back-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.prg-back-sub {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    line-height: 1;
+}
+
+.prg-back-title {
+    font-size: 0.86rem;
+    font-weight: 800;
+    color: var(--text-main);
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    margin-top: 2px;
+}
+
+.prg-top-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.prg-brand-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    background: var(--bg-base);
+    border: 1px solid var(--border-subtle);
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.prg-brand-badge svg {
+    color: #6366f1;
+}
+
+.prg-nav-logout-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 10px;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.prg-nav-logout-btn:hover {
+    background: #ef4444;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.prg-btn-back-hero {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #fff;
+    backdrop-filter: blur(10px);
+    text-decoration: none !important;
+}
+
+.prg-btn-back-hero:hover {
+    background: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-2px);
+    color: #fff;
+}
+
+
+/* ══ RESPONSIVE ══ */
+@@media (max-width: 1024px) {
+    .prg-grid { grid-template-columns: 1fr; }
+}
+@@media (max-width: 768px) {
+    /* Hide the "Back to Application" button on mobile view */
+    .prg-back-link,
+    #btnBackToApp,
+    .prg-btn-back-hero {
+        display: none !important;
+    }
+
+    .prg-standalone-nav {
+        justify-content: flex-end;
+        padding: 8px 14px;
+        margin-bottom: 14px;
+    }
+}
+@@media (max-width: 640px) {
+    .prg-hero { padding: 20px 18px; }
+    .prg-hero-content { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .prg-ring-outer { width: 84px; height: 84px; }
+    .prg-avatar  { width: 72px; height: 72px; font-size: 1.6rem; }
+    .prg-hero-name { font-size: 1.45rem; }
+    .prg-hero-actions { width: 100%; }
+    .prg-form-grid { grid-template-columns: 1fr; }
+    .prg-card-body { padding: 16px 18px; }
+    .prg-card-head { padding: 16px 18px; }
+    .prg-edit-panel-body { padding: 16px 18px; }
+    .prg-edit-panel-foot { padding: 12px 18px 16px; }
+    .prg-brand-badge { display: none; }
+}
+</style>
+
+<!-- Subtle ambient aurora behind page -->
+<div class="prg-page-aurora" aria-hidden="true"></div>
+
+@{
+    var rpapReturnUrl = Context.Request.Cookies["RPAP_CallbackUrl"];
+    var rpapTxId = Context.Request.Cookies["RPAP_TransactionId"];
+    var ssoReturnUrl = Context.Request.Cookies["SSO_ReturnUrl"] ?? ViewData["SSO_ReturnUrl"]?.ToString() ?? Context.Request.Query["returnUrl"].ToString();
+    var ssoTenantName = Context.Request.Cookies["SSO_TenantName"] ?? ViewData["SSO_TenantName"]?.ToString();
+    if (string.IsNullOrEmpty(ssoTenantName)) { ssoTenantName = "Application"; }
+    
+    var backUrl = !string.IsNullOrEmpty(rpapTxId) ? "/management/return" 
+                : (!string.IsNullOrEmpty(ssoReturnUrl) ? ssoReturnUrl 
+                : (!string.IsNullOrEmpty(rpapReturnUrl) ? rpapReturnUrl : "/"));
+}
+
+<div class="prg-page">
+
+    <!-- ═══════════════════════════════════════════════════════════
+         TOP STANDALONE NAV BAR
+    ═══════════════════════════════════════════════════════════ -->
+    <header class="prg-standalone-nav" aria-label="Profile navigation">
+        <a href="@backUrl" class="prg-back-link" id="btnBackToApp" title="Return to application">
+            <div class="prg-back-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+            </div>
+            <div class="prg-back-text">
+                <span class="prg-back-sub">Return to</span>
+                <span class="prg-back-title">@ssoTenantName</span>
+            </div>
+        </a>
+
+        <div class="prg-top-right">
+            <div class="prg-brand-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>Identity Hub</span>
+            </div>
+
+            <form asp-action="Logout" asp-controller="Login" method="post" style="margin: 0; display: inline-flex;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="prg-nav-logout-btn" title="Sign Out">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    <span>Sign Out</span>
+                </button>
+            </form>
+        </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         HERO SECTION
+    ═══════════════════════════════════════════════════════════ -->
+    <section class="prg-hero" aria-label="Profile hero">
+        <!-- Background layers -->
+        <div class="prg-hero-bg" aria-hidden="true">
+            <div class="prg-orb prg-orb-1"></div>
+            <div class="prg-orb prg-orb-2"></div>
+            <div class="prg-orb prg-orb-3"></div>
+            <div class="prg-orb prg-orb-4"></div>
+            <div class="prg-hero-grid"></div>
+            <div class="prg-hero-streak"></div>
+            <div class="prg-hero-noise"></div>
+        </div>
+        <div class="prg-hero-bottom-fade" aria-hidden="true"></div>
+
+        <!-- Content -->
+        <div class="prg-hero-content">
+
+            <!-- Avatar -->
+            <div class="prg-avatar-assembly" aria-hidden="true">
+                <div class="prg-ring-outer">
+                    <div class="prg-avatar">@initials</div>
+                </div>
+                <div class="prg-online" title="Active Session">
+                    <div class="prg-online-core"></div>
+                </div>
+            </div>
+
+            <!-- Identity text -->
+            <div class="prg-hero-text">
+                <h1 class="prg-hero-name">@Model.Name</h1>
+                <div class="prg-hero-badges">
+                    <span class="prg-hbadge green">
+                        <svg width="7" height="7" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
+                        Online
+                    </span>
+                    @if (userRoles.Any())
+                    {
+                        foreach (var role in userRoles)
+                        {
+                            <span class="prg-hbadge indigo">@role</span>
+                        }
+                    }
+                    else
+                    {
+                        <span class="prg-hbadge indigo">Standard User</span>
+                    }
+                    <span class="prg-hbadge violet">@accessLevel</span>
+                </div>
+                <div class="prg-hero-meta">
+                    <div class="prg-hero-meta-item">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        @Model.Email
+                        @if (Model.EmailConfirmed)
+                        {
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:rgba(52,211,153,.15);color:#6ee7b7;border:1px solid rgba(52,211,153,.25);padding:1px 7px;border-radius:999px;font-size:.65rem;font-weight:700;">
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                                Verified
+                            </span>
+                        }
+                        else
+                        {
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.25);padding:1px 7px;border-radius:999px;font-size:.65rem;font-weight:700;">
+                                Unverified
+                            </span>
+                            <button type="button" id="btnVerifyBanner" class="prg-inline-btn">Verify Now</button>
+                        }
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.PhoneNumber))
+                    {
+                        <div class="prg-hero-meta-item">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.21 12 19.79 19.79 0 0 1 1.14 3.35 2 2 0 0 1 3.11 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                            @Model.PhoneNumber
+                        </div>
+                    }
+                    @if (Model.LastModifiedOn.HasValue)
+                    {
+                        <div class="prg-hero-meta-item">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            Updated @Model.LastModifiedOn.Value.ToString("MMM d, yyyy")
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- CTA -->
+            @* <div class="prg-hero-actions">
+                <a href="@backUrl" class="prg-btn prg-btn-back-hero">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    Back to @ssoTenantName
+                </a>
+                <button class="prg-btn prg-btn-hero" id="btnEditProfile">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Edit Profile
+                </button>
+            </div> *@
+
+        </div>
+    </section>
+
+
+
+    <!-- ═══════════════════════════════════════════════════════════
+         MAIN CONTENT GRID
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="prg-grid">
+
+        <!-- ────────────────────────────────
+             LEFT: Personal Information
+        ──────────────────────────────── -->
+        <div class="prg-card" id="cardPersonal">
+            <div class="prg-card-head">
+                <div class="prg-card-title-group">
+                    <div class="prg-card-icon-wrap indigo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </div>
+                    <div>
+                        <h2 class="prg-card-title">Personal Information</h2>
+                        <p class="prg-card-sub">Your identity &amp; contact details</p>
+                    </div>
+                </div>
+                <button class="prg-btn prg-btn-ghost" id="btnEditProfileCard" style="padding:7px 14px;font-size:.78rem;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Edit
+                </button>
+            </div>
+
+            <!-- Read-only rows -->
+            <div class="prg-card-body" id="personalReadonly">
+                <div class="prg-info-row">
+                    <div class="prg-info-dot"></div>
+                    <div class="prg-info-body">
+                        <div class="prg-info-label">Full Name</div>
+                        <div class="prg-info-value">@Model.Name</div>
+                    </div>
+                </div>
+                <div class="prg-info-row">
+                    <div class="prg-info-dot" style="background:linear-gradient(135deg,#10b981,#34d399);box-shadow:0 0 8px rgba(16,185,129,.4);"></div>
+                    <div class="prg-info-body">
+                        <div class="prg-info-label">Work Email</div>
+                        <div class="prg-info-value">
+                            @Model.Email
+                            @if (Model.EmailConfirmed)
+                            {
+                                <span class="prg-badge-ok">
+                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                                    Verified
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="prg-badge-err">Not Verified</span>
+                                <button type="button" id="btnVerifyReadonly" class="prg-inline-btn">Verify</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="prg-info-row">
+                    <div class="prg-info-dot" style="background:linear-gradient(135deg,#ec4899,#f472b6);box-shadow:0 0 8px rgba(236,72,153,.4);"></div>
+                    <div class="prg-info-body">
+                        <div class="prg-info-label">Contact Phone</div>
+                        <div class="prg-info-value">
+                            @if (string.IsNullOrEmpty(Model.PhoneNumber))
+                            {
+                                <span style="color:var(--text-muted);font-style:italic;font-weight:500;font-size:.85rem;">Not provided</span>
+                            }
+                            else
+                            {
+                                @Model.PhoneNumber
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="prg-info-row">
+                    <div class="prg-info-dot" style="background:linear-gradient(135deg,#f59e0b,#fbbf24);box-shadow:0 0 8px rgba(245,158,11,.4);"></div>
+                    <div class="prg-info-body">
+                        <div class="prg-info-label">Assigned Roles</div>
+                        <div class="prg-info-value">
+                            <div class="prg-chips">
+                                @if (userRoles.Any())
+                                {
+                                    foreach (var role in userRoles)
+                                    {
+                                        <span class="prg-chip">@role</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="prg-chip">Standard User</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="prg-info-row">
+                    <div class="prg-info-dot" style="background:linear-gradient(135deg,#6366f1,#818cf8);box-shadow:0 0 8px rgba(99,102,241,.4);"></div>
+                    <div class="prg-info-body">
+                        <div class="prg-info-label">Last Modified</div>
+                        <div class="prg-info-value">@(Model.LastModifiedOn?.ToString("MMMM d, yyyy · h:mm tt") ?? "Never")</div>
+                    </div>
+                </div>
+                <div class="prg-info-row">
+                    <div class="prg-info-dot" style="background:linear-gradient(135deg,#22d3ee,#67e8f9);box-shadow:0 0 8px rgba(34,211,238,.4);"></div>
+                    <div class="prg-info-body">
+                        <div class="prg-info-label">IP Address</div>
+                        <div class="prg-info-value">@(Model.IPAddress ?? "Local")</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Form (appears inline below read-only) -->
+            <div class="prg-edit-panel" id="profileEditFormContainer">
+                <div class="prg-edit-panel-body">
+                    <form asp-action="UpdateProfile" asp-controller="Account" method="post" novalidate id="updateProfileForm">
+                        @Html.AntiForgeryToken()
+                        <div class="prg-form-grid">
+                            <div class="prg-field">
+                                <label class="prg-label">Full Name</label>
+                                <div class="prg-input-wrap">
+                                    <svg class="prg-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                    <input type="text" asp-for="Name" class="prg-input" placeholder="Full name" required />
+                                </div>
+                            </div>
+                            <div class="prg-field">
+                                <label class="prg-label">Contact Phone</label>
+                                <div class="prg-input-wrap">
+                                    <svg class="prg-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.21 12 19.79 19.79 0 0 1 1.14 3.35 2 2 0 0 1 3.11 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                                    <input type="text" asp-for="PhoneNumber" class="prg-input" placeholder="Phone number" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="prg-form-grid single">
+                            <div class="prg-field">
+                                <label class="prg-label">Work Email</label>
+                                <div class="prg-input-row">
+                                    <div class="prg-input-wrap prg-input-flex">
+                                        <svg class="prg-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                                        <input type="email" asp-for="Email" id="inputEmail" class="prg-input" placeholder="Email address" required />
+                                    </div>
+                                    <button type="button" id="btnVerifyEmail" class="prg-btn prg-btn-primary" style="display:none;white-space:nowrap;padding:10px 16px;">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                        Verify
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="prg-edit-panel-foot">
+                    <button type="button" class="prg-btn prg-btn-ghost" id="btnCancelEdit">Cancel</button>
+                    <button type="submit" form="updateProfileForm" class="prg-btn prg-btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- /cardPersonal -->
+
+        <!-- ────────────────────────────────
+             RIGHT: Security Center
+        ──────────────────────────────── -->
+        <div class="prg-card" id="cardSecurity">
+            <div class="prg-card-head">
+                <div class="prg-card-title-group">
+                    <div class="prg-card-icon-wrap rose">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </div>
+                    <div>
+                        <h2 class="prg-card-title">Security Center</h2>
+                        <p class="prg-card-sub">Password &amp; account recovery</p>
+                    </div>
+                </div>
+            </div>
+            <div class="prg-card-body">
+
+                <!-- Security action items -->
+                <div class="prg-sec-cards" id="securityOptionsGrid">
+                    <div class="prg-sec-item">
+                        <div class="prg-sec-item-icon indigo">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        </div>
+                        <div class="prg-sec-item-body">
+                            <div class="prg-sec-item-title">Reset Password</div>
+                            <div class="prg-sec-item-desc">Change your password by entering your current credentials.</div>
+                        </div>
+                        <div class="prg-sec-item-action">
+                            <button type="button" class="prg-btn prg-btn-primary" id="btnTriggerResetPassword" style="padding:8px 16px;font-size:.8rem;">
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+                    <div class="prg-sec-item">
+                        <div class="prg-sec-item-icon violet">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        </div>
+                        <div class="prg-sec-item-body">
+                            <div class="prg-sec-item-title">Forgot Password</div>
+                            <div class="prg-sec-item-desc">Get a secure recovery link sent to your email address.</div>
+                        </div>
+                        <div class="prg-sec-item-action">
+                            <button type="button" class="prg-btn prg-btn-ghost" id="btnTriggerForgotPassword" style="padding:8px 16px;font-size:.8rem;" onclick="handleForgotPassword()">
+                                Send Link
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Change Password Form -->
+                <div class="prg-pw-panel" id="resetPasswordFormContainer">
+                    <div class="prg-pw-panel-head">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        Change Password
+                    </div>
+                    <div class="prg-pw-panel-body">
+                        <form asp-action="ChangePassword" asp-controller="Account" method="post" novalidate id="changePasswordForm">
+                            @Html.AntiForgeryToken()
+                            <!-- Current password -->
+                            <div class="prg-form-grid single" style="margin-bottom:14px;">
+                                <div class="prg-field">
+                                    <label class="prg-label">Current Password</label>
+                                    <div class="prg-pass-wrap">
+                                        <svg class="prg-pass-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                        <input type="password" name="currentPassword" id="currentPassword" class="prg-pass-input" placeholder="••••••••" required />
+                                        <button type="button" class="prg-pass-toggle" onclick="togglePasswordVisibility('currentPassword', this)">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="prg-form-grid">
+                                <div class="prg-field">
+                                    <label class="prg-label">New Password</label>
+                                    <div class="prg-pass-wrap">
+                                        <svg class="prg-pass-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                        <input type="password" name="newPassword" id="newPassword" class="prg-pass-input" placeholder="••••••••" required onkeyup="checkPasswordStrength(this.value)" />
+                                        <button type="button" class="prg-pass-toggle" onclick="togglePasswordVisibility('newPassword', this)">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/></svg>
+                                        </button>
+                                    </div>
+                                    <div class="prg-strength">
+                                        <div class="prg-strength-track"><div class="prg-strength-bar" id="strengthBar"></div></div>
+                                        <span class="prg-strength-text" id="strengthLabel"></span>
+                                    </div>
+                                </div>
+                                <div class="prg-field">
+                                    <label class="prg-label">Confirm New Password</label>
+                                    <div class="prg-pass-wrap">
+                                        <svg class="prg-pass-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                        <input type="password" name="confirmPassword" id="confirmPassword" class="prg-pass-input" placeholder="••••••••" required />
+                                        <button type="button" class="prg-pass-toggle" onclick="togglePasswordVisibility('confirmPassword', this)">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="prg-pw-panel-foot">
+                        <button type="button" class="prg-btn prg-btn-ghost" id="btnCancelReset">Cancel</button>
+                        <button type="submit" form="changePasswordForm" class="prg-btn prg-btn-primary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            Change Password
+                        </button>
+                    </div>
+                </div>
+                <!-- /pw panel -->
+
+            </div>
+        </div>
+        <!-- /cardSecurity -->
+
+    </div>
+    <!-- /prg-grid -->
+
+</div>
+<!-- /prg-page -->
+
+
+<!-- ═════════════════════════════════════════════
+     SCRIPTS — 100% original logic preserved
+═════════════════════════════════════════════ -->
+<script nonce="@Context.Items["CSPNonce"]?.ToString()">
+document.addEventListener("DOMContentLoaded", function () {
+
+    /* ── 1. Edit Profile toggle ── */
+    const btnEditProfile     = document.getElementById("btnEditProfile");
+    const btnEditProfileCard = document.getElementById("btnEditProfileCard");
+    const btnCancelEdit      = document.getElementById("btnCancelEdit");
+    const personalReadonly   = document.getElementById("personalReadonly");
+    const profileEditFormContainer = document.getElementById("profileEditFormContainer");
+
+    function openEditForm() {
+        personalReadonly.style.display = "none";
+        profileEditFormContainer.classList.add("open");
+        if (btnEditProfile)     btnEditProfile.style.display = "none";
+        if (btnEditProfileCard) btnEditProfileCard.style.display = "none";
+    }
+    function closeEditForm() {
+        profileEditFormContainer.classList.remove("open");
+        personalReadonly.style.display = "";
+        if (btnEditProfile)     btnEditProfile.style.display = "";
+        if (btnEditProfileCard) btnEditProfileCard.style.display = "";
+    }
+
+    if (btnEditProfile)     btnEditProfile.addEventListener("click",     openEditForm);
+    if (btnEditProfileCard) btnEditProfileCard.addEventListener("click", openEditForm);
+    if (btnCancelEdit)      btnCancelEdit.addEventListener("click",      closeEditForm);
+
+    /* ── 2. Email change verification flow ── */
+    const inputEmail        = document.getElementById("inputEmail");
+    const btnVerifyEmail    = document.getElementById("btnVerifyEmail");
+    const updateProfileForm = document.getElementById("updateProfileForm");
+    const originalEmail     = '@Model.Email';
+
+    function sendVerificationForEmail(email) {
+        if (!email) return;
+        const token = $('input[name="__RequestVerificationToken"]').first().val();
+
+        Swal.fire({
+            title: 'Sending verification link...',
+            allowOutsideClick: false,
+            customClass: { popup: 'prg-swal' },
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        $.post('/Account/SendEmailChangeVerification', {
+            newEmail: email,
+            __RequestVerificationToken: token
+        }).done(function (res) {
+            if (res.succeeded) {
+                let pollInterval;
+                Swal.fire({
+                    title: 'Check Your Inbox',
+                    html: `<div style="margin-top:12px;">We sent a verification link to <strong style="color:#818cf8;">${email}</strong>.<br><br>Click the link in your email to confirm.<br><br><div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px;"><div class="modern-spinner" style="width:28px;height:28px;"></div><span style="font-size:.83rem;color:var(--text-muted);">Waiting for confirmation…</span></div></div>`,
+                    showCancelButton: true, cancelButtonText: 'Cancel',
+                    showConfirmButton: false,
+                    customClass: { popup: 'prg-swal' },
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        pollInterval = setInterval(() => {
+                            $.get('/Account/CheckEmailChangeStatus', { newEmail: email }, function (statusRes) {
+                                if (statusRes.verified) {
+                                    clearInterval(pollInterval);
+                                    Swal.fire({ icon: 'success', title: 'Email Verified!', text: 'Your email has been verified and updated.', customClass: { popup: 'prg-swal' } })
+                                        .then(() => window.location.reload());
+                                }
+                            });
+                        }, 3000);
+                    },
+                    willClose: () => { if (pollInterval) clearInterval(pollInterval); }
+                });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Failed', text: res.message || 'Failed to send verification email.', customClass: { popup: 'prg-swal' } });
+            }
+        }).fail(() => {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'An error occurred while sending the verification email.', customClass: { popup: 'prg-swal' } });
+        });
+    }
+
+    if (inputEmail && btnVerifyEmail) {
+        inputEmail.addEventListener("input", function () {
+            btnVerifyEmail.style.display =
+                (this.value.trim().toLowerCase() !== originalEmail.toLowerCase()) ? "inline-flex" : "none";
+        });
+        btnVerifyEmail.addEventListener("click", () => sendVerificationForEmail(inputEmail.value.trim()));
+    }
+
+    const btnVerifyBanner  = document.getElementById("btnVerifyBanner");
+    const btnVerifyReadonly = document.getElementById("btnVerifyReadonly");
+    if (btnVerifyBanner)   btnVerifyBanner.addEventListener("click",  () => sendVerificationForEmail(originalEmail));
+    if (btnVerifyReadonly) btnVerifyReadonly.addEventListener("click", () => sendVerificationForEmail(originalEmail));
+
+    if (updateProfileForm && inputEmail) {
+        updateProfileForm.addEventListener("submit", function (e) {
+            if (inputEmail.value.trim().toLowerCase() !== originalEmail.toLowerCase()) {
+                e.preventDefault();
+                Swal.fire({ icon: 'warning', title: 'Verify First', text: 'Please verify your new email using the "Verify" button before saving.', customClass: { popup: 'prg-swal' } });
+            }
+        });
+    }
+
+    /* ── 3. Reset Password form toggle ── */
+    const btnTriggerReset         = document.getElementById("btnTriggerResetPassword");
+    const btnCancelReset          = document.getElementById("btnCancelReset");
+    const securityOptionsGrid     = document.getElementById("securityOptionsGrid");
+    const resetPasswordFormContainer = document.getElementById("resetPasswordFormContainer");
+
+    if (btnTriggerReset)  btnTriggerReset.addEventListener("click", function () {
+        securityOptionsGrid.style.display = "none";
+        resetPasswordFormContainer.classList.add("open");
+    });
+    if (btnCancelReset) btnCancelReset.addEventListener("click", function () {
+        resetPasswordFormContainer.classList.remove("open");
+        securityOptionsGrid.style.display = "";
+    });
+
+    /* ── 4. Password visibility toggle ── */
+    window.togglePasswordVisibility = function (fieldId, btn) {
+        const input = document.getElementById(fieldId);
+        if (!input) return;
+        if (input.type === "password") {
+            input.type = "text";
+            btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+        } else {
+            input.type = "password";
+            btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/></svg>`;
+        }
+    };
+
+    /* ── 5. Password strength meter ── */
+    window.checkPasswordStrength = function (val) {
+        let score = 0;
+        if (val.length >= 8) score++;
+        if (/[A-Z]/.test(val)) score++;
+        if (/[a-z]/.test(val)) score++;
+        if (/[0-9]/.test(val)) score++;
+        if (/[^A-Za-z0-9]/.test(val)) score++;
+
+        const bar   = document.getElementById("strengthBar");
+        const label = document.getElementById("strengthLabel");
+        if (!bar || !label) return;
+
+        if (!val) { bar.style.width = "0%"; bar.style.backgroundColor = "transparent"; label.textContent = ""; return; }
+
+        bar.style.width = ((score / 5) * 100) + "%";
+        const levels = [
+            null,
+            { color: "#ef4444", text: "Very Weak" },
+            { color: "#f97316", text: "Weak" },
+            { color: "#eab308", text: "Fair" },
+            { color: "#22c55e", text: "Good" },
+            { color: "#10b981", text: "Strong ✓" }
+        ];
+        const lvl = levels[score] || levels[1];
+        bar.style.backgroundColor = lvl.color;
+        label.textContent = lvl.text;
+        label.style.color = lvl.color;
+    };
+
+    /* ── 6. Forgot password ── */
+    window.handleForgotPassword = function () {
+        const email = '@Model.Email';
+        const token = $('input[name="__RequestVerificationToken"]').first().val();
+        Swal.fire({ title: 'Sending recovery link…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        $.post('/Login/ForgotPassword', { Email: email, __RequestVerificationToken: token }).always(function () {
+            Swal.fire({ icon: 'success', title: 'Recovery Link Sent', text: 'A password reset link has been sent to: ' + email, customClass: { popup: 'prg-swal' } });
+        });
+    };
+
+    /* ── 7. Mobile App WebView Bridge ── */
+    if (window.ReactNativeWebView) {
+        $(document).on('click', '#btnBackToApp, .prg-btn-back-hero', function () {
+            try {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'RETURN_TO_APP',
+                    target: '@backUrl'
+                }));
+            } catch (_) {}
+        });
+    }
+
+});
+</script>
+
+@{
+    var profileErrors = ViewData.ModelState.Values
+        .SelectMany(v => v.Errors)
+        .Select(e => e.ErrorMessage)
+        .Where(m => !string.IsNullOrWhiteSpace(m))
+        .Distinct()
+        .ToList();
+}
+@if (profileErrors.Any())
+{
+    <script nonce="@Context.Items["CSPNonce"]?.ToString()">
+        (function() {
+            const errors = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(profileErrors));
+            if (errors && errors.length > 0) {
+                const msg = errors.join("<br/>");
+                if (window.showToast) {
+                    window.showToast('error', 'Profile Update Error', msg, 5000);
+                } else if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'error', title: 'Profile Update Error', html: msg, customClass: { popup: 'prg-swal' } });
+                }
+            }
+        })();
+    </script>
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <script nonce="@Context.Items["CSPNonce"]?.ToString()">
+        if (window.showToast) {
+            window.showToast('success', 'Success', '@System.Web.HttpUtility.JavaScriptStringEncode(TempData["SuccessMessage"]?.ToString())', 3000);
+        } else if (typeof Swal !== 'undefined') {
+            Swal.fire({ icon: 'success', title: 'Success', text: '@TempData["SuccessMessage"]', timer: 3000, showConfirmButton: false, customClass: { popup: 'prg-swal' } });
+        }
+    </script>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <script nonce="@Context.Items["CSPNonce"]?.ToString()">
+        if (window.showToast) {
+            window.showToast('error', 'Action Failed', '@System.Web.HttpUtility.JavaScriptStringEncode(TempData["ErrorMessage"]?.ToString())', 5000);
+        } else if (typeof Swal !== 'undefined') {
+            Swal.fire({ icon: 'error', title: 'Action Failed', text: '@System.Web.HttpUtility.JavaScriptStringEncode(TempData["ErrorMessage"]?.ToString())', customClass: { popup: 'prg-swal' } });
+        }
+    </script>
+}
