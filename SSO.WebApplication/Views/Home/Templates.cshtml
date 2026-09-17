@@ -1,0 +1,391 @@
+@using SSO.Application.Responses.Features
+
+@{
+    ViewData["Title"] = "Templates";
+    var canCreateTemplate = (await AuthorizationService.AuthorizeAsync(User, Permissions.Templates.Create)).Succeeded;
+    var canExportTemplate = (await AuthorizationService.AuthorizeAsync(User, Permissions.Templates.View)).Succeeded;
+    var canEditTemplate = (await AuthorizationService.AuthorizeAsync(User, Permissions.Templates.Edit)).Succeeded;
+    var canDeleteTemplate = (await AuthorizationService.AuthorizeAsync(User, Permissions.Templates.Delete)).Succeeded;
+}
+
+<style>
+    /* Full-page background for seamless integration - Subtle Teal Theme */
+    body {
+        background: linear-gradient(150deg,
+                        rgba(20, 184, 166, 0.09) 0%,
+                        rgba(13, 148, 136, 0.04) 25%,
+                        rgba(204, 251, 241, 0.35) 60%,
+                        rgba(255, 255, 255, 0.98) 100%) !important;
+        background-attachment: fixed !important;
+        background-repeat: no-repeat !important;
+        background-size: cover !important;
+    }
+
+    html[data-theme="dark"] body {
+        background: linear-gradient(150deg,
+                        rgba(20, 184, 166, 0.16) 0%,
+                        rgba(13, 148, 136, 0.08) 25%,
+                        rgba(19, 78, 74, 0.45) 60%,
+                        rgba(9, 12, 20, 0.96) 100%) !important;
+        background-attachment: fixed !important;
+        background-repeat: no-repeat !important;
+        background-size: cover !important;
+    }
+
+    .page-wrapper, .content-wrapper, .container-xl, main, #content, .page-body {
+        background: transparent !important;
+    }
+
+    .th-page-card {
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        overflow: visible;
+        margin-bottom: 8px;
+    }
+
+    .templates-hero {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        flex-wrap: wrap;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        padding: 12px 4px 6px;
+        margin-bottom: 0;
+        overflow: hidden;
+    }
+
+    /* Scattered Background Pattern (8-12% opacity outline SVGs) - Teal Theme */
+    .templates-hero-bg-pattern {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 0;
+    }
+
+    .hero-bg-icon {
+        position: absolute;
+        stroke: #14b8a6;
+        stroke-width: 1.5;
+        fill: none;
+        opacity: 0.10;
+        transition: opacity 0.3s ease;
+    }
+
+    html[data-theme="dark"] .hero-bg-icon {
+        stroke: #2dd4bf;
+        opacity: 0.12;
+    }
+
+    .hero-bg-icon.icon-doc-1       { top: 8%; left: 1%; width: 32px; height: 32px; transform: rotate(-12deg); }
+    .hero-bg-icon.icon-layers-1    { top: 14%; left: 36%; width: 26px; height: 26px; transform: rotate(10deg); }
+    .hero-bg-icon.icon-copy-1      { bottom: 10%; left: 18%; width: 30px; height: 30px; transform: rotate(-8deg); }
+    .hero-bg-icon.icon-filetext-1  { top: 58%; left: 3%; width: 28px; height: 28px; transform: rotate(6deg); }
+    .hero-bg-icon.icon-layout-1    { top: 10%; left: 22%; width: 28px; height: 28px; transform: rotate(-10deg); }
+    .hero-bg-icon.icon-grid-1      { top: 62%; left: 44%; width: 26px; height: 26px; transform: rotate(-14deg); }
+    .hero-bg-icon.icon-folder-1    { top: 12%; right: 44%; width: 28px; height: 28px; transform: rotate(18deg); }
+    .hero-bg-icon.icon-check-1     { bottom: 8%; right: 36%; width: 32px; height: 32px; transform: rotate(-10deg); }
+    .hero-bg-icon.icon-edit-1      { top: 10%; right: 26%; width: 26px; height: 26px; transform: rotate(8deg); }
+
+    .th-hero-left { 
+        position: relative; 
+        display: flex; 
+        align-items: center; 
+        gap: 18px; 
+        min-width: 260px; 
+        flex: 1 1 320px; 
+        z-index: 1; 
+    }
+    .th-hero-icon {
+        width: 52px; 
+        height: 52px; 
+        flex-shrink: 0; 
+        border-radius: 14px;
+        background: linear-gradient(135deg, #14b8a6, #0d9488);
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        color: #fff;
+        box-shadow: 0 6px 16px rgba(20, 184, 166, 0.25);
+    }
+    .th-hero-title {
+        font-size: 1.7rem !important;
+        font-weight: 800 !important;
+        color: var(--text-main);
+        letter-spacing: -0.02em;
+        margin: 0 0 6px;
+        line-height: 1.2;
+    }
+    .th-hero-subtitle {
+        font-size: 0.9rem !important;
+        color: var(--text-muted);
+        margin: 0;
+        line-height: 1.4;
+    }
+    .th-hero-right { 
+        position: relative; 
+        display: flex; 
+        align-items: center; 
+        gap: 12px; 
+        flex-wrap: wrap; 
+        z-index: 1; 
+    }
+
+    .templates-hero .btn-primary {
+        background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%) !important;
+        border: none !important;
+        box-shadow: 0 4px 14px rgba(20, 184, 166, 0.3) !important;
+    }
+    .templates-hero .btn-primary:hover {
+        background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%) !important;
+        box-shadow: 0 6px 18px rgba(20, 184, 166, 0.4) !important;
+        transform: translateY(-1px);
+    }
+</style>
+
+<div class="breadcrumbs">
+    <span>Auxinz SSO Server</span>
+    <a href="#">System Settings</a>
+    <span class="current">Templates</span>
+</div>
+
+<div class="th-page-card">
+    <div class="templates-hero">
+        <div class="templates-hero-bg-pattern">
+            <svg class="hero-bg-icon icon-doc-1" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <svg class="hero-bg-icon icon-layers-1" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            <svg class="hero-bg-icon icon-copy-1" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <svg class="hero-bg-icon icon-filetext-1" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <svg class="hero-bg-icon icon-layout-1" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+            <svg class="hero-bg-icon icon-grid-1" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <svg class="hero-bg-icon icon-folder-1" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            <svg class="hero-bg-icon icon-check-1" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <svg class="hero-bg-icon icon-edit-1" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+
+        <div class="th-hero-left">
+            <div class="th-hero-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+            </div>
+            <div>
+                <h1 class="th-hero-title">Document Templates</h1>
+                <p class="th-hero-subtitle">Manage system templates for invoices, emails, and notifications.</p>
+            </div>
+        </div>
+
+        <div class="th-hero-right">
+            @if (canCreateTemplate)
+            {
+                <button class="btn btn-primary btn-toolbar" id="openCreateTemplateModal">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Create Template
+                </button>
+            }
+            @if (canExportTemplate)
+            {
+                <button class="btn btn-secondary smart-export-btn btn-toolbar" id="exportTemplatesBtn" onclick="window.smartExport('templateTable','/Home/ExportTemplates')" title="Export">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Export Excel
+                </button>
+                <span class="smart-export-badge" id="templateSelectionBadge"></span>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="table-filters-data" style="display:none;">
+        <div class="filter-group-item">
+            <label>Template Type</label>
+            <select name="Type" class="form-select">
+                <option value="">All Types</option>
+                <option value="0">Excel</option>
+                <option value="1">Word</option>
+                <option value="2">PowerPoint</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-toolbar">
+        <div class="table-filters">
+            <div style="position: relative;">
+                <svg style="position: absolute; left: 10px; top: 10px; color: var(--text-muted);"
+                     width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" class="form-input" placeholder="Filter by Name or Key..."
+                       style="padding-left: 32px; width: 250px;">
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table id="templateTable" class="data-table table-hoverable manual-init">
+            <thead>
+                <tr>
+                    <th class="text-center" style="width: 48px;"><input type="checkbox" class="master-select-cb" data-table="templateTable"></th>
+                    <th class="text-left">Template Name</th>
+                    <th class="text-left">Logical Key</th>
+                    <th class="text-center">Type</th>
+                    <th class="text-center">Version</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(function () {
+        const $panel = $('#templateTable').closest('.panel');
+        const $customSearch = $panel.find('.table-toolbar .form-input');
+        const $customFilters = $panel.find('.table-toolbar .form-select');
+        const canEditTemplate = @canEditTemplate.ToString().ToLower();
+        const canDeleteTemplate = @canDeleteTemplate.ToString().ToLower();
+
+        const dt = $('#templateTable').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: {
+                url: '/Home/GetTemplates',
+                type: 'POST',
+                data: function (d) {
+                    if ($customSearch.length > 0) {
+                        d.customSearchValue = $customSearch.val();
+                    }
+                }
+            },
+            responsive: false,
+            dom: '<"table-toolbar datatables-injected"<"table-filters">f>t<"if-table-footer-wrap"<"footer-right"<"if-pill-pagination-mount">>>',
+            drawCallback: function(settings) {
+                const api = this.api();
+                window.renderPillPagination(api, '.if-pill-pagination-mount', 'templates');
+            },
+            columns: [
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center align-middle',
+                    render: function (data, type, row) {
+                        return '<input type="checkbox" class="row-select-cb" data-row-id="' + (row.id || '') + '">';
+                    }
+                },
+                {
+                    data: 'name',
+                    className: 'text-left align-middle',
+                    render: function (data, type, row) {
+                        return `<div class="cell-flex">
+                                    <div class="cell-avatar secondary">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="cell-text">
+                                        <h5>${data}</h5>
+                                    </div>
+                                </div>`;
+                    }
+                },
+                { data: 'key', className: 'text-left align-middle' },
+                { 
+                    data: 'type',
+                    className: 'text-center align-middle',
+                    render: function(data) {
+                        const types = ['Excel', 'Word', 'PowerPoint'];
+                        return `<span class="badge badge-neutral">${types[data] || 'Other'}</span>`;
+                    }
+                },
+                { data: 'version', className: 'text-center align-middle' },
+                {
+                    data: null,
+                    orderable: false,
+                    className: 'text-center align-middle',
+                    render: function (data, type, row) {
+                        let html = `<div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                    <button class="action-btn action-btn-view" title="View Details" data-type="template" data-id="${row.id}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path></svg></button>`;
+                        if (canEditTemplate) {
+                            html += `<button class="action-btn action-btn-edit" title="Edit Template" onclick="editTemplate('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>`;
+                        }
+                        if (canDeleteTemplate) {
+                            html += `<button class="action-btn action-btn-delete" title="Delete Template" onclick="deleteTemplate('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>`;
+                        }
+                        html += `</div>`;
+                        return html;
+                    }
+                }
+            ]
+        });
+
+        if ($customSearch.length > 0) {
+            let searchTimeout;
+            $customSearch.on('keyup', function () {
+                clearTimeout(searchTimeout);
+                const val = this.value;
+                searchTimeout = setTimeout(() => {
+                    dt.search(val).draw();
+                }, 400);
+            });
+        }
+
+        $('#openCreateTemplateModal').on('click', function() {
+            openTemplateModal();
+        });
+
+        // Initialize row selection for smart export
+        window.initRowSelection('templateTable', 'id');
+    });
+
+    function openTemplateModal(id = '') {
+        const isEdit = id !== '';
+        window.openModal({
+            title: isEdit ? 'Update Template' : 'Create Document Template',
+            subtitle: isEdit ? 'Modify template content and versioning.' : 'Define a new system template for organization-wide use.',
+            icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>',
+            url: '/Home/CreateTemplate?Id=' + id,
+            onSuccess: function() {
+                $('#templateTable').DataTable().ajax.reload();
+            }
+        });
+    }
+
+    function editTemplate(id) {
+        openTemplateModal(id);
+    }
+
+    function deleteTemplate(id) {
+        window.openModal({
+            title: 'Delete Template',
+            subtitle: 'This will permanently remove this template version.',
+            icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-error"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>',
+            url: '/Home/DeleteTemplate?Id=' + id,
+            onSuccess: function() {
+                $('#templateTable').DataTable().ajax.reload();
+            }
+        });
+    }
+</script>

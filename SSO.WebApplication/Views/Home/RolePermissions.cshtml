@@ -1,0 +1,1103 @@
+@using SSO.Application.Responses.Features
+@using SSO.Domain.Entities
+@{
+    ViewData["Title"] = "Manage Role Permissions";
+    var roleId = ViewBag.RoleId;
+    var roleName = ViewBag.RoleName;
+    var tenantId = ViewBag.TenantId as Guid?;
+    var tenantName = ViewBag.TenantName as string;
+    var allClients = ViewBag.Clients as List<ApplicationClient> ?? new List<ApplicationClient>();
+    var canEditPermissions = (await AuthorizationService.AuthorizeAsync(User, Permissions.Roles.Edit)).Succeeded;
+    var backUrl = tenantId.HasValue && tenantId.Value != Guid.Empty ? $"/Home/ManageTenant?tenantId={tenantId.Value}#roles" : "/Home/Roles";
+}
+
+<div class="breadcrumbs">
+    <span>Auxinz SSO Server</span>
+    @if (tenantId.HasValue && tenantId.Value != Guid.Empty)
+    {
+        <a href="/Home/TenantUsers">Tenant Access Control</a>
+        <a href="/Home/ManageTenant?tenantId=@tenantId.Value">@(tenantName ?? "Manage Tenant")</a>
+        <a href="/Home/ManageTenant?tenantId=@tenantId.Value#roles">Roles</a>
+    }
+    else
+    {
+        <a href="/Home/Roles" id="breadcrumbBackBtn">Roles</a>
+    }
+    <span class="current">@roleName Permissions</span>
+</div>
+
+<div class="page-header" style="margin-bottom: 32px;">
+    <div>
+        <h1>Permissions for @roleName</h1>
+        <p style="color: var(--text-muted); margin-top: 4px;">
+            Configure granular access control for this role across SSO, Scopes, and specific Clients.
+        </p>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center;">
+
+        <a href="@backUrl" class="btn btn-secondary" id="backToRolesBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            @(tenantId.HasValue && tenantId.Value != Guid.Empty ? "Back to Roles" : "Back to Roles")
+        </a>
+        @if (canEditPermissions)
+        {
+            <button type="button" class="btn btn-primary" id="savePermissionsBtn" onclick="submitRolePermissions()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                Save Changes
+            </button>
+        }
+    </div>
+</div>
+
+<div class="panel" style="margin-bottom: 24px;">
+    <div style="padding: 24px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-surface-hover);">
+        <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                Select Target Client Scope
+            </label>
+            
+            <!-- Hidden native select for backward compatibility -->
+            <select id="permissionClientId" class="form-select" required style="display: none;">
+                <option value="">Select Application Context...</option>
+                @foreach (var client in allClients)
+                {
+                    <option value="@client.Id">@client.DisplayName (@client.ClientId)</option>
+                }
+            </select>
+
+            <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+                <!-- Custom Searchable Dropdown -->
+                <div class="custom-select-container" id="clientSelectContainer" style="width: 320px; max-width: 100%;">
+                    <button type="button" class="custom-select-trigger" id="clientSelectTrigger">
+                        <span class="custom-select-icon">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                        </span>
+                        <span class="custom-select-text" id="clientSelectText">Select Application Context...</span>
+                        <span class="custom-select-arrow">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </span>
+                    </button>
+                    <div class="custom-select-menu glass-dropdown" id="clientSelectMenu">
+                        <div class="custom-select-search-wrapper">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <input type="text" class="custom-select-search" id="clientSelectSearch" placeholder="Search applications..." autocomplete="off" />
+                        </div>
+                        <div class="custom-select-options" id="clientSelectOptions">
+                            @foreach (var client in allClients)
+                            {
+                                <div class="custom-select-option" data-value="@client.Id" data-client-id="@client.ClientId" data-display-name="@client.DisplayName">
+                                    <div class="option-icon">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                                    </div>
+                                    <div class="option-details">
+                                        <span class="option-name">@client.DisplayName</span>
+                                        <span class="option-clientid">@client.ClientId</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Real-time Permission Search Bar -->
+                <div id="permissionSearchWrapper" style="display: none; position: relative; width: 320px; max-width: 100%;">
+                    <svg style="position: absolute; left: 12px; top: 12px; color: var(--text-muted); pointer-events: none;"
+                         width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" class="form-input" id="permissionSearchInput" placeholder="Search permissions in real time..." style="padding-left: 34px; height: 38px; box-sizing: border-box; width: 100%;">
+                </div>
+            </div>
+
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px;">
+                Permissions are assigned per-client. Please select a client to view/edit existing assignments.
+            </p>
+        </div>
+    </div>
+
+    <div class="panel-body" id="permissionsContainer" style="padding: 24px; min-height: 220px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <div id="loadingIndicator" style="display: none; text-align: center;">
+            <div class="spinner-border text-primary" role="status" style="width: 2.5rem; height: 2.5rem;">
+                <span class="visually-hidden">Loading permissions...</span>
+            </div>
+            <p style="margin-top: 16px; color: var(--text-muted);">Fetching available security scopes...</p>
+        </div>
+        
+        <div id="emptyState" style="text-align: center; padding: 40px;">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--border-strong)" stroke-width="1.5" style="margin-bottom: 16px; color: var(--text-muted);">
+                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"></path>
+                <path d="M12 8V12"></path>
+                <path d="M12 16H12.01"></path>
+            </svg>
+            <h4 style="color: var(--text-main); margin-bottom: 8px; font-weight: 600;">No Client Context Selected</h4>
+            <p style="color: var(--text-muted); max-width: 320px; margin: 0 auto; line-height: 1.5;">Please select an application context from the dropdown above to view and configure its role-based access permissions.</p>
+        </div>
+
+        <div id="permissionsGrid" style="display: none; width: 100%;">
+            <!-- Permissions will be dynamically loaded here -->
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Custom select style rules */
+    .custom-select-container {
+        position: relative;
+        width: 100%;
+    }
+    .custom-select-trigger {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        height: 38px;
+        padding: 8px 12px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-md);
+        color: var(--text-main);
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        text-align: left;
+        outline: none;
+        box-sizing: border-box;
+    }
+    .custom-select-trigger:focus, .custom-select-trigger.open {
+        border-color: var(--brand-primary);
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+    .custom-select-icon {
+        display: flex;
+        align-items: center;
+        margin-right: 10px;
+        color: var(--text-muted);
+    }
+    .custom-select-text {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .custom-select-arrow {
+        display: flex;
+        align-items: center;
+        color: var(--text-muted);
+        transition: transform 0.25s ease;
+    }
+    .custom-select-trigger.open .custom-select-arrow {
+        transform: rotate(180deg);
+    }
+    .custom-select-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        margin-top: 6px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        z-index: 1000;
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+    .custom-select-menu.open {
+        display: flex;
+    }
+    .custom-select-search-wrapper {
+        position: relative;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--border-subtle);
+        display: flex;
+        align-items: center;
+    }
+    .custom-select-search-wrapper svg {
+        position: absolute;
+        left: 20px;
+        color: var(--text-muted);
+        pointer-events: none;
+    }
+    .custom-select-search {
+        width: 100%;
+        height: 32px;
+        padding: 6px 12px 6px 30px;
+        background: var(--bg-base);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        color: var(--text-main);
+        font-size: 0.8rem;
+        outline: none;
+        box-sizing: border-box;
+    }
+    .custom-select-search:focus {
+        border-color: var(--brand-primary);
+    }
+    .custom-select-options {
+        max-height: 220px;
+        overflow-y: auto;
+        padding: 4px 0;
+    }
+    .custom-select-option {
+        display: flex;
+        align-items: center;
+        padding: 8px 16px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        gap: 12px;
+    }
+    .custom-select-option:hover {
+        background: var(--bg-surface-hover);
+    }
+    .custom-select-option.selected {
+        background: var(--brand-bg-subtle);
+        color: var(--brand-primary);
+    }
+    .custom-select-option.selected .option-icon {
+        color: var(--brand-primary);
+    }
+    .custom-select-option.selected .option-clientid {
+        color: var(--brand-primary);
+        opacity: 0.8;
+    }
+    .option-icon {
+        display: flex;
+        align-items: center;
+        color: var(--text-muted);
+    }
+    .option-details {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+    .option-name {
+        font-size: 0.85rem;
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .option-clientid {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        margin-top: 1px;
+    }
+
+    /* Redesigned Module Permission Layout */
+    .module-permission-card {
+        background: var(--bg-surface);
+        border: 1.5px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        margin-bottom: 24px;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        overflow: hidden;
+    }
+    .module-permission-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--border-strong);
+        box-shadow: var(--shadow-md);
+    }
+    .module-permission-card.active {
+        border-color: var(--brand-primary);
+        box-shadow: var(--shadow-md);
+    }
+    .module-header {
+        padding: 16px 20px;
+        background: var(--bg-surface-hover);
+        border-bottom: 1px solid var(--border-subtle);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        cursor: pointer;
+        user-select: none;
+    }
+    .module-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+    }
+    .module-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--brand-bg-subtle);
+        color: var(--brand-primary);
+        flex-shrink: 0;
+    }
+    .module-name {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .module-controls {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-shrink: 0;
+    }
+    .module-counter {
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        background: var(--bg-base);
+        border: 1px solid var(--border-subtle);
+        border-radius: 999px;
+        color: var(--text-muted);
+    }
+    .module-body {
+        padding: 20px;
+        display: none;
+        border-top: 1px solid var(--border-subtle);
+    }
+    .module-body.open {
+        display: block;
+    }
+    .actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 12px;
+    }
+
+    /* Redesigned Action Card Pill */
+    .action-pill-card {
+        padding: 12px 14px;
+        background: var(--bg-surface);
+        border: 1.5px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        box-sizing: border-box;
+        user-select: none;
+    }
+    .action-pill-card:hover {
+        background: var(--bg-surface-hover);
+        border-color: var(--border-strong);
+        transform: translateY(-1px);
+    }
+    .action-pill-card.selected {
+        background: var(--brand-bg-subtle) !important;
+        border-color: rgba(59, 130, 246, 0.3) !important;
+        box-shadow: var(--shadow-sm);
+    }
+    .action-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        flex: 1;
+    }
+    .action-icon-badge {
+        width: 28px;
+        height: 28px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .action-info {
+        min-width: 0;
+        flex: 1;
+    }
+    .action-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-main);
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .action-description {
+        font-size: 0.68rem;
+        color: var(--text-muted);
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-top: 1px;
+    }
+    .action-pill-card.selected .action-label {
+        color: var(--brand-primary);
+    }
+
+    /* Action icon colors */
+    .view-badge { background: rgba(59, 130, 246, 0.08); color: #3b82f6; }
+    .create-badge { background: rgba(16, 185, 129, 0.08); color: #10b981; }
+    .edit-badge { background: rgba(245, 158, 11, 0.08); color: #f59e0b; }
+    .delete-badge { background: rgba(239, 68, 68, 0.08); color: #ef4444; }
+    .sync-badge { background: rgba(139, 92, 246, 0.08); color: #8b5cf6; }
+    .general-badge { background: rgba(100, 116, 139, 0.08); color: #64748b; }
+</style>
+
+<script>
+    const canEditPermissions = @canEditPermissions.ToString().ToLower();
+    let initialStates = {};
+    let initialClientId = '';
+    let isDirty = false;
+
+    $(function() {
+        // Initialize custom select
+        initCustomSelect();
+
+        // Real-time Permission Search Filter
+        $('#permissionSearchInput').on('input keyup', function() {
+            const query = $(this).val().toLowerCase().trim();
+            
+            if (!query) {
+                // If query is empty, show all cards and action pills
+                $('.module-permission-card').show();
+                $('.action-pill-card').show();
+                
+                // Reset expanded states (close all except the first module)
+                $('.module-permission-card').each(function(idx) {
+                    const body = $(this).find('.module-body');
+                    if (idx === 0) {
+                        body.addClass('open');
+                        $(this).addClass('active');
+                    } else {
+                        body.removeClass('open');
+                        $(this).removeClass('active');
+                    }
+                });
+                return;
+            }
+            
+            // Loop through module cards
+            $('.module-permission-card').each(function() {
+                const $moduleCard = $(this);
+                const $moduleBody = $moduleCard.find('.module-body');
+                let matchCount = 0;
+                
+                $moduleCard.find('.action-pill-card').each(function() {
+                    const $pill = $(this);
+                    const label = $pill.find('.action-label').text().toLowerCase();
+                    const desc = $pill.find('.action-description').text().toLowerCase();
+                    
+                    if (label.includes(query) || desc.includes(query)) {
+                        $pill.show();
+                        matchCount++;
+                    } else {
+                        $pill.hide();
+                    }
+                });
+                
+                if (matchCount > 0) {
+                    $moduleCard.show();
+                    // Expand matching categories so the user sees the results
+                    $moduleBody.addClass('open');
+                    $moduleCard.addClass('active');
+                } else {
+                    $moduleCard.hide();
+                }
+            });
+        });
+
+        // Checkbox state tracking logic
+        function checkDirtyState() {
+            let dirty = false;
+            $('.permission-toggle').each(function() {
+                const id = $(this).val();
+                const checked = this.checked;
+                if (typeof initialStates[id] !== 'undefined' && initialStates[id] !== checked) {
+                    dirty = true;
+                    return false; // break early
+                }
+            });
+            isDirty = dirty;
+        }
+
+        // Leave warning before closing/reloading window tab
+        window.addEventListener('beforeunload', function (e) {
+            if (isDirty) {
+                e.preventDefault();
+                e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+            }
+        });
+
+        // Intercept departure links (Back to Roles, Breadcrumbs, Sidebar Links)
+        $(document).on('click', 'a', async function(e) {
+            const href = $(this).attr('href');
+            if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+            
+            if (isDirty) {
+                e.preventDefault();
+                const choice = await showUnsavedChangesDialog();
+                if (choice === 'save') {
+                    await submitRolePermissions(() => {
+                        isDirty = false;
+                        window.location.href = href;
+                    });
+                } else if (choice === 'discard') {
+                    isDirty = false;
+                    window.location.href = href;
+                }
+            }
+        });
+
+        // Load permissions configuration based on hidden select value changes
+        $('#permissionClientId').on('change', async function() {
+            const roleId = '@roleId';
+            const clientId = $(this).val();
+            
+            if (!clientId) {
+                $('#permissionSearchWrapper').hide();
+                $('#permissionSearchInput').val('');
+                $('#emptyState').show();
+                $('#loadingIndicator').hide();
+                $('#permissionsGrid').hide().empty();
+                return;
+            }
+
+            // Show loading
+            $('#emptyState').hide();
+            $('#permissionsGrid').hide();
+            $('#loadingIndicator').show();
+
+            try {
+                // Fetch both in parallel
+                const [availableResp, assignedResp] = await Promise.all([
+                    $.get(`/api/v1/RolePermission/GetAvailablePermissions/${clientId}`),
+                    $.get(`/api/v1/RolePermission/GetByRoleAndClient/${roleId}/${clientId}`)
+                ]);
+
+                if (availableResp.succeeded && assignedResp.succeeded) {
+                    renderPermissions(availableResp.data, assignedResp.data);
+                } else {
+                    Swal.fire('Error', 'Failed to load permissions configuration.', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Connection Error', 'Could not reach the security service.', 'error');
+            } finally {
+                $('#loadingIndicator').hide();
+            }
+        });
+
+        const moduleNamesMap = {
+            'ssoadmin': 'SSO Admin',
+            'audittrails': 'Audit Trails',
+            'emailtemplates': 'Email Templates',
+            'roleclaims': 'Role Claims',
+            'dashboards': 'Dashboards',
+            'subscription': 'Subscriptions',
+            'client': 'Clients',
+            'tenant': 'Tenants',
+            'users': 'Users',
+            'roles': 'Roles',
+            'templates': 'Templates',
+            'scope': 'Scopes',
+            'invoices': 'Invoices',
+            'payments': 'Payments',
+            'hangfire': 'Background Jobs'
+        };
+
+        function getModuleFriendlyName(moduleKey) {
+            const key = moduleKey.toLowerCase();
+            if (moduleNamesMap[key]) {
+                return moduleNamesMap[key];
+            }
+            // Fallback: capitalize first letter
+            return moduleKey.charAt(0).toUpperCase() + moduleKey.slice(1);
+        }
+
+        function getModuleIcon(moduleKey) {
+            const key = moduleKey.toLowerCase();
+            if (key.includes('user')) {
+                return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>`;
+            } else if (key.includes('role')) {
+                return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>`;
+            } else if (key.includes('client') || key.includes('app')) {
+                return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>`;
+            } else if (key.includes('tenant')) {
+                return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"></path><path d="M3 7v1a3 3 0 0 0 6 0v-1m0 0v1a3 3 0 0 0 6 0v-1m0 0v1a3 3 0 0 0 6 0v-1m-18-3h18v3h-18z"></path><path d="M5 21V10.85"></path><path d="M19 21V10.85"></path><path d="M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4"></path></svg>`;
+            } else if (key.includes('sub')) {
+                return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>`;
+            } else if (key.includes('invoice') || key.includes('bill') || key.includes('pay')) {
+                return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>`;
+            } else if (key.includes('template')) {
+                return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>`;
+            } else if (key.includes('audit') || key.includes('log')) {
+                return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
+            } else if (key.includes('job') || key.includes('hangfire')) {
+                return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>`;
+            } else if (key.includes('admin') || key.includes('sso')) {
+                return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`;
+            } else {
+                return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`;
+            }
+        }
+
+        function getFriendlyAction(action) {
+            let friendly = action.replace(/([A-Z])/g, ' $1').trim();
+            return friendly.charAt(0).toUpperCase() + friendly.slice(1);
+        }
+
+        function getActionIconAndClass(action) {
+            const a = action.toLowerCase();
+            let icon = '';
+            let badgeClass = '';
+            
+            if (a.includes('view') || a.includes('read') || a.includes('get')) {
+                icon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"></circle><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path></svg>`;
+                badgeClass = 'view-badge';
+            } else if (a.includes('create') || a.includes('add') || a.includes('write') || a.includes('new')) {
+                icon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+                badgeClass = 'create-badge';
+            } else if (a.includes('edit') || a.includes('update') || a.includes('modify') || a.includes('change')) {
+                icon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
+                badgeClass = 'edit-badge';
+            } else if (a.includes('delete') || a.includes('remove') || a.includes('destroy') || a.includes('revoke')) {
+                icon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+                badgeClass = 'delete-badge';
+            } else if (a.includes('export') || a.includes('import') || a.includes('download') || a.includes('upload') || a.includes('sync')) {
+                icon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>`;
+                badgeClass = 'sync-badge';
+            } else {
+                icon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`;
+                badgeClass = 'general-badge';
+            }
+            return { icon, badgeClass };
+        }
+
+        function renderPermissions(available, assignedIds) {
+            const $grid = $('#permissionsGrid');
+            $grid.empty();
+
+            // Clear search input and show search bar
+            $('#permissionSearchInput').val('');
+            $('#permissionSearchWrapper').show();
+
+            // Populate initialStates snapshot for dirty state checks
+            initialStates = {};
+            available.forEach(perm => {
+                initialStates[perm.id] = assignedIds.includes(perm.id);
+            });
+            isDirty = false;
+
+            // Group permissions by Module Key
+            const modules = {};
+            available.forEach(perm => {
+                let moduleKey = 'General';
+                let actionKey = perm.code;
+                
+                const parts = perm.code.split('.');
+                if (parts.length >= 3) {
+                    moduleKey = parts[1];
+                    actionKey = parts[2];
+                } else if (parts.length === 2) {
+                    moduleKey = parts[0];
+                    actionKey = parts[1];
+                } else {
+                    const colonParts = perm.code.split(':');
+                    if (colonParts.length >= 2) {
+                        moduleKey = colonParts[0];
+                        actionKey = colonParts[1];
+                    }
+                }
+
+                if (!modules[moduleKey]) {
+                    modules[moduleKey] = [];
+                }
+                modules[moduleKey].push({
+                    id: perm.id,
+                    code: perm.code,
+                    description: perm.description,
+                    actionKey: actionKey
+                });
+            });
+
+            const moduleKeys = Object.keys(modules).sort();
+            let hasContent = moduleKeys.length > 0;
+
+            moduleKeys.forEach(m => {
+                const modulePermissions = modules[m];
+                const moduleNameFriendly = getModuleFriendlyName(m);
+                const moduleLower = m.toLowerCase();
+                const totalCount = modulePermissions.length;
+                const checkedCount = modulePermissions.filter(p => assignedIds.includes(p.id)).length;
+                const moduleIcon = getModuleIcon(m);
+                const disabledAttr = canEditPermissions ? '' : 'disabled';
+
+                const moduleHtml = `
+                    <div class="module-permission-card" id="group-${moduleLower}">
+                        <div class="module-header">
+                            <div class="module-info">
+                                <span class="module-icon">${moduleIcon}</span>
+                                <h4 class="module-name">${moduleNameFriendly}</h4>
+                            </div>
+                            <div class="module-controls" onclick="event.stopPropagation();">
+                                <span class="module-counter" id="counter-${moduleLower}">${checkedCount}/${totalCount} Selected</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" class="select-all-module" id="select-all-${moduleLower}" data-module="${moduleLower}" ${disabledAttr}>
+                                    <span class="toggle-track">
+                                        <span class="toggle-thumb"></span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="module-body" id="body-${moduleLower}">
+                            <div class="actions-grid">
+                                ${modulePermissions.map(perm => {
+                                    const friendlyAction = getFriendlyAction(perm.actionKey);
+                                    const { icon, badgeClass } = getActionIconAndClass(perm.actionKey);
+                                    const isChecked = assignedIds.includes(perm.id);
+                                    // Make description user friendly too by replacing raw code if it's identical
+                                    const displayDesc = (perm.description === perm.code) ? `Permission to perform ${friendlyAction.toLowerCase()} operation` : perm.description;
+                                    return `
+                                        <div class="action-pill-card ${isChecked ? 'selected' : ''}">
+                                            <div class="action-left">
+                                                <div class="action-icon-badge ${badgeClass}">
+                                                    ${icon}
+                                                </div>
+                                                <div class="action-info">
+                                                    <span class="action-label">${friendlyAction}</span>
+                                                    <span class="action-description" title="${perm.description}">${displayDesc}</span>
+                                                </div>
+                                            </div>
+                                            <div class="action-right" onclick="event.stopPropagation();">
+                                                <label class="toggle-switch">
+                                                    <input type="checkbox" class="permission-toggle" id="perm-${perm.id}" data-module="${moduleLower}" value="${perm.id}" ${isChecked ? 'checked' : ''} ${disabledAttr} />
+                                                    <span class="toggle-track">
+                                                        <span class="toggle-thumb"></span>
+                                                    </span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                $grid.append(moduleHtml);
+            });
+
+            if (hasContent) {
+                $grid.show();
+                bindPermissionEvents(moduleKeys);
+            } else {
+                $grid.html('<p style="text-align: center; color: var(--text-muted); padding: 40px;">No permissions found for this scope.</p>').show();
+            }
+        }
+
+        function bindPermissionEvents(moduleKeys) {
+            // Toggle body expand/collapse
+            $('.module-header').off('click').on('click', function() {
+                const card = $(this).closest('.module-permission-card');
+                const body = card.find('.module-body');
+
+                body.toggleClass('open');
+                card.toggleClass('active');
+            });
+
+            // Select all toggle
+            $('.select-all-module').off('change').on('change', function() {
+                const module = $(this).data('module');
+                const isChecked = $(this).is(':checked');
+                const toggles = $(`.permission-toggle[data-module="${module}"]`);
+
+                toggles.prop('checked', isChecked).trigger('change');
+                updateModuleCounter(module);
+            });
+
+            // Individual permission toggle
+            $('.permission-toggle').off('change').on('change', function() {
+                const module = $(this).data('module');
+                const all = $(`.permission-toggle[data-module="${module}"]`);
+                const checked = $(`.permission-toggle[data-module="${module}"]:checked`);
+
+                $(this).closest('.action-pill-card').toggleClass('selected', this.checked);
+
+                $(`#select-all-${module}`).prop('checked', all.length === checked.length && all.length > 0);
+                updateModuleCounter(module);
+                checkDirtyState();
+            });
+
+            // Card click to toggle checkbox (avoiding clicking toggles directly)
+            $('.action-pill-card').off('click').on('click', function(e) {
+                if (!canEditPermissions) return;
+                if ($(e.target).closest('.toggle-switch').length || $(e.target).is('label') || $(e.target).is('input')) return;
+                const checkbox = $(this).find('.permission-toggle');
+                checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+            });
+
+            // Initial checks & default first group open
+            moduleKeys.forEach(m => {
+                const moduleLower = m.toLowerCase();
+                const all = $(`.permission-toggle[data-module="${moduleLower}"]`);
+                const checked = $(`.permission-toggle[data-module="${moduleLower}"]:checked`);
+                if(all.length > 0 && all.length === checked.length) {
+                    $(`#select-all-${moduleLower}`).prop('checked', true);
+                }
+                
+                // Expand first group by default
+                if (m === moduleKeys[0]) {
+                    $(`#group-${moduleLower} .module-body`).addClass('open');
+                    $(`#group-${moduleLower}`).addClass('active');
+                }
+            });
+        }
+
+        function updateModuleCounter(module) {
+            const all = $(`.permission-toggle[data-module="${module}"]`).length;
+            const checked = $(`.permission-toggle[data-module="${module}"]:checked`).length;
+            $(`#counter-${module}`).text(`${checked}/${all} Selected`);
+        }
+
+        function initCustomSelect() {
+            const $select = $('#permissionClientId');
+            const $trigger = $('#clientSelectTrigger');
+            const $text = $('#clientSelectText');
+            const $menu = $('#clientSelectMenu');
+            const $search = $('#clientSelectSearch');
+            const $optionsContainer = $('#clientSelectOptions');
+
+            // Toggle open/close
+            $trigger.on('click', function(e) {
+                e.stopPropagation();
+                $trigger.toggleClass('open');
+                $menu.toggleClass('open');
+                if ($menu.hasClass('open')) {
+                    $search.focus();
+                }
+            });
+
+            // Click outside closes it
+            $(document).on('click', function() {
+                $trigger.removeClass('open');
+                $menu.removeClass('open');
+            });
+
+            // Search filtering logic
+            $search.on('keyup', function() {
+                const query = this.value.toLowerCase();
+                $optionsContainer.find('.custom-select-option').each(function() {
+                    const name = $(this).data('display-name').toString().toLowerCase();
+                    const clientId = $(this).data('client-id').toString().toLowerCase();
+                    if (name.includes(query) || clientId.includes(query)) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+            });
+
+            // Prevent closing when clicking inside search input
+            $search.on('click', function(e) {
+                e.stopPropagation();
+            });
+
+            // Handle option selection
+            $optionsContainer.on('click', '.custom-select-option', async function(e) {
+                e.stopPropagation();
+                const val = $(this).data('value');
+                const displayName = $(this).data('display-name');
+                const clientId = $(this).data('client-id');
+
+                const currentVal = $select.val();
+                if (val === currentVal) {
+                    $trigger.removeClass('open');
+                    $menu.removeClass('open');
+                    return;
+                }
+
+                // Check for unsaved changes before switching client scope
+                if (isDirty) {
+                    const choice = await showUnsavedChangesDialog();
+                    if (choice === 'cancel') {
+                        $trigger.removeClass('open');
+                        $menu.removeClass('open');
+                        return; // do nothing, keep current client
+                    } else if (choice === 'save') {
+                        // Save first, then proceed to load new client configuration
+                        await submitRolePermissions(true, () => {
+                            selectClient(val, displayName, clientId);
+                        });
+                        $trigger.removeClass('open');
+                        $menu.removeClass('open');
+                        return;
+                    } else if (choice === 'discard') {
+                        // Discard changes, clear dirty state, and load new client
+                        isDirty = false;
+                        selectClient(val, displayName, clientId);
+                        $trigger.removeClass('open');
+                        $menu.removeClass('open');
+                        return;
+                    }
+                }
+
+                // Select and load directly
+                selectClient(val, displayName, clientId);
+                $trigger.removeClass('open');
+                $menu.removeClass('open');
+            });
+
+            function selectClient(val, displayName, clientId) {
+                $select.val(val);
+                $optionsContainer.find('.custom-select-option').removeClass('selected');
+                $optionsContainer.find(`.custom-select-option[data-value="${val}"]`).addClass('selected');
+                $text.html(`
+                    <div style="display: flex; flex-direction: column; line-height: 1.25;">
+                        <span style="font-weight:600; font-size:0.85rem; color:var(--text-main);">${displayName}</span>
+                        <span style="font-size:0.72rem; color:var(--text-muted); font-family:monospace;">${clientId}</span>
+                    </div>
+                `);
+                $select.trigger('change');
+                initialClientId = val;
+                isDirty = false;
+            }
+        }
+    });
+
+    function showUnsavedChangesDialog() {
+        return new Promise((resolve) => {
+            Swal.fire({
+                title: 'Unsaved Changes',
+                text: 'You have unsaved changes. Do you want to Save, Discard, or Cancel?',
+                icon: 'warning',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: 'Save',
+                denyButtonText: 'Discard',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#3b82f6', // Brand Blue (Save)
+                denyButtonColor: '#ef4444',    // Danger Red (Discard)
+                cancelButtonColor: '#6b7280',  // Slate Gray (Cancel)
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    resolve('save');
+                } else if (result.isDenied) {
+                    resolve('discard');
+                } else {
+                    resolve('cancel');
+                }
+            });
+        });
+    }
+
+    async function submitRolePermissions(silentLoad = false, onSuccessCallback = null) {
+        const clientId = $('#permissionClientId').val();
+        if (!clientId) {
+            Swal.fire('Identity Context Required', 'Please select a Client Application Scope before saving.', 'warning');
+            return Promise.resolve();
+        }
+
+        // Prompt user for mandatory change description / remarks
+        const { value: remarks, isDismissed } = await Swal.fire({
+            title: 'Change Description Required',
+            html: `
+                <p style="font-size:0.85rem; color:#64748b; text-align:left; margin-bottom:8px;">
+                    Please briefly describe what you changed and why: <span style="color:#ef4444;">*</span>
+                </p>
+                <textarea id="swalRemarks" class="swal2-textarea" style="width:100%; height:75px; font-size:0.84rem; padding:8px; box-sizing:border-box; margin:0;" placeholder="e.g. Updated role permissions for client scope (min 5 chars)..." maxlength="500"></textarea>
+                <div id="swalRemarksErr" style="color:#ef4444; font-size:0.75rem; text-align:left; margin-top:4px; min-height:16px;"></div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Save Changes',
+            confirmButtonColor: '#3b82f6',
+            cancelButtonColor: '#64748b',
+            focusConfirm: false,
+            didOpen: () => {
+                $('#swalRemarks').focus();
+            },
+            preConfirm: () => {
+                const val = $('#swalRemarks').val().trim();
+                if (!val || val.length < 5) {
+                    $('#swalRemarksErr').text('Remarks are required (minimum 5 characters).');
+                    return false;
+                }
+                return val;
+            }
+        });
+
+        if (isDismissed || !remarks) {
+            return Promise.resolve();
+        }
+
+        const selectedPermissions = [];
+        $('.permission-toggle:checked').each(function() {
+            selectedPermissions.push({ permissionId: $(this).val() });
+        });
+
+        const command = {
+            roleId: '@roleId',
+            clientId: clientId,
+            rolePermissions: selectedPermissions,
+            remarks: remarks
+        };
+
+        const $btn = $('#savePermissionsBtn');
+        const oldText = $btn.html();
+        $btn.prop('disabled', true).text('Saving...');
+
+        return $.ajax({
+            url: '/Home/UpdateRolePermissions',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(command),
+            success: function(resp) {
+                if (resp.succeeded) {
+                    isDirty = false;
+                    if (onSuccessCallback) {
+                        onSuccessCallback();
+                        $btn.prop('disabled', false).html(oldText);
+                    } else if (silentLoad) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Permissions Updated',
+                            text: 'Security mappings saved successfully.',
+                            showConfirmButton: false,
+                            timer: 1500
+                        });
+                        $btn.prop('disabled', false).html(oldText);
+                    } else {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Permissions Updated',
+                            text: 'Security mappings saved successfully.',
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(() => {
+                            window.location.href = '/Home/Roles';
+                        });
+                    }
+                } else {
+                    Swal.fire('Error', resp.messages[0], 'error');
+                    $btn.prop('disabled', false).html(oldText);
+                }
+            },
+            error: function() {
+                Swal.fire('Error', 'Failed to communicate with security services.', 'error');
+                $btn.prop('disabled', false).html(oldText);
+            }
+        });
+    }
+</script>

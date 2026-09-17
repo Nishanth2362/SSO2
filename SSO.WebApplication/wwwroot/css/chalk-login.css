@@ -1,0 +1,962 @@
+/* ==========================================================================
+   SSO Premium Login & Auth Theme - Phase 2 (Responsive & Aurora Glow)
+   Font: Plus Jakarta Sans
+   ========================================================================== */
+
+:root {
+    --primary-color: #10b981; /* Mint green accent */
+    --primary-hover: #34d399;
+    --primary-glow: rgba(16, 185, 129, 0.25);
+    
+    /* Slightly lighter background base to blend beautifully with active glow */
+    --bg-gradient-1: #0f2d1e; 
+    --bg-gradient-2: #091a12;
+
+    /* Card Glassmorphism - lighter and more reflective */
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-border-focus: rgba(16, 185, 129, 0.5);
+    --glass-input-bg: rgba(255, 255, 255, 0.03);
+    --glass-input-bg-focus: rgba(255, 255, 255, 0.06);
+
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --text-muted: rgba(255, 255, 255, 0.45);
+
+    --error-bg: rgba(239, 68, 68, 0.12);
+    --error-border: rgba(239, 68, 68, 0.25);
+    --error-text: #fca5a5;
+
+    --success-bg: rgba(16, 185, 129, 0.12);
+    --success-border: rgba(16, 185, 129, 0.25);
+    --success-text: #a7f3d0;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-gradient-2);
+}
+
+/* Page Wrapper */
+.chalk-auth-page {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 40px 20px;
+    background: linear-gradient(180deg, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 100%);
+    overflow-x: hidden;
+    overflow-y: auto;
+    color: var(--text-primary);
+    box-sizing: border-box;
+    z-index: 1;
+}
+
+/* Dots Grid pattern overlay */
+.chalk-auth-page::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Moving Aurora Background - Sweeps from top-left to bottom-right */
+.chalk-aurora-glow {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.chalk-glow-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.65;
+}
+
+.chalk-glow-1 {
+    width: 650px;
+    height: 650px;
+    background: radial-gradient(circle, rgba(52, 211, 153, 0.45) 0%, rgba(16, 185, 129, 0.15) 50%, transparent 80%);
+    top: -10%;
+    left: -10%;
+    animation: move-glow-top-left-to-bottom-right-1 22s infinite ease-in-out alternate;
+}
+
+.chalk-glow-2 {
+    width: 550px;
+    height: 550px;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, rgba(52, 211, 153, 0.1) 50%, transparent 80%);
+    bottom: -10%;
+    right: -10%;
+    animation: move-glow-top-left-to-bottom-right-2 26s infinite ease-in-out alternate;
+}
+
+@keyframes move-glow-top-left-to-bottom-right-1 {
+    0% {
+        transform: translate(0, 0) scale(1);
+        border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+    }
+    50% {
+        transform: translate(150px, 120px) scale(1.15);
+        border-radius: 50% 50% 30% 70% / 50% 60% 40% 50%;
+    }
+    100% {
+        transform: translate(300px, 250px) scale(1.25);
+        border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%;
+    }
+}
+
+@keyframes move-glow-top-left-to-bottom-right-2 {
+    0% {
+        transform: translate(0, 0) scale(1);
+        border-radius: 50% 50% 30% 70% / 50% 60% 40% 50%;
+    }
+    50% {
+        transform: translate(-120px, -100px) scale(0.95);
+        border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+    }
+    100% {
+        transform: translate(-250px, -200px) scale(0.9);
+        border-radius: 60% 40% 60% 40% / 40% 60% 40% 60%;
+    }
+}
+
+/* Floating Math Formulas background decoration */
+.chalk-formulas {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1; /* Rendered above background glows */
+    overflow: hidden;
+}
+
+@keyframes float {
+    0% { transform: translateY(0) rotate(0deg); opacity: 0.35; }
+    50% { transform: translateY(-15px) rotate(3deg); opacity: 0.6; }
+    100% { transform: translateY(0) rotate(0deg); opacity: 0.35; }
+}
+
+.chalk-formulas span {
+    position: absolute;
+    color: rgba(255, 255, 255, 0.35); /* Increased base color opacity */
+    font-weight: 500;
+    font-family: "Courier New", Courier, monospace;
+    user-select: none;
+    animation: float 12s ease-in-out infinite;
+}
+
+.chalk-formulas span:nth-child(even) { animation-duration: 15s; animation-delay: -3s; }
+.chalk-formulas span:nth-child(3n) { animation-duration: 9s; }
+
+/* Brand Badge & Header */
+.chalk-brand {
+    position: relative;
+    z-index: 2; /* Rendered above formulas */
+    width: 100%;
+    max-width: 440px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+}
+
+.chalk-brand-badge {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+}
+
+.chalk-brand-logo {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 10px;
+}
+
+.chalk-brand-title {
+    margin: 0;
+    font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+    line-height: 1.15;
+    font-weight: 800;
+    background: linear-gradient(135deg, #ffffff 0%, #a7f3d0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.03em;
+    text-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.chalk-brand-subtitle {
+    margin: 0;
+    max-width: 36ch;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+
+/* Premium Card container */
+.chalk-card {
+    position: relative;
+    z-index: 2; /* Positioned above backgrounds and formulas */
+    width: min(100%, 420px);
+    padding: 2.75rem 2.25rem;
+    border-radius: 24px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(24px) saturate(120%);
+    -webkit-backdrop-filter: blur(24px) saturate(120%);
+    border: 1px solid var(--glass-border);
+    box-shadow: 
+        0 30px 60px -15px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+    box-sizing: border-box;
+    overflow: visible; /* Ensure shadow/glow is not clipped */
+}
+
+/* Interactive Card Mouse-Tracking Glow Border */
+.chalk-card::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: 24px;
+    background: radial-gradient(
+        250px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(52, 211, 153, 0.25),
+        transparent 60%
+    );
+    border: 1.5px solid transparent;
+    -webkit-mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    z-index: 3;
+}
+
+.chalk-card:hover::before {
+    opacity: 1;
+}
+
+.chalk-card-header {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.chalk-card-title {
+    margin: 0 0 0.5rem;
+    font-size: 1.625rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+}
+
+.chalk-card-desc {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.chalk-card form {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+    position: relative;
+}
+
+/* Input Fields styling */
+.chalk-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.chalk-input-icon {
+    position: absolute;
+    left: 1.125rem;
+    width: 1.125rem;
+    height: 1.125rem;
+    color: var(--text-muted);
+    pointer-events: none;
+    transition: color 0.2s ease;
+    z-index: 3;
+}
+
+.form-input {
+    width: 100%;
+    min-height: 3.25rem;
+    padding: 0.75rem 2.75rem 0.75rem 3rem;
+    border-radius: 12px;
+    background: var(--glass-input-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-family: inherit;
+    font-weight: 500;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box;
+}
+
+.form-input::placeholder {
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--glass-border-focus);
+    background: var(--glass-input-bg-focus);
+    box-shadow: 0 0 0 4px var(--primary-glow);
+}
+
+.form-input:focus ~ .chalk-input-icon,
+.form-input:-webkit-autofill ~ .chalk-input-icon {
+    color: var(--primary-hover);
+}
+
+/* Prevent Browser Autofill white/blue background & maintain text color */
+.form-input:-webkit-autofill,
+.form-input:-webkit-autofill:hover, 
+.form-input:-webkit-autofill:focus, 
+.form-input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #091a12 inset !important;
+    -webkit-text-fill-color: #ffffff !important;
+    caret-color: #ffffff !important;
+    border-color: var(--glass-border) !important;
+    transition: background-color 50000s ease-in-out 0s;
+}
+
+.form-input[readonly] {
+    background: rgba(255, 255, 255, 0.01);
+    color: var(--text-secondary);
+    border-color: rgba(255, 255, 255, 0.04);
+    cursor: default;
+}
+
+/* Password Toggle Eye Button & Clear Input Button */
+.password-toggle-btn, .clear-input-btn {
+    position: absolute;
+    right: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 3;
+    border-radius: 50%;
+}
+
+.password-toggle-btn:hover, .clear-input-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.password-toggle-btn svg, .clear-input-btn svg {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
+/* Errors & Field Warnings */
+.text-danger {
+    display: block;
+    margin-top: 0.375rem;
+    margin-left: 0.5rem;
+    color: var(--error-text);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* Checkbox and Inline Forgot Password row */
+.chalk-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin-top: 0.25rem;
+    margin-bottom: 1.5rem;
+    box-sizing: border-box;
+}
+
+.chalk-checkbox-row input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+    accent-color: var(--primary-color);
+    cursor: pointer;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-input-bg);
+    border-radius: 4px;
+}
+
+.chalk-checkbox-row label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.chalk-link-forgot-inline {
+    font-size: 0.825rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.chalk-link-forgot-inline:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+/* Redesigned Pill-shaped Gradient Buttons */
+.chalk-btn {
+    width: 100%;
+    min-height: 3.25rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 9999px; /* Clean Pill shape */
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.3);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+}
+
+.chalk-btn svg {
+    width: 1.125rem;
+    height: 1.125rem;
+    transition: transform 0.25s ease;
+}
+
+.chalk-btn:hover {
+    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.45);
+}
+
+.chalk-btn:hover svg {
+    transform: translateX(4px);
+}
+
+.chalk-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 10px 0 rgba(16, 185, 129, 0.25);
+}
+
+/* Error and Alert Box layout */
+.chalk-alert {
+    margin-bottom: 1.5rem;
+    padding: 0.875rem 1rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    line-height: 1.4;
+    text-align: center;
+    backdrop-filter: blur(8px);
+}
+
+.chalk-alert-error {
+    background: var(--error-bg);
+    border: 1px solid var(--error-border);
+    color: var(--error-text);
+}
+
+.chalk-alert-success {
+    background: var(--success-bg);
+    border: 1px solid var(--success-border);
+    color: var(--success-text);
+}
+
+/* Custom validation summary formatting (No default list bullet items) */
+.chalk-validation-summary ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    text-align: center;
+}
+
+.chalk-validation-summary li {
+    margin-bottom: 0.25rem;
+}
+
+.chalk-validation-summary li:last-child {
+    margin-bottom: 0;
+}
+
+/* Links & Navigations */
+.chalk-links {
+    margin-top: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.625rem;
+    text-align: center;
+    font-size: 0.85rem;
+}
+
+.chalk-links-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+}
+
+.chalk-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.chalk-link-strong, .chalk-link-bold, .chalk-back-link {
+    color: var(--text-primary);
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.chalk-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chalk-back-link svg {
+    transition: transform 0.2s ease;
+}
+
+.chalk-back-link:hover svg {
+    transform: translateX(-3px);
+}
+
+.chalk-link:hover {
+    color: var(--text-secondary);
+}
+
+.chalk-link-strong:hover, .chalk-link-bold:hover, .chalk-back-link:hover {
+    color: var(--primary-hover);
+}
+
+/* Sleek Top-Left Absolute Back Button */
+.chalk-back-btn-top {
+    position: absolute;
+    top: 1.5rem;
+    left: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.chalk-back-btn-top:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--text-primary);
+    transform: translateX(-2px);
+}
+
+.chalk-back-btn-top svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* User Identity Preview in Step 2 */
+.chalk-user-preview {
+    margin-bottom: 1.25rem;
+}
+
+.chalk-user-preview-card {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.625rem 0.75rem;
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 12px !important;
+    backdrop-filter: blur(8px);
+}
+
+.chalk-user-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    background: rgba(16, 185, 129, 0.1) !important;
+    color: var(--primary-hover) !important;
+    border: 1px solid rgba(16, 185, 129, 0.2) !important;
+    border-radius: 8px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.125rem;
+}
+
+.chalk-user-info {
+    flex: 1;
+    overflow: hidden;
+    text-align: left;
+}
+
+.chalk-user-name {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary) !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chalk-change-account {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted) !important;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    text-align: left;
+}
+
+.chalk-change-account:hover {
+    color: var(--primary-hover) !important;
+}
+
+/* Premium Step Progress Indicator */
+.chalk-step-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 280px; /* Made wider */
+    margin: 0 auto 0.75rem auto; /* Centered horizontally with slightly less margin */
+    box-sizing: border-box;
+}
+
+.chalk-step-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem; /* Smaller gap */
+    position: relative;
+    z-index: 1;
+}
+
+.chalk-step-circle {
+    width: 1.625rem; /* Smaller circle */
+    height: 1.625rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.03);
+    border: 2px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.725rem; /* Smaller text */
+    font-weight: 700;
+    color: var(--text-muted);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+}
+
+.chalk-step-label {
+    font-size: 0.625rem; /* Smaller text label */
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.3s ease;
+}
+
+.chalk-step-check {
+    width: 0.7rem; /* Smaller check icon */
+    height: 0.7rem;
+    color: #ffffff;
+    display: none;
+}
+
+.chalk-step-line {
+    position: relative;
+    flex: 1;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 0 0.5rem; /* Smaller margins */
+    transform: translateY(-0.4375rem); /* Align with the smaller circle height center */
+    overflow: hidden;
+    border-radius: 9999px;
+}
+
+.chalk-step-line::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0%;
+    background: var(--primary-color);
+    box-shadow: 0 0 8px var(--primary-glow);
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Active State styles */
+.chalk-step-node.chalk-step-active .chalk-step-circle {
+    border-color: var(--primary-color);
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--primary-hover);
+    box-shadow: 0 0 12px var(--primary-glow);
+}
+
+.chalk-step-node.chalk-step-active .chalk-step-label {
+    color: var(--text-primary);
+}
+
+/* Completed State styles */
+.chalk-step-node.chalk-step-completed .chalk-step-circle {
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+    color: #ffffff;
+    box-shadow: 0 0 12px var(--primary-glow);
+}
+
+.chalk-step-node.chalk-step-completed .chalk-step-label {
+    color: var(--primary-hover);
+}
+
+.chalk-step-node.chalk-step-completed .chalk-step-check {
+    display: block;
+}
+
+.chalk-step-node.chalk-step-completed .chalk-step-number {
+    display: none;
+}
+
+.chalk-step-line.chalk-step-active::after {
+    width: 100%;
+}
+
+/* Card footer logo badge styling */
+a.chalk-card-footer {
+    margin-top: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.775rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 1.25rem;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+a.chalk-card-footer:hover {
+    color: var(--primary-hover);
+}
+
+a.chalk-card-footer:hover .chalk-footer-icon {
+    color: var(--primary-hover);
+    transform: scale(1.1);
+}
+
+.chalk-footer-icon {
+    width: 0.875rem;
+    height: 0.875rem;
+    color: var(--primary-color);
+    transition: all 0.2s ease;
+}
+
+/* Pencil Edit Identity button */
+.chalk-edit-identity-btn {
+    background: none;
+    border: none;
+    padding: 6px;
+    border-radius: 6px;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    margin-left: auto; /* Push to the right */
+}
+
+.chalk-edit-identity-btn:hover {
+    color: var(--primary-hover);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.chalk-edit-identity-btn svg {
+    width: 0.95rem;
+    height: 0.95rem;
+}
+
+.chalk-user-subtext {
+    font-size: 0.725rem;
+    color: var(--text-muted);
+    display: block;
+    text-align: left;
+    margin-top: 0.125rem;
+}
+
+/* Password Success Mail Send Animation */
+.chalk-mail-success-animation {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 1rem auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chalk-mail-paper-plane-wrapper {
+    position: relative;
+    z-index: 2;
+    animation: plane-fly 2.5s infinite ease-in-out;
+}
+
+.chalk-mail-paper-plane {
+    width: 2.25rem;
+    height: 2.25rem;
+    color: var(--primary-color);
+}
+
+.chalk-mail-rings {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+
+.chalk-ring-1, .chalk-ring-2 {
+    position: absolute;
+    inset: 0;
+    border: 2px solid var(--primary-color);
+    border-radius: 50%;
+    opacity: 0;
+    animation: ring-pulse 2.5s infinite cubic-bezier(0.1, 0.8, 0.3, 1);
+}
+
+.chalk-ring-2 {
+    animation-delay: 1.25s;
+}
+
+@keyframes plane-fly {
+    0% {
+        transform: translate(0, 0) scale(1) rotate(0deg);
+    }
+    30% {
+        transform: translate(8px, -8px) scale(0.9) rotate(-10deg);
+    }
+    50% {
+        transform: translate(-4px, 4px) scale(1.05) rotate(5deg);
+    }
+    100% {
+        transform: translate(0, 0) scale(1) rotate(0deg);
+    }
+}
+
+@keyframes ring-pulse {
+    0% {
+        transform: scale(0.4);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+/* Responsiveness - Tailored for Neat Mobile Styling & Glare Protection */
+@media (max-width: 480px) {
+    .chalk-auth-page {
+        justify-content: center;
+        padding: 24px 16px;
+    }
+    .chalk-card {
+        padding: 2rem 1.25rem;
+        border-radius: 20px;
+    }
+    .chalk-back-btn-top {
+        top: 1.125rem;
+        left: 1.125rem;
+        width: 2rem;
+        height: 2rem;
+    }
+    .chalk-checkbox-row {
+        flex-direction: row;
+        justify-content: space-between;
+        width: 100%;
+        gap: 4px;
+    }
+    .chalk-link-forgot-inline {
+        font-size: 0.775rem;
+    }
+    .chalk-checkbox-row label {
+        font-size: 0.775rem;
+    }
+    .chalk-brand-title {
+        font-size: 2rem;
+    }
+    .chalk-step-indicator {
+        margin-bottom: 0.5rem;
+    }
+    .chalk-step-circle {
+        width: 2rem;
+        height: 2rem;
+        font-size: 0.8rem;
+    }
+    .chalk-step-label {
+        font-size: 0.65rem;
+    }
+    .chalk-step-line {
+        margin: 0 0.5rem;
+        transform: translateY(-0.5625rem);
+    }
+}

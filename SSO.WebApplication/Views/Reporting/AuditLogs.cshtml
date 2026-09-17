@@ -1,0 +1,729 @@
+@{
+    ViewData["Title"] = "Audit Logs";
+    var canExportAuditLogs = (await AuthorizationService.AuthorizeAsync(User, Permissions.AuditTrails.Export)).Succeeded || (await AuthorizationService.AuthorizeAsync(User, Permissions.AuditTrails.View)).Succeeded;
+}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+    /* Table general scaling and layout */
+    #auditTable {
+        width: 100% !important;
+        min-width: 1100px; /* Forces horizontal scroll on narrower screens rather than wrapping or collapsing */
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 0.78rem !important;
+    }
+
+    #auditTable thead th {
+        padding: 8px 10px !important;
+        font-size: 0.7rem !important;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        background-color: var(--bg-base);
+        border-bottom: 1px solid var(--border-subtle) !important;
+        white-space: nowrap;
+        vertical-align: middle !important;
+    }
+
+    #auditTable tbody td {
+        padding: 6px 10px !important; /* Compact spacing */
+        font-size: 0.78rem !important;
+        border-bottom: 1px solid var(--border-subtle) !important;
+        white-space: nowrap !important; /* Keep all table content on a single line */
+        word-break: normal !important;
+        vertical-align: middle !important;
+    }
+
+    /* Hover and Transition consistency */
+    #auditTable tbody tr {
+        transition: background 0.12s;
+    }
+    #auditTable tbody tr:hover td {
+        background: var(--bg-surface-hover) !important;
+    }
+
+    /* Column Width Controls */
+    #auditTable th:nth-child(1), #auditTable td:nth-child(1) { width: 40px !important; min-width: 40px; text-align: center; } /* Checkbox */
+    #auditTable th:nth-child(2), #auditTable td:nth-child(2) { width: 14% !important; min-width: 140px; } /* Date/Time */
+    #auditTable th:nth-child(3), #auditTable td:nth-child(3) { width: 10% !important; min-width: 90px; }  /* User */
+    #auditTable th:nth-child(4), #auditTable td:nth-child(4) { width: 8% !important; min-width: 80px; }   /* Type */
+    #auditTable th:nth-child(5), #auditTable td:nth-child(5) { width: 12% !important; min-width: 110px; } /* Table Name */
+    #auditTable th:nth-child(6), #auditTable td:nth-child(6) { width: 10% !important; min-width: 90px; }  /* Primary Key */
+    #auditTable th:nth-child(7), #auditTable td:nth-child(7) { width: 16% !important; min-width: 150px; } /* Affected Columns */
+    #auditTable th:nth-child(8), #auditTable td:nth-child(8) { width: 13% !important; min-width: 150px; } /* Old Values */
+    #auditTable th:nth-child(9), #auditTable td:nth-child(9) { width: 13% !important; min-width: 150px; } /* New Values */
+    #auditTable th:nth-child(10), #auditTable td:nth-child(10) { width: 4% !important; min-width: 50px; text-align: right; }   /* Actions */
+
+    /* Horizontal scrolling wrapper styling */
+    .table-responsive {
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    }
+
+    /* Custom scrollbar for horizontal scrolling area */
+    .table-responsive::-webkit-scrollbar {
+        height: 6px;
+    }
+    .table-responsive::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: var(--border-strong);
+        border-radius: 3px;
+    }
+    .table-responsive::-webkit-scrollbar-thumb:hover {
+        background: var(--text-muted);
+    }
+
+    /* Actions vertical centering & size adjustments */
+    .audit-actions-wrapper {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+    }
+    .audit-actions-wrapper .action-btn {
+        padding: 4px !important;
+        border-radius: var(--radius-md) !important;
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.12s;
+    }
+    .audit-actions-wrapper .action-btn:hover {
+        background: var(--bg-surface-hover);
+        color: var(--text-main);
+    }
+
+    /* Full-page background for seamless integration - Indigo Theme */
+    body {
+        background: linear-gradient(150deg,
+                        rgba(99, 102, 241, 0.08) 0%,
+                        rgba(79, 70, 229, 0.03) 25%,
+                        rgba(224, 231, 255, 0.3) 60%,
+                        rgba(255, 255, 255, 0.95) 100%) !important;
+        background-attachment: fixed !important;
+        background-repeat: no-repeat !important;
+        background-size: cover !important;
+    }
+
+    html[data-theme="dark"] body {
+        background: linear-gradient(150deg,
+                        rgba(99, 102, 241, 0.16) 0%,
+                        rgba(79, 70, 229, 0.06) 25%,
+                        rgba(30, 27, 75, 0.45) 60%,
+                        rgba(9, 12, 20, 0.96) 100%) !important;
+        background-attachment: fixed !important;
+        background-repeat: no-repeat !important;
+        background-size: cover !important;
+    }
+
+    .page-wrapper, .content-wrapper, .container-xl, main, #content, .page-body {
+        background: transparent !important;
+    }
+
+    .th-page-card {
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        overflow: visible;
+        margin-bottom: 8px;
+    }
+
+    .audit-hero {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        flex-wrap: wrap;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        padding: 12px 4px 6px;
+        margin-bottom: 0;
+        overflow: hidden;
+    }
+
+    /* Scattered Background Pattern (8-12% opacity outline SVGs) - Indigo Theme */
+    .audit-hero-bg-pattern {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 0;
+    }
+
+    .hero-bg-icon {
+        position: absolute;
+        stroke: #6366f1;
+        stroke-width: 1.5;
+        fill: none;
+        opacity: 0.10;
+        transition: opacity 0.3s ease;
+    }
+
+    html[data-theme="dark"] .hero-bg-icon {
+        stroke: #818cf8;
+        opacity: 0.12;
+    }
+
+    .hero-bg-icon.icon-doc-1       { top: 8%; left: 1%; width: 32px; height: 32px; transform: rotate(-12deg); }
+    .hero-bg-icon.icon-search-1    { top: 14%; left: 36%; width: 26px; height: 26px; transform: rotate(10deg); }
+    .hero-bg-icon.icon-activity-1  { bottom: 10%; left: 18%; width: 30px; height: 30px; transform: rotate(-8deg); }
+    .hero-bg-icon.icon-eye-1       { top: 58%; left: 3%; width: 28px; height: 28px; transform: rotate(6deg); }
+    .hero-bg-icon.icon-db-1        { top: 10%; left: 22%; width: 28px; height: 28px; transform: rotate(-10deg); }
+    .hero-bg-icon.icon-history-1   { top: 62%; left: 44%; width: 26px; height: 26px; transform: rotate(-14deg); }
+    .hero-bg-icon.icon-filetext-1  { top: 12%; right: 44%; width: 28px; height: 28px; transform: rotate(18deg); }
+    .hero-bg-icon.icon-shield-1    { bottom: 8%; right: 36%; width: 32px; height: 32px; transform: rotate(-10deg); }
+    .hero-bg-icon.icon-layers-1    { top: 10%; right: 26%; width: 26px; height: 26px; transform: rotate(8deg); }
+
+    .th-hero-left { 
+        position: relative; 
+        display: flex; 
+        align-items: center; 
+        gap: 18px; 
+        min-width: 260px; 
+        flex: 1 1 320px; 
+        z-index: 1; 
+    }
+    .th-hero-icon {
+        width: 52px; 
+        height: 52px; 
+        flex-shrink: 0; 
+        border-radius: 14px;
+        background: linear-gradient(135deg, #6366f1, #4f46e5);
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        color: #fff;
+        box-shadow: 0 6px 16px rgba(99, 102, 241, 0.25);
+    }
+    .th-hero-title {
+        font-size: 1.7rem !important;
+        font-weight: 800 !important;
+        color: var(--text-main);
+        letter-spacing: -0.02em;
+        margin: 0 0 6px;
+        line-height: 1.2;
+    }
+    .th-hero-subtitle {
+        font-size: 0.86rem;
+        color: var(--text-muted);
+        margin: 0;
+        max-width: 480px;
+        line-height: 1.5;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       COMPACT KPI CARDS (Indigo Theme)
+       ═══════════════════════════════════════════════════════════ */
+    .sub-kpi-container {
+        position: relative;
+        display: flex;
+        gap: 14px;
+        align-items: stretch;
+        z-index: 1;
+        flex-wrap: wrap;
+        margin-left: 0;
+        margin-right: 0;
+    }
+    .sub-kpi-card {
+        cursor: pointer;
+        user-select: none;
+        width: 178px;
+        flex-shrink: 0;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        padding: 10px 14px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 6px 16px -8px rgba(15,23,42,0.08);
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+    .sub-kpi-card:hover { 
+        transform: translateY(-2px); 
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05), 0 10px 24px -8px rgba(15,23,42,0.14); 
+    }
+    .sub-kpi-card.active {
+        border-color: #6366f1 !important;
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.18), var(--shadow-sm) !important;
+    }
+
+    .sub-kpi-card .tabler-stat-header { 
+        display: flex; 
+        align-items: center; 
+        gap: 10px; 
+        margin-bottom: 8px; 
+    }
+    .sub-kpi-card .tabler-stat-title { 
+        font-size: 0.66rem; 
+        font-weight: 700; 
+        letter-spacing: 0.04em; 
+        text-transform: uppercase; 
+        color: #64748b; 
+        line-height: 1.3; 
+    }
+    html[data-theme="dark"] .sub-kpi-card .tabler-stat-title { 
+        color: #94a3b8; 
+    }
+    .sub-kpi-card .tabler-stat-value { 
+        font-size: 1.6rem; 
+        font-weight: 800; 
+        color: var(--text-main); 
+        line-height: 1; 
+    }
+    .tabler-stat-icon {
+        width: 38px; 
+        height: 38px; 
+        border-radius: 10px; 
+        flex-shrink: 0;
+        display: flex; 
+        align-items: center; 
+        justify-content: center;
+        transition: transform 0.2s ease;
+    }
+    .sub-kpi-card:hover .tabler-stat-icon { 
+        transform: scale(1.08); 
+    }
+    .tabler-stat-icon.total-icon { 
+        background: rgba(99, 102, 241, 0.14) !important; 
+        color: #6366f1 !important; 
+    }
+    .tabler-stat-icon.system-icon { 
+        background: rgba(59, 130, 246, 0.14) !important; 
+        color: #3b82f6 !important; 
+    }
+    .tabler-stat-icon.security-icon { 
+        background: rgba(16, 185, 129, 0.14) !important; 
+        color: #10b981 !important; 
+    }
+
+    .kpi-mini-visual {
+        position: absolute;
+        right: 10px;
+        bottom: 6px;
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+    #exportBtn, .btn-primary-audit {
+        background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+        border-color: #4f46e5 !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25) !important;
+    }
+    #exportBtn:hover, .btn-primary-audit:hover {
+        background: linear-gradient(135deg, #4f46e5, #4338ca) !important;
+        box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35) !important;
+    }
+
+    /* Responsiveness overrides */
+    @@media (max-width: 768px) {
+        #auditTable th,
+        #auditTable td {
+            padding: 5px 8px !important;
+            font-size: 0.74rem !important;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        #auditTable th,
+        #auditTable td {
+            padding: 4px 6px !important;
+            font-size: 0.7rem !important;
+        }
+    }
+</style>
+
+<div class="breadcrumbs">
+    <span>Auxinz SSO Server</span>
+    <a href="#">Security &amp; System</a>
+    <span class="current">Audit Logs</span>
+</div>
+
+<div class="th-page-card">
+    <div class="audit-hero">
+        <!-- Scattered background outline icons -->
+        <div class="audit-hero-bg-pattern">
+            <!-- File Document -->
+            <svg class="hero-bg-icon icon-doc-1" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+            <!-- Search / Magnifying Glass -->
+            <svg class="hero-bg-icon icon-search-1" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <!-- Activity Timeline -->
+            <svg class="hero-bg-icon icon-activity-1" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            <!-- Audit Eye -->
+            <svg class="hero-bg-icon icon-eye-1" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            <!-- Database -->
+            <svg class="hero-bg-icon icon-db-1" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+            <!-- History Clock -->
+            <svg class="hero-bg-icon icon-history-1" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></svg>
+            <!-- File Text -->
+            <svg class="hero-bg-icon icon-filetext-1" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+            <!-- Shield -->
+            <svg class="hero-bg-icon icon-shield-1" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <!-- Layers -->
+            <svg class="hero-bg-icon icon-layers-1" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+            <!-- Sparkles & Geometry -->
+            <svg class="hero-bg-icon" style="top:18%; left:48%; width:16px; height:16px;" viewBox="0 0 24 24"><path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5Z" fill="#6366f1" opacity="0.16"></path></svg>
+            <svg class="hero-bg-icon" style="top:62%; right:22%; width:14px; height:14px;" viewBox="0 0 24 24"><path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5Z" fill="#4f46e5" opacity="0.18"></path></svg>
+            <svg class="hero-bg-icon" style="top:25%; right:14%; width:10px; height:10px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#6366f1" opacity="0.25"></circle></svg>
+        </div>
+
+        <div class="th-hero-left">
+            <div class="th-hero-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+            </div>
+            <div>
+                <h1 class="th-hero-title">System Audit Logs</h1>
+                <p class="th-hero-subtitle">View and export all system actions, data modifications, and security events.</p>
+            </div>
+        </div>
+
+        <!-- Compact KPI cards -->
+        <div class="sub-kpi-container">
+            <!-- Card 1: Total Logs -->
+            <div class="tabler-card tabler-stat-card sub-kpi-card" id="kpiTotalLogs" data-value="all">
+                <div class="tabler-card-body">
+                    <div class="tabler-stat-header">
+                        <div class="tabler-stat-icon total-icon">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                        </div>
+                        <span class="tabler-stat-title">Total Logs</span>
+                    </div>
+                    <div class="tabler-stat-main">
+                        <div class="tabler-stat-value" id="totalLogsKpi">—</div>
+                    </div>
+                    <svg class="kpi-mini-visual" width="52" height="40" viewBox="0 0 52 40" fill="none">
+                        <rect x="4" y="18" width="12" height="20" rx="1.5" fill="#6366f1" opacity="0.16" />
+                        <rect x="18" y="8" width="14" height="30" rx="1.5" fill="#6366f1" opacity="0.22" />
+                        <rect x="34" y="14" width="12" height="24" rx="1.5" fill="#6366f1" opacity="0.16" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Card 2: Operations -->
+            <div class="tabler-card tabler-stat-card sub-kpi-card" id="kpiOperationsLogs" data-value="ops">
+                <div class="tabler-card-body">
+                    <div class="tabler-stat-header">
+                        <div class="tabler-stat-icon system-icon">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <rect x="4" y="4" width="16" height="16" rx="2" />
+                                <rect x="9" y="9" width="6" height="6" />
+                                <line x1="9" y1="1" x2="9" y2="4" />
+                                <line x1="15" y1="1" x2="15" y2="4" />
+                            </svg>
+                        </div>
+                        <span class="tabler-stat-title">System Ops</span>
+                    </div>
+                    <div class="tabler-stat-main">
+                        <div class="tabler-stat-value" id="opsLogsKpi">—</div>
+                    </div>
+                    <svg class="kpi-mini-visual" width="52" height="30" viewBox="0 0 52 30" fill="none">
+                        <path d="M2,26 8,17 15,21 23,9 31,14 40,4 50,10 50,30 2,30 Z" fill="#3b82f6" opacity="0.16" />
+                        <polyline points="2,26 8,17 15,21 23,9 31,14 40,4 50,10" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Card 3: Security & Auth -->
+            <div class="tabler-card tabler-stat-card sub-kpi-card" id="kpiSecurityLogs" data-value="sec">
+                <div class="tabler-card-body">
+                    <div class="tabler-stat-header">
+                        <div class="tabler-stat-icon security-icon">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            </svg>
+                        </div>
+                        <span class="tabler-stat-title">Security &amp; Auth</span>
+                    </div>
+                    <div class="tabler-stat-main">
+                        <div class="tabler-stat-value" id="secLogsKpi">—</div>
+                    </div>
+                    <svg class="kpi-mini-visual" width="42" height="34" viewBox="0 0 42 34" fill="none">
+                        <circle cx="30" cy="17" r="5" fill="#10b981" opacity="0.5" />
+                        <circle cx="16" cy="10" r="2.6" fill="#10b981" opacity="0.35" />
+                        <circle cx="22" cy="22" r="2" fill="#10b981" opacity="0.35" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Panel -->
+<div class="panel">
+    <div class="table-filters-data" style="display:none;">
+        <div class="filter-group-item">
+            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; user-select: none;">
+                <input type="checkbox" name="filter_searchInOldValues" id="searchInOldValues" class="filter-searchInOldValues" style="margin: 0; cursor: pointer;">
+                Old Values
+            </label>
+        </div>
+        <div class="filter-group-item">
+            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; user-select: none;">
+                <input type="checkbox" name="filter_searchInNewValues" id="searchInNewValues" class="filter-searchInNewValues" style="margin: 0; cursor: pointer;">
+                New Values
+            </label>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-responsive">
+        <table id="auditTable" class="data-table manual-init">
+            <thead>
+                <tr>
+                    <th class="text-center" style="width: 40px;"><input type="checkbox" class="master-select-cb" data-table="auditTable"></th>
+                    <th class="text-center">Date / Time</th>
+                    <th class="text-left">User</th>
+                    <th class="text-center">Type</th>
+                    <th class="text-left">Table Name</th>
+                    <th class="text-left">Primary Key</th>
+                    <th class="text-left">Affected Columns</th>
+                    <th class="text-left">Old Values</th>
+                    <th class="text-left">New Values</th>
+                    <th class="text-center" style="width: 60px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(function () {
+        window.dt = $('#auditTable').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: {
+                url: '/Reporting/GetAuditLogs',
+                type: 'POST'
+            },
+            responsive: false,
+            autoWidth: false,
+            dom: '<"table-toolbar datatables-injected"<"table-filters">f>t<"if-table-footer-wrap"<"footer-right"<"if-pill-pagination-mount">>>',
+            drawCallback: function(settings) {
+                const api = this.api();
+                window.renderPillPagination && window.renderPillPagination(api, '.if-pill-pagination-mount', 'audit');
+                const info = api.page.info();
+                const rows = api.rows({ page: 'current' }).data().toArray();
+                const total = info.recordsTotal;
+                const opsCount = rows.filter(r => r.type === 'Update' || r.type === 'Create' || r.type === 'Insert').length;
+                const secCount = rows.filter(r => r.type === 'Delete' || (r.tableName && r.tableName.toLowerCase().indexOf('security') !== -1)).length;
+                const opsRatio = rows.length > 0 ? opsCount / rows.length : 0.6;
+                const secRatio = rows.length > 0 ? secCount / rows.length : 0.4;
+                $('#totalLogsKpi').text(total || '—');
+                $('#opsLogsKpi').text(Math.round(opsRatio * total) || '—');
+                $('#secLogsKpi').text(Math.round(secRatio * total) || '—');
+            },
+            order: [[1, 'desc']],
+            columns: [
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center align-middle',
+                    render: function (data, type, row) {
+                        return '<input type="checkbox" class="row-select-cb" data-row-id="' + (row.id || row.Id || '') + '">';
+                    }
+                },
+                { 
+                    data: 'dateTime',
+                    className: 'text-center align-middle',
+                    render: function(data) {
+                        return new Date(data).toLocaleString();
+                    }
+                },
+                { 
+                    data: 'userId',
+                    className: 'text-left align-middle'
+                },
+                { 
+                    data: 'type',
+                    className: 'text-center align-middle',
+                    render: function(data) {
+                        if (data === 'Create' || data === 'Insert') {
+                            return `<span class="badge badge-success">${data}</span>`;
+                        }
+                        if (data === 'Update') {
+                            return `<span class="badge badge-warning">${data}</span>`;
+                        }
+                        if (data === 'Delete') {
+                            return `<span class="badge badge-error">${data}</span>`;
+                        }
+                        return `<span class="badge badge-neutral">${data}</span>`;
+                    }
+                },
+                { 
+                    data: 'tableName',
+                    className: 'text-left align-middle'
+                },
+                { 
+                    data: 'primaryKey',
+                    className: 'text-left align-middle'
+                },
+                { 
+                    data: 'affectedColumns',
+                    className: 'text-left align-middle',
+                    render: function(data) {
+                        if (!data || data === '[]') return '-';
+                        return `<div style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'SFMono-Regular', 'Consolas', monospace; font-size: 0.72rem; color: var(--text-muted);" title="${data}">${data}</div>`;
+                    }
+                },
+                { 
+                    data: 'oldValues',
+                    className: 'text-left align-middle',
+                    render: function(data) {
+                        if (!data || data === '{}') return '-';
+                        return `<div style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'SFMono-Regular', 'Consolas', monospace; font-size: 0.72rem; color: var(--text-muted);" title='${data}'>${data}</div>`;
+                    }
+                },
+                { 
+                    data: 'newValues',
+                    className: 'text-left align-middle',
+                    render: function(data) {
+                        if (!data || data === '{}') return '-';
+                        return `<div style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'SFMono-Regular', 'Consolas', monospace; font-size: 0.72rem; color: var(--text-muted);" title='${data}'>${data}</div>`;
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center align-middle',
+                    render: function (data, type, row) {
+                        return `<div class="audit-actions-wrapper" style="display: flex; justify-content: center; align-items: center;">
+                                    <button class="action-btn action-btn-view" title="View Details" data-type="auditLog" data-id="${row.id}">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        </svg>
+                                    </button>
+                                </div>`;
+                    }
+                }
+            ],
+            drawCallback: function () {
+                const api = this.api();
+                window.renderPillPagination(api, '.if-pill-pagination-mount', 'audit logs');
+                setTimeout(() => {
+                    if (window.dt) {
+                        window.dt.columns.adjust();
+                    }
+                }, 100);
+            }
+        });
+
+        window.exportData = function(format) {
+            document.getElementById('exportMenu').style.display = 'none';
+            var searchStr = window.dt.search() || '';
+            const activeFilters = $('.panel').data('active-filters') || {};
+            var searchOld = activeFilters.searchInOldValues === 'true';
+            var searchNew = activeFilters.searchInNewValues === 'true';
+            
+            if (format === 'pdf') {
+                const selectedIds = Array.from(window.getSelectionSet('auditTable'));
+                // Show export toast
+                window.showExportToast('Generating PDF...');
+                
+                $.ajax({
+                    url: '/Reporting/ExportAuditLogs',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() || ''
+                    },
+                    data: JSON.stringify({
+                        Format: 'pdf_json',
+                        SearchValue: searchStr,
+                        SearchInOldValues: searchOld,
+                        SearchInNewValues: searchNew,
+                        SelectedIds: selectedIds.length > 0 ? selectedIds : []
+                    }),
+                    success: function(response) {
+                        window.hideExportToast();
+                        try {
+                            const { jsPDF } = window.jspdf;
+                            const doc = new jsPDF('landscape');
+                            
+                            doc.setFontSize(16);
+                            doc.text('System Audit Logs', 14, 15);
+                            
+                            var bodyData = [];
+                            for(var i=0; i<response.length; i++) {
+                                var item = response[i];
+                                var dt = new Date(item.dateTime).toLocaleString();
+                                bodyData.push([
+                                    dt, 
+                                    item.userId || '-', 
+                                    item.type || '-', 
+                                    item.tableName || '-', 
+                                    item.primaryKey || '-', 
+                                    item.affectedColumns || '-',
+                                    (item.oldValues && item.oldValues.length > 50) ? item.oldValues.substring(0,47)+'...' : (item.oldValues || '-'),
+                                    (item.newValues && item.newValues.length > 50) ? item.newValues.substring(0,47)+'...' : (item.newValues || '-')
+                                ]);
+                            }
+                            
+                            doc.autoTable({
+                                head: [['Date/Time', 'User', 'Type', 'Table', 'Key', 'Columns', 'Old Values', 'New Values']],
+                                body: bodyData,
+                                startY: 25,
+                                styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+                                columnStyles: {
+                                    6: { cellWidth: 40 },
+                                    7: { cellWidth: 40 }
+                                }
+                            });
+                            
+                            doc.save('AuditLogs.pdf');
+                        } catch (e) {
+                            console.error(e);
+                            alert("Failed to build PDF logic.");
+                        }
+                    },
+                    error: function() {
+                        window.hideExportToast();
+                        alert("Error retrieving data for PDF generation.");
+                    }
+                });
+            } else {
+                window.smartExport('auditTable', '/Reporting/ExportAuditLogs', {
+                    Format: format,
+                    SearchInOldValues: searchOld,
+                    SearchInNewValues: searchNew
+                });
+            }
+        };
+
+        // Initialize row selection for smart export
+        window.initRowSelection('auditTable', 'id');
+
+        window.onclick = function(event) {
+            if (!event.target.closest('.dropdown')) {
+                var menu = document.getElementById('exportMenu');
+                if (menu) menu.style.display = 'none';
+            }
+        };
+    });
+</script>

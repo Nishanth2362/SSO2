@@ -1,0 +1,6 @@
+@SSO.InternalApi_HostAddress = http://localhost:5115
+
+GET {{SSO.InternalApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

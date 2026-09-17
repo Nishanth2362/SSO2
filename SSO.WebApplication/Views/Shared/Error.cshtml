@@ -1,0 +1,41 @@
+@model ErrorViewModel
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div style="min-height: calc(100vh - 140px); display: grid; place-items: center; padding: 32px 16px;">
+    <section class="panel" style="max-width: 640px; width: 100%; padding: 32px;">
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
+            <div class="cell-avatar primary" style="width: 52px; height: 52px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+            </div>
+            <div>
+                <h1 style="margin: 0; font-size: 1.8rem;">@Model.Title</h1>
+                @if (Model.StatusCode.HasValue)
+                {
+                    <p style="margin: 6px 0 0; color: var(--text-muted);">Status code: @Model.StatusCode</p>
+                }
+            </div>
+        </div>
+
+        <p style="font-size: 1rem; line-height: 1.7; color: var(--text-secondary); margin-bottom: 24px;">
+            @Model.Message
+        </p>
+
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;">
+            <a href="@Model.ActionUrl" class="btn btn-primary">@Model.ActionText</a>
+            <button type="button" class="btn btn-secondary" onclick="window.history.back();">Go Back</button>
+        </div>
+
+        @if (Model.ShowRequestId)
+        {
+            <div style="padding: 14px 16px; border-radius: 10px; background: rgba(148, 163, 184, 0.08); color: var(--text-muted);">
+                Reference ID: <code>@Model.RequestId</code>
+            </div>
+        }
+    </section>
+</div>

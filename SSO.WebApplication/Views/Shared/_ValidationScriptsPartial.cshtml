@@ -1,0 +1,5 @@
+@{
+    var cspNonce = Context.Items["CSPNonce"]?.ToString();
+}
+<script src="~/lib/jquery-validation/dist/jquery.validate.min.js" nonce="@cspNonce"></script>
+<script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js" nonce="@cspNonce"></script>

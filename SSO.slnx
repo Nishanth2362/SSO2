@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/Core/">
+    <Project Path="SSO.Application.Tests/SSO.Application.Tests.csproj" Id="b9cae0e4-a91f-4708-b7eb-f4062a71762a" />
+    <Project Path="SSO.Application/SSO.Application.csproj" />
+    <Project Path="SSO.Domain/SSO.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Host/">
+    <Project Path="SSO.AppHost/SSO.AppHost.csproj" />
+    <Project Path="SSO.InternalApi/SSO.InternalApi.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+    <Project Path="SSO.ServiceDefaults/SSO.ServiceDefaults.csproj" />
+    <Project Path="SSO.WebApplication/SSO.WebApplication.csproj" />
+  </Folder>
+  <Folder Name="/Infra/">
+    <Project Path="SSO.Infrastructure/SSO.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Shared/">
+    <Project Path="SSO.Shared/SSO.Shared.csproj" />
+  </Folder>
+</Solution>

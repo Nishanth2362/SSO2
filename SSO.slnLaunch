@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "New Profile",
+    "Projects": [
+      {
+        "Path": "SSO.InternalApi\\SSO.InternalApi.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "SSO.WebApplication\\SSO.WebApplication.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

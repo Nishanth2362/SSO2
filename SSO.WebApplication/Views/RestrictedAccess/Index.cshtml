@@ -1,0 +1,2248 @@
+@using SSO.Application.Responses.Features
+@using SSO.Domain.Enums
+@{
+    ViewData["Title"] = "Restricted Page Access Sessions";
+    var summary = ViewBag.Summary as ManagementSummaryResponse ?? new ManagementSummaryResponse();
+    var clients = ViewBag.Clients as IEnumerable<SSO.Domain.Entities.ApplicationClient> ?? new List<SSO.Domain.Entities.ApplicationClient>();
+    var tenants = ViewBag.Tenants as IEnumerable<SSO.Domain.Entities.Tenants> ?? new List<SSO.Domain.Entities.Tenants>();
+    var isMasterTenant = ViewBag.IsMasterTenant as bool? ?? false;
+    var cspNonce = Context.Items["CSPNonce"]?.ToString();
+}
+
+<style nonce="@cspNonce">
+    /* ═══════════════════════════════════════════════════════════
+       THEME & PAGE BACKGROUND — Indigo/Violet Luxury Glass
+       ═══════════════════════════════════════════════════════════ */
+    body {
+        background: linear-gradient(150deg,
+                        rgba(99, 102, 241, 0.08) 0%,
+                        rgba(139, 92, 246, 0.03) 25%,
+                        rgba(224, 231, 255, 0.3) 60%,
+                        rgba(255, 255, 255, 0.95) 100%) !important;
+        background-attachment: fixed !important;
+        background-repeat: no-repeat !important;
+        background-size: cover !important;
+    }
+
+    html[data-theme="dark"] body {
+        background: linear-gradient(150deg,
+                        rgba(99, 102, 241, 0.16) 0%,
+                        rgba(139, 92, 246, 0.06) 25%,
+                        rgba(30, 27, 75, 0.45) 60%,
+                        rgba(9, 12, 20, 0.96) 100%) !important;
+        background-attachment: fixed !important;
+        background-repeat: no-repeat !important;
+        background-size: cover !important;
+    }
+
+    .page-wrapper, .content-wrapper, .container-xl, main, #content, .page-body {
+        background: transparent !important;
+    }
+
+    .th-page-card {
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        overflow: visible;
+        margin-bottom: 8px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       HERO SECTION
+       ═══════════════════════════════════════════════════════════ */
+    .rpap-hero {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        flex-wrap: wrap;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        padding: 12px 4px 6px;
+        margin-bottom: 0;
+        overflow: hidden;
+    }
+
+    .rpap-hero-bg-pattern {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 0;
+    }
+
+    .hero-bg-icon {
+        position: absolute;
+        stroke: #6366f1;
+        stroke-width: 1.5;
+        fill: none;
+        opacity: 0.10;
+        transition: opacity 0.3s ease;
+    }
+
+    html[data-theme="dark"] .hero-bg-icon {
+        stroke: #818cf8;
+        opacity: 0.14;
+    }
+
+    .hero-bg-icon.icon-lock-1    { top: 8%; left: 2%; width: 34px; height: 34px; transform: rotate(-12deg); }
+    .hero-bg-icon.icon-key-1     { top: 12%; left: 32%; width: 28px; height: 28px; transform: rotate(15deg); }
+    .hero-bg-icon.icon-shield-1  { bottom: 8%; left: 16%; width: 32px; height: 32px; transform: rotate(-8deg); }
+    .hero-bg-icon.icon-cpu-1     { top: 60%; left: 4%; width: 28px; height: 28px; transform: rotate(6deg); }
+    .hero-bg-icon.icon-server-1  { top: 10%; right: 38%; width: 30px; height: 30px; transform: rotate(12deg); }
+    .hero-bg-icon.icon-link-1    { bottom: 10%; right: 28%; width: 30px; height: 30px; transform: rotate(-10deg); }
+    .hero-bg-icon.icon-code-1    { top: 12%; right: 18%; width: 28px; height: 28px; transform: rotate(8deg); }
+
+    .th-hero-left {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        min-width: 260px;
+        flex: 1 1 320px;
+        z-index: 1;
+    }
+
+    .th-hero-icon {
+        width: 52px;
+        height: 52px;
+        flex-shrink: 0;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        box-shadow: 0 6px 18px rgba(99, 102, 241, 0.3);
+    }
+
+    .th-hero-title {
+        font-size: 1.65rem !important;
+        font-weight: 800 !important;
+        color: var(--text-main);
+        letter-spacing: -0.02em;
+        margin: 0 0 4px;
+        line-height: 1.2;
+    }
+
+    .th-hero-subtitle {
+        font-size: 0.86rem;
+        color: var(--text-muted);
+        margin: 0;
+        max-width: 520px;
+        line-height: 1.5;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       INTERACTIVE KPI CARDS
+       ═══════════════════════════════════════════════════════════ */
+    .sub-kpi-container {
+        position: relative;
+        display: flex;
+        gap: 14px;
+        align-items: stretch;
+        z-index: 1;
+        flex-wrap: wrap;
+        margin: 14px 0 16px;
+    }
+
+    .sub-kpi-card {
+        cursor: pointer;
+        user-select: none;
+        width: 175px;
+        flex-shrink: 0;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        padding: 12px 16px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 6px 16px -8px rgba(15,23,42,0.08);
+        transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+    }
+
+    .sub-kpi-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px -6px rgba(99, 102, 241, 0.18);
+        border-color: rgba(99, 102, 241, 0.4);
+    }
+
+    .sub-kpi-card.active {
+        border-color: #6366f1 !important;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.04));
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25), 0 8px 24px -6px rgba(99, 102, 241, 0.2);
+    }
+
+    .sub-kpi-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 6px;
+    }
+
+    .sub-kpi-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+    }
+
+    .sub-kpi-badge {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+    }
+
+    .badge-total     { background: rgba(99, 102, 241, 0.12); color: #6366f1; }
+    .badge-active    { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+    .badge-completed { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+    .badge-revoked   { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+
+    .sub-kpi-value {
+        font-size: 1.55rem;
+        font-weight: 800;
+        color: var(--text-main);
+        letter-spacing: -0.02em;
+        line-height: 1;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       PANEL & TOOLBAR
+       ═══════════════════════════════════════════════════════════ */
+    .panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 20px -4px rgba(15,23,42,0.06);
+        position: relative;
+    }
+
+    .table-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+    }
+
+    .table-toolbar-left {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .search-input-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .search-input-wrap svg {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+        transition: color 0.2s ease;
+    }
+
+    .toolbar-search {
+        padding-left: 40px !important;
+        padding-right: 14px !important;
+        width: 260px;
+        height: 40px;
+        border-radius: 12px;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-base);
+        color: var(--text-main);
+        font-size: 0.84rem;
+        font-weight: 500;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .toolbar-search:hover {
+        border-color: rgba(99, 102, 241, 0.35);
+        background: var(--bg-surface);
+    }
+
+    .toolbar-search:focus {
+        border-color: #6366f1 !important;
+        box-shadow: 0 0 0 3.5px rgba(99, 102, 241, 0.18), 0 2px 8px rgba(99, 102, 241, 0.12) !important;
+        outline: none;
+        background: var(--bg-surface);
+        transform: translateY(-1px);
+    }
+
+    .search-input-wrap:focus-within svg {
+        color: #6366f1;
+    }
+
+    .toolbar-select {
+        height: 40px;
+        border-radius: 12px;
+        border: 1px solid var(--border-subtle);
+        background-color: var(--bg-base);
+        color: var(--text-main);
+        font-size: 0.84rem;
+        font-weight: 600;
+        padding: 0 34px 0 14px;
+        min-width: 145px;
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .toolbar-select:hover {
+        border-color: rgba(99, 102, 241, 0.35);
+        background-color: var(--bg-surface);
+    }
+
+    .toolbar-select:focus {
+        border-color: #6366f1 !important;
+        box-shadow: 0 0 0 3.5px rgba(99, 102, 241, 0.18) !important;
+        outline: none;
+        background-color: var(--bg-surface);
+        transform: translateY(-1px);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       TABLE STYLING & COLUMN OVERRIDES (NO OVERLAPPING)
+       ═══════════════════════════════════════════════════════════ */
+    .table-responsive {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 12px;
+    }
+
+    #rpapTable {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin: 0 !important;
+    }
+
+    #rpapTable thead th {
+        background: var(--bg-base);
+        color: var(--text-muted);
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 14px 16px !important;
+        border-bottom: 1px solid var(--border-subtle);
+        white-space: nowrap !important;
+        vertical-align: middle !important;
+    }
+
+    #rpapTable tbody td {
+        padding: 14px 16px !important;
+        border-bottom: 1px solid var(--border-subtle);
+        white-space: nowrap !important;
+        vertical-align: middle !important;
+        font-size: 0.85rem;
+        color: var(--text-main);
+    }
+
+    #rpapTable tbody tr:hover td {
+        background: rgba(99, 102, 241, 0.03);
+    }
+
+    /* Override global ui.js 40px first-child constraint */
+    #rpapTable th:first-child,
+    #rpapTable td:first-child {
+        width: auto !important;
+        min-width: 230px !important;
+        max-width: none !important;
+        text-align: left !important;
+        padding-left: 16px !important;
+    }
+
+    #rpapTable th:nth-child(2),
+    #rpapTable td:nth-child(2) {
+        min-width: 190px !important;
+        text-align: left !important;
+    }
+
+    #rpapTable th:nth-child(3),
+    #rpapTable td:nth-child(3) {
+        min-width: 160px !important;
+        text-align: left !important;
+    }
+
+    #rpapTable th:nth-child(4),
+    #rpapTable td:nth-child(4) {
+        min-width: 130px !important;
+        text-align: center !important;
+    }
+
+    #rpapTable th:nth-child(5),
+    #rpapTable td:nth-child(5) {
+        min-width: 140px !important;
+        text-align: center !important;
+    }
+
+    #rpapTable th:nth-child(6),
+    #rpapTable td:nth-child(6) {
+        min-width: 110px !important;
+        text-align: center !important;
+    }
+
+    #rpapTable th:last-child,
+    #rpapTable td:last-child {
+        min-width: 140px !important;
+        text-align: center !important;
+        padding-right: 16px !important;
+    }
+
+    /* User Avatar & Text */
+    .cell-flex {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .cell-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+
+    .cell-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        text-align: left;
+    }
+
+    .cell-text h5 {
+        margin: 0;
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: var(--text-main);
+        line-height: 1.2;
+    }
+
+    .cell-text p {
+        margin: 0;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        line-height: 1.2;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       BADGES & STATUS PILLS
+       ═══════════════════════════════════════════════════════════ */
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+    }
+
+    .status-pulse {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .status-active    { background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .status-active .status-pulse { background: #10b981; box-shadow: 0 0 8px #10b981; }
+
+    .status-pending   { background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .status-pending .status-pulse { background: #f59e0b; }
+
+    .status-completed { background: rgba(59, 130, 246, 0.12); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .status-completed .status-pulse { background: #3b82f6; }
+
+    .status-expired   { background: rgba(107, 114, 128, 0.12); color: #6b7280; border: 1px solid rgba(107, 114, 128, 0.3); }
+    .status-expired .status-pulse { background: #9ca3af; }
+
+    .status-revoked   { background: rgba(239, 68, 68, 0.12); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .status-revoked .status-pulse { background: #ef4444; }
+
+    .scope-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        font-family: 'Fira Code', Consolas, monospace;
+        background: rgba(99, 102, 241, 0.1);
+        color: #6366f1;
+        border: 1px solid rgba(99, 102, 241, 0.25);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       SLIDEOVER & MODAL POPUPS
+       ═══════════════════════════════════════════════════════════ */
+    .slideover-overlay {
+        position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(5px);
+        z-index: 1050; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    }
+    .slideover-overlay.active { opacity: 1; pointer-events: auto; }
+
+    .slideover {
+        position: fixed; right: 0; top: 0; bottom: 0; width: 100%; max-width: 580px;
+        background: var(--bg-surface); border-left: 1px solid var(--border-subtle);
+        box-shadow: -12px 0 45px rgba(0,0,0,0.22); transform: translateX(100%);
+        transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex; flex-direction: column; z-index: 1051;
+    }
+    .slideover-overlay.active .slideover { transform: translateX(0); }
+
+    .slideover-header {
+        padding: 20px 24px; border-bottom: 1px solid var(--border-subtle);
+        display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+        background: var(--bg-surface);
+    }
+
+    .slideover-body {
+        padding: 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px;
+    }
+
+    .slideover-footer {
+        padding: 16px 24px; border-top: 1px solid var(--border-subtle);
+        display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0;
+        background: var(--bg-surface);
+    }
+
+    /* Modal Animation */
+    .slideover-overlay.active .settings-modal-card {
+        transform: scale(1) !important;
+    }
+
+    /* Inspector Card Sections */
+    .so-card {
+        background: var(--bg-base);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .so-card-title {
+        font-size: 0.76rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 2px;
+    }
+
+    .so-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+    }
+
+    .so-field {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    .so-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+
+    .so-val {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: var(--text-main);
+        word-break: break-all;
+    }
+
+    .so-code-badge {
+        font-family: 'Fira Code', Consolas, monospace;
+        font-size: 0.8rem;
+        background: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        padding: 6px 10px;
+        border-radius: 8px;
+        color: #6366f1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        word-break: break-all;
+    }
+
+    .so-copy-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 2px 4px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        transition: color 0.15s;
+    }
+
+    .so-copy-btn:hover {
+        color: #6366f1;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       REDESIGNED RPAP SETTINGS MODAL & TAB SYSTEM
+       ═══════════════════════════════════════════════════════════ */
+    .settings-modal-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        width: 94%;
+        max-width: 740px;
+        max-height: 88vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(99, 102, 241, 0.15);
+        overflow: hidden;
+        transform: scale(0.96) translateY(10px);
+        opacity: 0;
+        transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+    }
+
+    .slideover-overlay.active .settings-modal-card {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+
+    .settings-nav-tabs {
+        display: flex;
+        gap: 6px;
+        padding: 6px 16px;
+        background: var(--bg-base);
+        border-bottom: 1px solid var(--border-subtle);
+        overflow-x: auto;
+    }
+
+    .st-tab-btn {
+        background: transparent;
+        border: 1px solid transparent;
+        color: var(--text-muted);
+        padding: 7px 14px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        border-radius: 10px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+
+    .st-tab-btn:hover {
+        color: var(--text-main);
+        background: rgba(99, 102, 241, 0.08);
+    }
+
+    .st-tab-btn.active {
+        color: #6366f1;
+        background: rgba(99, 102, 241, 0.14);
+        border-color: rgba(99, 102, 241, 0.25);
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+    }
+
+    html[data-theme="dark"] .st-tab-btn.active {
+        color: #a5b4fc;
+        background: rgba(99, 102, 241, 0.22);
+        border-color: rgba(99, 102, 241, 0.4);
+    }
+
+    .st-tab-pane {
+        display: none;
+        animation: stFadeIn 0.25s ease-out forwards;
+    }
+
+    .st-tab-pane.active {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    @@keyframes stFadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Duration Preset Buttons */
+    .preset-pill-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 6px;
+    }
+
+    .time-preset-pill {
+        background: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.18);
+        color: #6366f1;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .time-preset-pill:hover {
+        background: #6366f1;
+        color: #fff;
+        transform: translateY(-1px);
+    }
+
+    /* Action Chip Manager */
+    .action-chips-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 8px 10px;
+        background: var(--bg-base);
+        border: 1px solid var(--border-subtle);
+        border-radius: 10px;
+        min-height: 48px;
+        align-items: center;
+    }
+
+    .action-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(99, 102, 241, 0.12);
+        border: 1px solid rgba(99, 102, 241, 0.25);
+        color: #6366f1;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-family: 'Fira Code', Consolas, monospace;
+    }
+
+    .action-chip .chip-remove {
+        cursor: pointer;
+        opacity: 0.6;
+        transition: opacity 0.15s, color 0.15s;
+        font-size: 0.85rem;
+        line-height: 1;
+    }
+
+    .action-chip .chip-remove:hover {
+        opacity: 1;
+        color: #ef4444;
+    }
+
+    .chip-input {
+        flex: 1;
+        min-width: 120px;
+        border: none !important;
+        background: transparent !important;
+        padding: 4px 6px;
+        font-size: 0.78rem;
+        color: var(--text-main);
+        font-family: 'Fira Code', Consolas, monospace;
+        outline: none !important;
+        box-shadow: none !important;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       LUXURY INPUT FIELD CAPSULES & FORM CONTROLS
+       ═══════════════════════════════════════════════════════════ */
+    .mod-input-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+        background: var(--bg-base);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+        transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        overflow: hidden;
+    }
+
+    .mod-input-wrap:hover {
+        border-color: rgba(99, 102, 241, 0.35);
+        background: var(--bg-surface);
+    }
+
+    .mod-input-wrap:focus-within {
+        border-color: #6366f1 !important;
+        box-shadow: 0 0 0 3.5px rgba(99, 102, 241, 0.18), 0 3px 10px rgba(99, 102, 241, 0.12) !important;
+        background: var(--bg-surface);
+        transform: translateY(-1px);
+    }
+
+    .mod-input {
+        width: 100%;
+        border: none !important;
+        background: transparent !important;
+        padding: 9px 14px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: var(--text-main);
+        outline: none !important;
+        box-shadow: none !important;
+    }
+
+    .mod-input.font-mono {
+        font-family: 'Fira Code', Consolas, monospace !important;
+        font-size: 0.82rem;
+    }
+
+    .mod-input-prefix {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 8px 0 12px;
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .mod-input-suffix {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 12px 0 8px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        flex-shrink: 0;
+        background: rgba(99, 102, 241, 0.06);
+        border-left: 1px solid var(--border-subtle);
+        height: 38px;
+    }
+
+    .method-tag {
+        background: rgba(99, 102, 241, 0.14);
+        border: 1px solid rgba(99, 102, 241, 0.28);
+        color: #6366f1;
+        font-size: 0.68rem;
+        font-weight: 800;
+        padding: 2px 7px;
+        border-radius: 6px;
+        font-family: 'Fira Code', monospace;
+        margin-left: 10px;
+        letter-spacing: 0.04em;
+    }
+
+    /* Switch Card */
+    .switch-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        background: var(--bg-base);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        transition: border-color 0.2s ease;
+    }
+
+    .switch-card:hover {
+        border-color: rgba(99, 102, 241, 0.35);
+    }
+
+    .custom-switch-toggle {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+        flex-shrink: 0;
+    }
+
+    .custom-switch-toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .switch-slider {
+        position: absolute;
+        cursor: pointer;
+        inset: 0;
+        background-color: var(--border-subtle);
+        transition: 0.25s;
+        border-radius: 24px;
+    }
+
+    .switch-slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 50%;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    .custom-switch-toggle input:checked + .switch-slider {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    }
+
+    .custom-switch-toggle input:checked + .switch-slider:before {
+        transform: translateX(20px);
+    }
+
+    .scope-select-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px 14px;
+        background: var(--bg-base);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .scope-select-card:hover {
+        border-color: rgba(99, 102, 241, 0.4);
+        background: rgba(99, 102, 241, 0.03);
+    }
+
+    .scope-select-card.checked {
+        border-color: #6366f1;
+        background: rgba(99, 102, 241, 0.06);
+    }
+</style>
+
+<div class="container-fluid px-0">
+    <div class="th-page-card">
+        <!-- Hero Header -->
+        <div class="rpap-hero">
+            <div class="rpap-hero-bg-pattern">
+                <svg class="hero-bg-icon icon-lock-1" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <svg class="hero-bg-icon icon-key-1" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                <svg class="hero-bg-icon icon-shield-1" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                <svg class="hero-bg-icon icon-cpu-1" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                <svg class="hero-bg-icon icon-server-1" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                <svg class="hero-bg-icon icon-link-1" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+            </div>
+
+            <div class="th-hero-left">
+                <div class="th-hero-icon">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="th-hero-title">Restricted Page Access Sessions</h1>
+                    <p class="th-hero-subtitle">Real-time monitoring, audit trails, and administrative kill-switch for backchannel ephemeral SSO transactions.</p>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; z-index: 1;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btnRefreshTable" style="display: inline-flex; align-items: center; gap: 8px; border-radius: 10px; padding: 8px 16px; font-weight: 600;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                    </svg>
+                    Refresh Data
+                </button>
+
+                <button type="button" class="btn btn-outline-primary btn-sm" id="btnOpenSettings" style="display: inline-flex; align-items: center; gap: 8px; border-radius: 10px; padding: 8px 16px; font-weight: 600; background: var(--bg-surface); border: 1px solid rgba(99, 102, 241, 0.4); color: #6366f1;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    Protocol Settings
+                </button>
+            </div>
+        </div>
+
+        <!-- Interactive KPI Cards -->
+        <div class="sub-kpi-container">
+            <div class="sub-kpi-card active" id="kpiCardTotal" data-status="">
+                <div class="sub-kpi-header">
+                    <span class="sub-kpi-label">Total Sessions</span>
+                    <div class="sub-kpi-badge badge-total">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    </div>
+                </div>
+                <div class="sub-kpi-value" id="kpiTotal">@summary.TotalTransactions</div>
+            </div>
+
+            <div class="sub-kpi-card" id="kpiCardActive" data-status="Active">
+                <div class="sub-kpi-header">
+                    <span class="sub-kpi-label">Active Live</span>
+                    <div class="sub-kpi-badge badge-active">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    </div>
+                </div>
+                <div class="sub-kpi-value" id="kpiActive" style="color: #10b981;">@summary.ActiveSessions</div>
+            </div>
+
+            <div class="sub-kpi-card" id="kpiCardCompleted" data-status="Completed">
+                <div class="sub-kpi-header">
+                    <span class="sub-kpi-label">Completed</span>
+                    <div class="sub-kpi-badge badge-completed">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    </div>
+                </div>
+                <div class="sub-kpi-value" id="kpiCompleted" style="color: #3b82f6;">@summary.CompletedSessions</div>
+            </div>
+
+            <div class="sub-kpi-card" id="kpiCardRevoked" data-status="Revoked">
+                <div class="sub-kpi-header">
+                    <span class="sub-kpi-label">Revoked / Expired</span>
+                    <div class="sub-kpi-badge badge-revoked">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                    </div>
+                </div>
+                <div class="sub-kpi-value" id="kpiRevoked" style="color: #ef4444;">@(summary.RevokedSessions + summary.ExpiredTransactions)</div>
+            </div>
+        </div>
+
+        <!-- Table Panel -->
+        <div class="panel">
+            <!-- Custom Toolbar -->
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <div class="search-input-wrap">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" id="sessionSearchInput" class="toolbar-search" placeholder="Search user, client, URL...">
+                    </div>
+
+                    <select id="filterClientId" class="toolbar-select">
+                        <option value="">All Applications</option>
+                        @foreach (var c in clients)
+                        {
+                            <option value="@c.ClientId">@(c.DisplayName ?? c.ClientId)</option>
+                        }
+                    </select>
+
+                    @if (isMasterTenant)
+                    {
+                        <select id="filterTenantId" class="toolbar-select">
+                            <option value="">All Tenants</option>
+                            @foreach (var t in tenants)
+                            {
+                                <option value="@t.Id">@t.Name</option>
+                            }
+                        </select>
+                    }
+
+                    <select id="filterScope" class="toolbar-select">
+                        <option value="">All Scopes</option>
+                        <option value="profile:manage">profile:manage</option>
+                        <option value="users:manage">users:manage</option>
+                        <option value="users_roles:manage">users_roles:manage</option>
+                    </select>
+
+                    <select id="filterStatus" class="toolbar-select">
+                        <option value="">All Statuses</option>
+                        <option value="Active">Active (In Session)</option>
+                        <option value="Pending">Pending Launch</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Expired">Expired</option>
+                        <option value="Revoked">Revoked</option>
+                    </select>
+
+                    <button type="button" id="btnResetFilters" class="btn btn-outline-secondary btn-sm" style="height: 40px; border-radius: 12px; padding: 0 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-subtle);">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                        Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- List Table View with Schoola Pill Pagination Mount -->
+            <div class="table-responsive" id="sessionTableViewWrapper">
+                <table id="rpapTable" class="table-hoverable manual-init" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>Target User</th>
+                            <th>Client & Tenant</th>
+                            <th>Scope</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Expires</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Slideover Inspector Drawer (PRO Upgraded) -->
+<div id="inspectorOverlay" class="slideover-overlay">
+    <div class="slideover">
+        <div class="slideover-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15)); border: 1px solid rgba(99, 102, 241, 0.25); color: #6366f1; display: flex; align-items: center; justify-content: center;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                </div>
+                <div>
+                    <h3 style="font-size: 1.12rem; font-weight: 800; margin: 0; color: var(--text-main);">Session Audit Inspector</h3>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin: 2px 0 0;">Ephemeral Restricted Page Access Protocol Details</p>
+                </div>
+            </div>
+            <button type="button" id="btnCloseInspector" class="btn btn-sm btn-circle" style="border: 1px solid var(--border-subtle); background: var(--bg-surface); font-size: 1rem; width: 32px; height: 32px; border-radius: 8px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer;">✕</button>
+        </div>
+
+        <div class="slideover-body" id="inspectorBody">
+            <!-- Dynamically injected with rich cards -->
+        </div>
+
+        <div class="slideover-footer" id="inspectorFooter">
+            <!-- Dynamically populated action buttons -->
+        </div>
+    </div>
+</div>
+
+<!-- RPAP Protocol Settings Modal Popup (REDESIGNED LUXURY TABBED VIEW) -->
+<div id="settingsModalOverlay" class="slideover-overlay" style="display: flex; align-items: center; justify-content: center; z-index: 1060;">
+    <div class="settings-modal-card">
+        <!-- Header -->
+        <div class="settings-modal-header" style="padding: 20px 24px 14px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; background: var(--bg-base);">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <div style="width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2)); border: 1px solid rgba(99, 102, 241, 0.35); color: #6366f1; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 800; margin: 0; color: var(--text-main); letter-spacing: -0.01em;">Protocol & Filter Settings</h3>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin: 2px 0 0;">Database-backed configuration for session TTLs, route mapping, and SsoContextFilter</p>
+                </div>
+            </div>
+            <button type="button" id="btnCloseSettingsModal" class="btn btn-sm btn-circle" style="border: 1px solid var(--border-subtle); background: var(--bg-surface); font-size: 1rem; width: 34px; height: 34px; border-radius: 10px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s ease;">✕</button>
+        </div>
+
+        <!-- Segmented Tab Navigation -->
+        <div class="settings-nav-tabs">
+            <button type="button" class="st-tab-btn active" data-tab="tab-ttl">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                Session TTL
+            </button>
+            <button type="button" class="st-tab-btn" data-tab="tab-routes">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                Landing Routes
+            </button>
+            <button type="button" class="st-tab-btn" data-tab="tab-filter">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                SsoContextFilter
+            </button>
+            <button type="button" class="st-tab-btn" data-tab="tab-scopes">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                Scopes & Security
+            </button>
+        </div>
+
+        <form id="rpapSettingsForm" style="display: flex; flex-direction: column; overflow: hidden; margin: 0; flex: 1;">
+            <div class="settings-modal-body" style="padding: 22px 24px; overflow-y: auto; flex: 1; min-height: 380px;">
+                
+                <!-- ══════════════════════════════════════════════
+                     TAB 1: SESSION TTL
+                     ══════════════════════════════════════════════ -->
+                <div class="st-tab-pane active" id="tab-ttl">
+                    <!-- Profile TTL Card -->
+                    <div class="so-card">
+                        <div class="so-card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="display: inline-flex; align-items: center; gap: 8px;">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                Profile Scope Session Duration
+                            </span>
+                            <span id="profileTtlHelper" style="font-size: 0.72rem; font-weight: 700; color: #6366f1; background: rgba(99, 102, 241, 0.12); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(99, 102, 241, 0.25);">= 5 minutes</span>
+                        </div>
+                        <div class="form-group mb-2">
+                            <label class="so-label" for="settingProfileTtl">Default TTL</label>
+                            <div class="mod-input-wrap">
+                                <span class="mod-input-prefix">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                </span>
+                                <input type="number" id="settingProfileTtl" name="DefaultProfileTtlSeconds" class="mod-input" min="10" max="86400" required />
+                                <span class="mod-input-suffix">SEC</span>
+                            </div>
+                        </div>
+                        <div class="preset-pill-group">
+                            <span style="font-size: 0.72rem; color: var(--text-muted); align-self: center; font-weight: 600;">Presets:</span>
+                            <button type="button" class="time-preset-pill" data-target="settingProfileTtl" data-val="180">3 min</button>
+                            <button type="button" class="time-preset-pill" data-target="settingProfileTtl" data-val="300">5 min</button>
+                            <button type="button" class="time-preset-pill" data-target="settingProfileTtl" data-val="600">10 min</button>
+                            <button type="button" class="time-preset-pill" data-target="settingProfileTtl" data-val="900">15 min</button>
+                            <button type="button" class="time-preset-pill" data-target="settingProfileTtl" data-val="1800">30 min</button>
+                            <button type="button" class="time-preset-pill" data-target="settingProfileTtl" data-val="3600">1 hour</button>
+                        </div>
+                    </div>
+
+                    <!-- Management TTL Card -->
+                    <div class="so-card">
+                        <div class="so-card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="display: inline-flex; align-items: center; gap: 8px;">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                                Users & Roles Management Duration
+                            </span>
+                            <span id="managementTtlHelper" style="font-size: 0.72rem; font-weight: 700; color: #8b5cf6; background: rgba(139, 92, 246, 0.12); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(139, 92, 246, 0.25);">= 15 minutes</span>
+                        </div>
+                        <div class="form-group mb-2">
+                            <label class="so-label" for="settingManagementTtl">Default TTL</label>
+                            <div class="mod-input-wrap">
+                                <span class="mod-input-prefix">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                </span>
+                                <input type="number" id="settingManagementTtl" name="DefaultManagementTtlSeconds" class="mod-input" min="10" max="86400" required />
+                                <span class="mod-input-suffix">SEC</span>
+                            </div>
+                        </div>
+                        <div class="preset-pill-group">
+                            <span style="font-size: 0.72rem; color: var(--text-muted); align-self: center; font-weight: 600;">Presets:</span>
+                            <button type="button" class="time-preset-pill" data-target="settingManagementTtl" data-val="300">5 min</button>
+                            <button type="button" class="time-preset-pill" data-target="settingManagementTtl" data-val="900">15 min</button>
+                            <button type="button" class="time-preset-pill" data-target="settingManagementTtl" data-val="1800">30 min</button>
+                            <button type="button" class="time-preset-pill" data-target="settingManagementTtl" data-val="3600">1 hour</button>
+                            <button type="button" class="time-preset-pill" data-target="settingManagementTtl" data-val="14400">4 hours</button>
+                            <button type="button" class="time-preset-pill" data-target="settingManagementTtl" data-val="86400">24 hours</button>
+                        </div>
+                    </div>
+
+                    <!-- Safety Bounds Card -->
+                    <div class="so-card">
+                        <div class="so-card-title">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                            Dynamic Request Clamping Bounds
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                            <div class="form-group mb-0">
+                                <label class="so-label" for="settingMinTtl">Min Allowed TTL</label>
+                                <div class="mod-input-wrap">
+                                    <input type="number" id="settingMinTtl" name="MinTtlSeconds" class="mod-input" min="10" max="3600" required />
+                                    <span class="mod-input-suffix">SEC</span>
+                                </div>
+                                <small style="color: var(--text-muted); font-size: 0.72rem; display: block; margin-top: 4px;">Prevents sub-second expiration</small>
+                            </div>
+                            <div class="form-group mb-0">
+                                <label class="so-label" for="settingMaxTtl">Max Allowed TTL</label>
+                                <div class="mod-input-wrap">
+                                    <input type="number" id="settingMaxTtl" name="MaxTtlSeconds" class="mod-input" min="60" max="604800" required />
+                                    <span class="mod-input-suffix">SEC</span>
+                                </div>
+                                <small style="color: var(--text-muted); font-size: 0.72rem; display: block; margin-top: 4px;">Maximum upper bound cap</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══════════════════════════════════════════════
+                     TAB 2: LANDING ROUTES
+                     ══════════════════════════════════════════════ -->
+                <div class="st-tab-pane" id="tab-routes">
+                    <div class="so-card">
+                        <div class="so-card-title">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                            Default Target Landing Routes
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 14px;">
+                            <div class="form-group mb-0">
+                                <label class="so-label" for="settingProfileUrl">Profile Scope Target Route</label>
+                                <div class="mod-input-wrap">
+                                    <span class="method-tag">GET</span>
+                                    <input type="text" id="settingProfileUrl" name="ProfileLandingUrl" class="mod-input font-mono" placeholder="/Account/Profile" required />
+                                </div>
+                                <small style="color: var(--text-muted); font-size: 0.72rem; display: block; margin-top: 4px;">Destination for <code>profile:manage</code> scoped SSO launches</small>
+                            </div>
+                            <div class="form-group mb-0">
+                                <label class="so-label" for="settingUsersUrl">Users & Roles Scope Target Route</label>
+                                <div class="mod-input-wrap">
+                                    <span class="method-tag">GET</span>
+                                    <input type="text" id="settingUsersUrl" name="UsersLandingUrl" class="mod-input font-mono" placeholder="/Home/Users" required />
+                                </div>
+                                <small style="color: var(--text-muted); font-size: 0.72rem; display: block; margin-top: 4px;">Destination for <code>users:manage</code> and <code>users_roles:manage</code></small>
+                            </div>
+                            <div class="form-group mb-0">
+                                <label class="so-label" for="settingFallbackUrl">Fallback Block Redirect URL</label>
+                                <div class="mod-input-wrap">
+                                    <span class="method-tag" style="background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.28); color: #ef4444;">BLOCK</span>
+                                    <input type="text" id="settingFallbackUrl" name="FallbackUnauthorizedRedirectUrl" class="mod-input font-mono" placeholder="/Account/Profile" required />
+                                </div>
+                                <small style="color: var(--text-muted); font-size: 0.72rem; display: block; margin-top: 4px;">Destination when a user attempts to access an unauthorized page in restricted mode</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══════════════════════════════════════════════
+                     TAB 3: SSOCONTEXTFILTER
+                     ══════════════════════════════════════════════ -->
+                <div class="st-tab-pane" id="tab-filter">
+                    <!-- Enforce Scope Switch Card -->
+                    <div class="switch-card">
+                        <div>
+                            <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                                Enforce Scope Route Filtering
+                                <span id="enforceStatusBadge" style="font-size: 0.68rem; font-weight: 700; color: #10b981; background: rgba(16, 185, 129, 0.12); padding: 2px 6px; border-radius: 4px;">Active</span>
+                            </div>
+                            <small style="color: var(--text-muted); font-size: 0.73rem; display: block; margin-top: 2px;">When active, <code>SsoContextFilter</code> blocks any controller actions not present in the allowed list below.</small>
+                        </div>
+                        <label class="custom-switch-toggle mb-0">
+                            <input type="checkbox" id="settingEnforceScope" name="EnforceScopeAccess" checked />
+                            <span class="switch-slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- Cookie Lifetime Card -->
+                    <div class="so-card">
+                        <div class="so-card-title">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            SSO View Context Cookie Expiration
+                        </div>
+                        <div class="form-group mb-0">
+                            <label class="so-label" for="settingCookieExpiry">Cookie Lifetime</label>
+                            <div class="mod-input-wrap" style="max-width: 240px;">
+                                <input type="number" id="settingCookieExpiry" name="ContextCookieExpiryDays" class="mod-input" min="1" max="365" required />
+                                <span class="mod-input-suffix">DAYS</span>
+                            </div>
+                            <small style="color: var(--text-muted); font-size: 0.72rem; display: block; margin-top: 4px;">Persisted for SSO Header and Tenant badge rendering</small>
+                        </div>
+                    </div>
+
+                    <!-- Profile Actions Chip Manager -->
+                    <div class="so-card">
+                        <div class="so-card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>Profile Scope Allowed Actions</span>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnLoadDefaultProfileActions" style="padding: 2px 8px; font-size: 0.7rem; border-radius: 6px;">Load Standard</button>
+                        </div>
+                        <div class="action-chips-container" id="profileActionsContainer">
+                            <input type="text" class="chip-input" id="profileActionInput" placeholder="Type action name and press Enter..." />
+                        </div>
+                        <small style="color: var(--text-muted); font-size: 0.72rem; display: block; margin-top: 4px;">Click ✕ to remove. Type an action name and press Enter or comma to add.</small>
+                    </div>
+
+                    <!-- Users Actions Chip Manager -->
+                    <div class="so-card">
+                        <div class="so-card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>Users & Roles Scope Allowed Actions</span>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnLoadDefaultUsersActions" style="padding: 2px 8px; font-size: 0.7rem; border-radius: 6px;">Load Standard</button>
+                        </div>
+                        <div class="action-chips-container" id="usersActionsContainer">
+                            <input type="text" class="chip-input" id="usersActionInput" placeholder="Type action name and press Enter..." />
+                        </div>
+                        <small style="color: var(--text-muted); font-size: 0.72rem; display: block; margin-top: 4px;">Allowed administrative controller actions during users management sessions.</small>
+                    </div>
+                </div>
+
+                <!-- ══════════════════════════════════════════════
+                     TAB 4: SCOPES & SECURITY
+                     ══════════════════════════════════════════════ -->
+                <div class="st-tab-pane" id="tab-scopes">
+                    <div class="so-card">
+                        <div class="so-card-title">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            Active RPAP Protocol Scopes
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <label class="scope-select-card checked">
+                                <input type="checkbox" name="AllowedScopes" value="profile:manage" class="scope-checkbox" style="margin-top: 3px; accent-color: #6366f1;" checked />
+                                <div style="flex: 1;">
+                                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                                        <span class="scope-pill" style="font-size: 0.75rem; padding: 2px 8px;">profile:manage</span>
+                                        <span style="font-size: 0.72rem; color: #10b981; font-weight: 700;">Standard User</span>
+                                    </div>
+                                    <p style="font-size: 0.75rem; color: var(--text-muted); margin: 4px 0 0;">Grants isolated access to user account management, password change, and 2FA settings.</p>
+                                </div>
+                            </label>
+
+                            <label class="scope-select-card checked">
+                                <input type="checkbox" name="AllowedScopes" value="users:manage" class="scope-checkbox" style="margin-top: 3px; accent-color: #6366f1;" checked />
+                                <div style="flex: 1;">
+                                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                                        <span class="scope-pill" style="font-size: 0.75rem; padding: 2px 8px;">users:manage</span>
+                                        <span style="font-size: 0.72rem; color: #6366f1; font-weight: 700;">User Admin</span>
+                                    </div>
+                                    <p style="font-size: 0.75rem; color: var(--text-muted); margin: 4px 0 0;">Allows managing tenant users, toggling active states, unlocking accounts, and exporting user data.</p>
+                                </div>
+                            </label>
+
+                            <label class="scope-select-card checked">
+                                <input type="checkbox" name="AllowedScopes" value="users_roles:manage" class="scope-checkbox" style="margin-top: 3px; accent-color: #6366f1;" checked />
+                                <div style="flex: 1;">
+                                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                                        <span class="scope-pill" style="font-size: 0.75rem; padding: 2px 8px;">users_roles:manage</span>
+                                        <span style="font-size: 0.72rem; color: #ec4899; font-weight: 700;">Role Admin</span>
+                                    </div>
+                                    <p style="font-size: 0.75rem; color: var(--text-muted); margin: 4px 0 0;">Enables full tenant role creation, permission matrix modification, and privilege assignment.</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Security Switches Card -->
+                    <div class="so-card">
+                        <div class="so-card-title">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                            Security & Revocation Policy
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <div class="switch-card" style="padding: 10px 12px;">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 0.82rem; color: var(--text-main);">Auto-Revoke on Result Verification</div>
+                                    <small style="color: var(--text-muted); font-size: 0.7rem; display: block;">Marks transaction as Completed and destroys browser RPAP cookies upon result exchange.</small>
+                                </div>
+                                <label class="custom-switch-toggle mb-0">
+                                    <input type="checkbox" id="settingAutoRevoke" name="AutoRevokeOnResultExchange" checked />
+                                    <span class="switch-slider"></span>
+                                </label>
+                            </div>
+                            <div class="switch-card" style="padding: 10px 12px;">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 0.82rem; color: var(--text-main);">Strict Localhost Port Matching</div>
+                                    <small style="color: var(--text-muted); font-size: 0.7rem; display: block;">Requires dynamic dev servers to match exact port registered in client redirect URIs.</small>
+                                </div>
+                                <label class="custom-switch-toggle mb-0">
+                                    <input type="checkbox" id="settingStrictPort" name="RequireStrictLocalhostPort" />
+                                    <span class="switch-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="settings-modal-footer" style="padding: 16px 24px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; background: var(--bg-base); flex-shrink: 0;">
+                <button type="button" id="btnResetSettingsDefault" class="btn btn-outline-danger btn-sm" style="border-radius: 10px; padding: 8px 16px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    Reset Defaults
+                </button>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('settingsModalOverlay').classList.remove('active');" style="border-radius: 10px; padding: 8px 18px; font-weight: 600;">
+                        Cancel
+                    </button>
+                    <button type="submit" id="btnSaveSettings" class="btn btn-primary btn-sm" style="border-radius: 10px; padding: 8px 22px; font-weight: 700; background: linear-gradient(135deg, #6366f1, #8b5cf6); border: none; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35); display: inline-flex; align-items: center; gap: 8px;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        Save Settings
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script nonce="@cspNonce">
+    $(function () {
+        const $table = $('#rpapTable');
+        const $customSearch = $('#sessionSearchInput');
+
+        const avatarColors = [
+            { bg: 'rgba(99, 102, 241, 0.14)', fg: '#6366f1' },
+            { bg: 'rgba(16, 185, 129, 0.14)', fg: '#10b981' },
+            { bg: 'rgba(245, 158, 11, 0.14)', fg: '#f59e0b' },
+            { bg: 'rgba(236, 72, 153, 0.14)', fg: '#ec4899' },
+            { bg: 'rgba(59, 130, 246, 0.14)', fg: '#3b82f6' }
+        ];
+
+        const dt = $table.DataTable({
+            processing: true,
+            serverSide: true,
+            responsive: false,
+            autoWidth: false,
+            pageLength: 10,
+            dom: 't<"if-table-footer-wrap"<"footer-right"<"if-pill-pagination-mount">>>',
+            ajax: {
+                url: '/RestrictedAccess/GetTransactions',
+                type: 'POST',
+                data: function (d) {
+                    if ($customSearch.length > 0) {
+                        d.search = d.search || {};
+                        d.search.value = $customSearch.val();
+                    }
+                    d.filter_ClientId = $('#filterClientId').val();
+                    d.filter_TenantId = $('#filterTenantId').val();
+                    d.filter_Scope = $('#filterScope').val();
+                    d.filter_Status = $('#filterStatus').val();
+                }
+            },
+            columns: [
+                {
+                    data: 'userName',
+                    width: '25%',
+                    render: function (data, type, row, meta) {
+                        const name = data || row.userName || row.userEmail || 'Unknown User';
+                        const email = row.userEmail || '';
+                        const initial = (name.charAt(0) || 'U').toUpperCase();
+                        const tint = avatarColors[(meta && typeof meta.row === 'number' ? meta.row : 0) % avatarColors.length];
+
+                        return `
+                            <div class="cell-flex">
+                                <div class="cell-avatar" style="background: ${tint.bg}; color: ${tint.fg};">
+                                    ${initial}
+                                </div>
+                                <div class="cell-text">
+                                    <h5>${name}</h5>
+                                    <p>${email}</p>
+                                </div>
+                            </div>
+                        `;
+                    }
+                },
+                {
+                    data: 'clientDisplayName',
+                    width: '20%',
+                    render: function (data, type, row) {
+                        const client = data || row.clientId || 'Client App';
+                        const tenant = row.tenantName ? `<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Tenant: <strong>${row.tenantName}</strong></div>` : '';
+                        return `
+                            <div>
+                                <div style="font-weight: 700; color: var(--text-main); font-size: 0.85rem;">${client}</div>
+                                ${tenant}
+                            </div>
+                        `;
+                    }
+                },
+                {
+                    data: 'scope',
+                    width: '15%',
+                    render: function (data, type, row) {
+                        const s = data || 'profile:manage';
+                        let changesPill = '';
+                        if (row.changes && row.changes.length > 0) {
+                            const formatted = row.changes.map(c => c === 'phone_number' ? 'Phone' : c.charAt(0).toUpperCase() + c.slice(1)).join(', ');
+                            changesPill = `
+                                <div style="margin-top: 4px;">
+                                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 6px; font-size: 0.68rem; font-weight: 700; background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25);">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                        ${formatted}
+                                    </span>
+                                </div>
+                            `;
+                        }
+                        return `<div><span class="scope-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>${s}</span>${changesPill}</div>`;
+                    }
+                },
+                {
+                    data: 'status',
+                    width: '12%',
+                    className: 'text-center',
+                    render: function (data, type, row) {
+                        const status = row.statusName || (data !== undefined && data !== null ? data.toString() : 'Pending');
+                        let pillClass = 'status-pending';
+                        if (status === 'Active' || status === '1') pillClass = 'status-active';
+                        else if (status === 'Completed' || status === '2') pillClass = 'status-completed';
+                        else if (status === 'Expired' || status === '3') pillClass = 'status-expired';
+                        else if (status === 'Revoked' || status === '4') pillClass = 'status-revoked';
+
+                        const displayStatus = row.statusName || status;
+                        return `<span class="status-pill ${pillClass}"><span class="status-pulse"></span>${displayStatus}</span>`;
+                    }
+                },
+                {
+                    data: 'createdOn',
+                    width: '12%',
+                    className: 'text-center',
+                    render: function (data) {
+                        if (!data) return '-';
+                        const d = new Date(data);
+                        return `<span style="font-size: 0.825rem; font-weight: 600; color: var(--text-main);">${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>`;
+                    }
+                },
+                {
+                    data: 'expiresOn',
+                    width: '10%',
+                    className: 'text-center',
+                    render: function (data, type, row) {
+                        if (!data) return '-';
+                        const exp = new Date(data);
+                        const isExp = exp < new Date();
+                        const color = isExp ? 'color: var(--text-muted);' : 'color: #10b981; font-weight: 700;';
+                        return `<span style="font-size: 0.825rem; ${color}">${exp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>`;
+                    }
+                },
+                {
+                    data: 'id',
+                    width: '6%',
+                    orderable: false,
+                    className: 'text-center',
+                    render: function (data, type, row) {
+                        const rowJson = encodeURIComponent(JSON.stringify(row));
+                        let revokeBtn = '';
+                        if (row.statusName === 'Active' || row.status === 1 || row.statusName === 'Pending' || row.status === 0) {
+                            revokeBtn = `
+                                <button type="button" class="btn btn-outline-danger btn-sm btn-revoke" data-id="${data}" title="Revoke Session" style="padding: 4px 10px; font-size: 0.75rem; border-radius: 8px; font-weight: 600;">
+                                    Revoke
+                                </button>
+                            `;
+                        }
+
+                        return `
+                            <div style="display: inline-flex; align-items: center; gap: 6px;">
+                                <button type="button" class="btn btn-secondary btn-sm btn-inspect" data-row="${rowJson}" title="Inspect Details" style="padding: 4px 10px; font-size: 0.75rem; border-radius: 8px; font-weight: 600;">
+                                    Inspect
+                                </button>
+                                ${revokeBtn}
+                            </div>
+                        `;
+                    }
+                }
+            ],
+            order: [[4, 'desc']],
+            drawCallback: function (settings) {
+                const api = this.api();
+                if (typeof window.renderPillPagination === 'function') {
+                    window.renderPillPagination(api, '.if-pill-pagination-mount', 'sessions');
+                }
+            }
+        });
+
+        // Search with debounce
+        let searchTimer;
+        $customSearch.on('input', function () {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                dt.ajax.reload();
+            }, 300);
+        });
+
+        // Dropdown filters
+        $('#filterClientId, #filterTenantId, #filterScope, #filterStatus').on('change', function () {
+            syncKpiActiveCard($('#filterStatus').val());
+            dt.ajax.reload();
+        });
+
+        $('#btnResetFilters').on('click', function () {
+            $customSearch.val('');
+            $('#filterClientId').val('');
+            $('#filterTenantId').val('');
+            $('#filterScope').val('');
+            $('#filterStatus').val('');
+            syncKpiActiveCard('');
+            dt.ajax.reload();
+        });
+
+        $('#btnRefreshTable').on('click', function () {
+            dt.ajax.reload();
+        });
+
+        // Interactive KPI Cards
+        $('.sub-kpi-card').on('click', function () {
+            const status = $(this).data('status') || '';
+            $('#filterStatus').val(status);
+            syncKpiActiveCard(status);
+            dt.ajax.reload();
+        });
+
+        function syncKpiActiveCard(status) {
+            $('.sub-kpi-card').removeClass('active');
+            if (status === 'Active') $('#kpiCardActive').addClass('active');
+            else if (status === 'Completed') $('#kpiCardCompleted').addClass('active');
+            else if (status === 'Revoked' || status === 'Expired') $('#kpiCardRevoked').addClass('active');
+            else $('#kpiCardTotal').addClass('active');
+        }
+
+        // Slideover Inspector
+        const overlay = document.getElementById('inspectorOverlay');
+        const inspectorBody = document.getElementById('inspectorBody');
+        const inspectorFooter = document.getElementById('inspectorFooter');
+        const btnClose = document.getElementById('btnCloseInspector');
+
+        $(document).on('click', '.btn-inspect', function () {
+            const rowData = JSON.parse(decodeURIComponent($(this).data('row')));
+
+            const status = rowData.statusName || 'Pending';
+            let pillClass = 'status-pending';
+            if (status === 'Active') pillClass = 'status-active';
+            else if (status === 'Completed') pillClass = 'status-completed';
+            else if (status === 'Expired') pillClass = 'status-expired';
+            else if (status === 'Revoked') pillClass = 'status-revoked';
+
+            const createdTime = rowData.createdOn ? new Date(rowData.createdOn).toLocaleString() : 'N/A';
+            const expiresTime = rowData.expiresOn ? new Date(rowData.expiresOn).toLocaleString() : 'N/A';
+            const consumedTime = rowData.consumedOn ? new Date(rowData.consumedOn).toLocaleString() : 'Not yet consumed';
+            const resultCodeTime = rowData.resultCodeConsumedOn ? new Date(rowData.resultCodeConsumedOn).toLocaleString() : null;
+
+            let exchangeBadge = '<span style="color: var(--text-muted); font-size: 0.8rem;">❌ Not Completed</span>';
+            if (rowData.isResultCodeConsumed) {
+                exchangeBadge = `<span style="color: #10b981; font-weight: 700; font-size: 0.8rem;">✅ Verified by Client Backend (${resultCodeTime || 'Completed'})</span>`;
+            } else if (rowData.hasResultCode) {
+                exchangeBadge = '<span style="color: #f59e0b; font-weight: 700; font-size: 0.8rem;">⏳ One-Time Code Issued, Awaiting Client Verification</span>';
+            }
+
+            inspectorBody.innerHTML = `
+                <!-- 1. Lifecycle & Status Card -->
+                <div class="so-card">
+                    <div class="so-card-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        Session Status & Lifecycle
+                    </div>
+                    <div class="so-card-grid">
+                        <div class="so-field">
+                            <span class="so-label">Current Status</span>
+                            <div><span class="status-pill ${pillClass}"><span class="status-pulse"></span>${status}</span></div>
+                        </div>
+                        <div class="so-field">
+                            <span class="so-label">Assigned Permission Scope</span>
+                            <div><span class="scope-pill">${rowData.scope}</span></div>
+                        </div>
+                        <div class="so-field">
+                            <span class="so-label">Created At</span>
+                            <span class="so-val">${createdTime}</span>
+                        </div>
+                        <div class="so-field">
+                            <span class="so-label">Session Expires At</span>
+                            <span class="so-val">${expiresTime}</span>
+                        </div>
+                        <div class="so-field" style="grid-column: 1 / -1;">
+                            <span class="so-label">Result Code Verification</span>
+                            <div>${exchangeBadge}</div>
+                        </div>
+                        <div class="so-field" style="grid-column: 1 / -1;">
+                            <span class="so-label">Activity & Modified Fields</span>
+                            <div>
+                                ${rowData.changes && rowData.changes.length > 0 ? `
+                                    <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;">
+                                        ${rowData.changes.map(c => `
+                                            <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                                ${c === 'phone_number' ? 'Phone Number' : c.charAt(0).toUpperCase() + c.slice(1)}
+                                            </span>
+                                        `).join('')}
+                                    </div>
+                                ` : '<span style="color: var(--text-muted); font-size: 0.8rem; font-style: italic;">No modifications recorded during session</span>'}
+                            </div>
+                        </div>
+                        ${rowData.revokedReason ? `
+                            <div class="so-field" style="grid-column: 1 / -1; background: rgba(239, 68, 68, 0.08); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.2);">
+                                <span class="so-label" style="color: #ef4444;">Revocation Reason</span>
+                                <span class="so-val" style="color: #dc2626;">${rowData.revokedReason} (Revoked by: ${rowData.revokedBy || 'Admin'})</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <!-- 2. Transaction Identity -->
+                <div class="so-card">
+                    <div class="so-card-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        Transaction Identity
+                    </div>
+                    <div class="so-field">
+                        <span class="so-label">Transaction ID (GUID)</span>
+                        <div class="so-code-badge">
+                            <span>${rowData.id}</span>
+                            <button type="button" class="so-copy-btn" onclick="navigator.clipboard.writeText('${rowData.id}'); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Transaction ID Copied!', showConfirmButton: false, timer: 1500 });" title="Copy GUID">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. User & Tenant Details -->
+                <div class="so-card">
+                    <div class="so-card-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        Target User & Tenant Account
+                    </div>
+                    <div class="so-card-grid">
+                        <div class="so-field">
+                            <span class="so-label">User Display Name</span>
+                            <span class="so-val">${rowData.userName || 'N/A'}</span>
+                        </div>
+                        <div class="so-field">
+                            <span class="so-label">User Email Address</span>
+                            <span class="so-val">${rowData.userEmail || 'N/A'}</span>
+                        </div>
+                        <div class="so-field">
+                            <span class="so-label">User ID (GUID)</span>
+                            <span class="so-val" style="font-family: monospace; font-size: 0.78rem;">${rowData.userId}</span>
+                        </div>
+                        <div class="so-field">
+                            <span class="so-label">Tenant Name & ID</span>
+                            <span class="so-val">${rowData.tenantName || 'Standard Tenant'} <small style="color: var(--text-muted);">(${rowData.tenantId})</small></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Protocol & URLs -->
+                <div class="so-card">
+                    <div class="so-card-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                        Navigation & Callback URLs
+                    </div>
+                    <div class="so-field">
+                        <span class="so-label">Target Restricted Landing URL</span>
+                        <div class="so-code-badge">
+                            <span>${rowData.targetUrl}</span>
+                        </div>
+                    </div>
+                    <div class="so-field">
+                        <span class="so-label">Client Callback Return URL</span>
+                        <div class="so-code-badge">
+                            <span>${rowData.callbackUrl}</span>
+                        </div>
+                    </div>
+                    ${rowData.state ? `
+                        <div class="so-field">
+                            <span class="so-label">State Parameter</span>
+                            <span class="so-val" style="font-family: monospace; font-size: 0.8rem;">${rowData.state}</span>
+                        </div>
+                    ` : ''}
+                </div>
+
+                <!-- 5. Network & Security Audit -->
+                <div class="so-card">
+                    <div class="so-card-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                        Device & Network Audit
+                    </div>
+                    <div class="so-card-grid">
+                        <div class="so-field">
+                            <span class="so-label">Client Application</span>
+                            <span class="so-val"><strong>${rowData.clientDisplayName || rowData.clientId}</strong> (${rowData.clientId})</span>
+                        </div>
+                        <div class="so-field">
+                            <span class="so-label">Consumed IP Address</span>
+                            <span class="so-val" style="font-family: monospace;">${rowData.consumedIpAddress || 'Not yet launched'}</span>
+                        </div>
+                        <div class="so-field" style="grid-column: 1 / -1;">
+                            <span class="so-label">Consumed User-Agent</span>
+                            <span class="so-val" style="font-size: 0.78rem; color: var(--text-muted); word-break: break-all;">${rowData.consumedUserAgent || 'Not yet consumed in browser'}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Footer Buttons
+            let revokeBtn = '';
+            if (status === 'Active' || status === 'Pending') {
+                revokeBtn = `
+                    <button type="button" class="btn btn-outline-danger btn-sm btn-revoke-modal" data-id="${rowData.id}" style="padding: 8px 16px; font-weight: 700; border-radius: 10px;">
+                        Revoke Session Now
+                    </button>
+                `;
+            }
+
+            inspectorFooter.innerHTML = `
+                ${revokeBtn}
+                <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('inspectorOverlay').classList.remove('active');" style="padding: 8px 16px; font-weight: 600; border-radius: 10px;">
+                    Close
+                </button>
+            `;
+
+            overlay.classList.add('active');
+        });
+
+        btnClose.addEventListener('click', function () {
+            overlay.classList.remove('active');
+        });
+
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) {
+                overlay.classList.remove('active');
+            }
+        });
+
+        // ═══════════════════════════════════════════════════════════
+        // RPAP PROTOCOL SETTINGS POPUP & AJAX LOGIC
+        // ═══════════════════════════════════════════════════════════
+        const settingsOverlay = document.getElementById('settingsModalOverlay');
+        const btnOpenSettings = document.getElementById('btnOpenSettings');
+        const btnCloseSettings = document.getElementById('btnCloseSettingsModal');
+        const settingsForm = document.getElementById('rpapSettingsForm');
+
+        function formatSecondsHelper(sec) {
+            const num = parseInt(sec, 10);
+            if (isNaN(num) || num <= 0) return '';
+            if (num < 60) return `= ${num} seconds`;
+            if (num % 60 === 0) return `= ${num / 60} minute(s)`;
+            return `= ${Math.floor(num / 60)} min ${num % 60} sec`;
+        }
+
+        $('#settingProfileTtl').on('input', function () {
+            $('#profileTtlHelper').text(formatSecondsHelper($(this).val()));
+        });
+
+        $('#settingManagementTtl').on('input', function () {
+            $('#managementTtlHelper').text(formatSecondsHelper($(this).val()));
+        });
+
+        // Tab Navigation
+        $(document).on('click', '.st-tab-btn', function () {
+            const tabId = $(this).data('tab');
+            $('.st-tab-btn').removeClass('active');
+            $(this).addClass('active');
+            $('.st-tab-pane').removeClass('active');
+            $('#' + tabId).addClass('active');
+        });
+
+        // TTL Presets
+        $(document).on('click', '.time-preset-pill', function () {
+            const targetId = $(this).data('target');
+            const val = $(this).data('val');
+            $('#' + targetId).val(val).trigger('input');
+        });
+
+        // Interactive Action Chips State & Renderer
+        let currentProfileActions = [];
+        let currentUsersActions = [];
+
+        function renderActionChips(containerId, inputId, actionsArray) {
+            const $container = $('#' + containerId);
+            const $input = $('#' + inputId);
+            $container.find('.action-chip').remove();
+
+            actionsArray.forEach((action, idx) => {
+                const $chip = $(`
+                    <span class="action-chip" data-action="${action}">
+                        ${action}
+                        <span class="chip-remove">✕</span>
+                    </span>
+                `);
+                $chip.insertBefore($input);
+            });
+        }
+
+        // Chip Input Event Handlers
+        $('#profileActionInput').on('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                const val = $(this).val().replace(',', '').trim();
+                if (val && !currentProfileActions.includes(val)) {
+                    currentProfileActions.push(val);
+                    renderActionChips('profileActionsContainer', 'profileActionInput', currentProfileActions);
+                    $(this).val('');
+                }
+            }
+        });
+
+        $('#usersActionInput').on('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                const val = $(this).val().replace(',', '').trim();
+                if (val && !currentUsersActions.includes(val)) {
+                    currentUsersActions.push(val);
+                    renderActionChips('usersActionsContainer', 'usersActionInput', currentUsersActions);
+                    $(this).val('');
+                }
+            }
+        });
+
+        $(document).on('click', '#profileActionsContainer .chip-remove', function () {
+            const action = $(this).closest('.action-chip').data('action');
+            currentProfileActions = currentProfileActions.filter(a => a !== action);
+            renderActionChips('profileActionsContainer', 'profileActionInput', currentProfileActions);
+        });
+
+        $(document).on('click', '#usersActionsContainer .chip-remove', function () {
+            const action = $(this).closest('.action-chip').data('action');
+            currentUsersActions = currentUsersActions.filter(a => a !== action);
+            renderActionChips('usersActionsContainer', 'usersActionInput', currentUsersActions);
+        });
+
+        $('#btnLoadDefaultProfileActions').on('click', function () {
+            currentProfileActions = ["Profile", "UpdateProfile", "ChangePassword", "SendEmailChangeVerification", "ConfirmEmailChange", "Enable2fa", "Verify2fa", "Disable2fa"];
+            renderActionChips('profileActionsContainer', 'profileActionInput', currentProfileActions);
+        });
+
+        $('#btnLoadDefaultUsersActions').on('click', function () {
+            currentUsersActions = ["Users", "GetUsers", "CreateUser", "DeleteUser", "ToggleUserStatus", "UnlockUser", "ResetPasswordAdmin", "ExportUsers", "Roles", "GetRoles", "CreateRole", "DeleteRole", "RolePermissions", "UpdateRolePermissions", "GetRolesByTenant", "GetClientsByTenant", "Profile", "UpdateProfile", "ChangePassword"];
+            renderActionChips('usersActionsContainer', 'usersActionInput', currentUsersActions);
+        });
+
+        // Enforce Switch sync
+        $('#settingEnforceScope').on('change', function () {
+            const checked = $(this).is(':checked');
+            if (checked) {
+                $('#enforceStatusBadge').text('Active').css({ color: '#10b981', background: 'rgba(16, 185, 129, 0.12)' });
+            } else {
+                $('#enforceStatusBadge').text('Bypassed').css({ color: '#ef4444', background: 'rgba(239, 68, 68, 0.12)' });
+            }
+        });
+
+        // Scope Checkbox UI card sync
+        $(document).on('change', '.scope-checkbox', function () {
+            const $card = $(this).closest('.scope-select-card');
+            if ($(this).is(':checked')) {
+                $card.addClass('checked');
+            } else {
+                $card.removeClass('checked');
+            }
+        });
+
+        btnOpenSettings.addEventListener('click', function () {
+            // Load current settings via AJAX
+            $.ajax({
+                url: '/RestrictedAccess/GetSettings',
+                type: 'GET',
+                success: function (res) {
+                    if (res && res.data) {
+                        const s = res.data;
+                        $('#settingProfileTtl').val(s.defaultProfileTtlSeconds);
+                        $('#profileTtlHelper').text(formatSecondsHelper(s.defaultProfileTtlSeconds));
+
+                        $('#settingManagementTtl').val(s.defaultManagementTtlSeconds);
+                        $('#managementTtlHelper').text(formatSecondsHelper(s.defaultManagementTtlSeconds));
+
+                        $('#settingMinTtl').val(s.minTtlSeconds);
+                        $('#settingMaxTtl').val(s.maxTtlSeconds);
+                        $('#settingProfileUrl').val(s.profileLandingUrl);
+                        $('#settingUsersUrl').val(s.usersLandingUrl);
+
+                        // SsoContextFilter fields
+                        const isEnforce = s.enforceScopeAccess !== false;
+                        $('#settingEnforceScope').prop('checked', isEnforce).trigger('change');
+                        $('#settingFallbackUrl').val(s.fallbackUnauthorizedRedirectUrl || '/Account/Profile');
+                        $('#settingCookieExpiry').val(s.contextCookieExpiryDays || 7);
+                        
+                        $('#settingAutoRevoke').prop('checked', s.autoRevokeOnResultExchange !== false);
+                        $('#settingStrictPort').prop('checked', s.requireStrictLocalhostPort === true);
+
+                        currentProfileActions = s.profileScopeAllowedActions ? [...s.profileScopeAllowedActions] : [];
+                        renderActionChips('profileActionsContainer', 'profileActionInput', currentProfileActions);
+
+                        currentUsersActions = s.usersScopeAllowedActions ? [...s.usersScopeAllowedActions] : [];
+                        renderActionChips('usersActionsContainer', 'usersActionInput', currentUsersActions);
+
+                        const allowed = s.allowedScopes || [];
+                        $('.scope-checkbox').each(function () {
+                            const isChecked = allowed.includes($(this).val());
+                            $(this).prop('checked', isChecked).trigger('change');
+                        });
+
+                        // Switch to first tab on open
+                        $('.st-tab-btn[data-tab="tab-ttl"]').trigger('click');
+                        settingsOverlay.classList.add('active');
+                    } else {
+                        Swal.fire('Error', 'Failed to load settings.', 'error');
+                    }
+                },
+                error: function () {
+                    Swal.fire('Error', 'An unexpected error occurred loading settings.', 'error');
+                }
+            });
+        });
+
+        btnCloseSettings.addEventListener('click', function () {
+            settingsOverlay.classList.remove('active');
+        });
+
+        settingsOverlay.addEventListener('click', function (e) {
+            if (e.target === settingsOverlay) {
+                settingsOverlay.classList.remove('active');
+            }
+        });
+
+        // Submit Settings Form
+        settingsForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const token = $('input[name="__RequestVerificationToken"]').val();
+
+            const selectedScopes = [];
+            $('.scope-checkbox:checked').each(function () {
+                selectedScopes.push($(this).val());
+            });
+
+            if (selectedScopes.length === 0) {
+                Swal.fire('Validation Error', 'Please enable at least one permission scope.', 'warning');
+                return;
+            }
+
+            const payload = {
+                defaultProfileTtlSeconds: parseInt($('#settingProfileTtl').val(), 10),
+                defaultManagementTtlSeconds: parseInt($('#settingManagementTtl').val(), 10),
+                minTtlSeconds: parseInt($('#settingMinTtl').val(), 10),
+                maxTtlSeconds: parseInt($('#settingMaxTtl').val(), 10),
+                profileLandingUrl: $('#settingProfileUrl').val(),
+                usersLandingUrl: $('#settingUsersUrl').val(),
+                fallbackUnauthorizedRedirectUrl: $('#settingFallbackUrl').val(),
+                enforceScopeAccess: $('#settingEnforceScope').is(':checked'),
+                autoRevokeOnResultExchange: $('#settingAutoRevoke').is(':checked'),
+                requireStrictLocalhostPort: $('#settingStrictPort').is(':checked'),
+                contextCookieExpiryDays: parseInt($('#settingCookieExpiry').val(), 10) || 7,
+                profileScopeAllowedActions: currentProfileActions,
+                usersScopeAllowedActions: currentUsersActions,
+                allowedScopes: selectedScopes
+            };
+
+            const $btnSave = $('#btnSaveSettings');
+            const originalHtml = $btnSave.html();
+            $btnSave.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="margin-right: 6px;"></span> Saving...');
+
+            $.ajax({
+                url: '/RestrictedAccess/UpdateSettings',
+                type: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    'RequestVerificationToken': token
+                },
+                data: JSON.stringify(payload),
+                success: function (res) {
+                    $btnSave.prop('disabled', false).html(originalHtml);
+                    if (res && res.succeeded) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Settings Saved!',
+                            text: 'RPAP Protocol and SsoContextFilter settings have been saved to Database successfully.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        settingsOverlay.classList.remove('active');
+                    } else {
+                        Swal.fire('Error', res.messages ? res.messages[0] : 'Failed to save settings.', 'error');
+                    }
+                },
+                error: function () {
+                    $btnSave.prop('disabled', false).html(originalHtml);
+                    Swal.fire('Error', 'An unexpected error occurred saving settings.', 'error');
+                }
+            });
+        });
+
+        // Reset Settings to Defaults
+        $('#btnResetSettingsDefault').on('click', function () {
+            const token = $('input[name="__RequestVerificationToken"]').val();
+
+            Swal.fire({
+                title: 'Reset to Factory Defaults?',
+                text: 'This will restore all TTL thresholds, SsoContextFilter actions, landing URLs, and allowed scopes in the database to default system values.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'Yes, Reset',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/RestrictedAccess/ResetSettings',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        headers: {
+                            'RequestVerificationToken': token
+                        },
+                        success: function (res) {
+                            if (res && res.succeeded && res.data) {
+                                const s = res.data;
+                                $('#settingProfileTtl').val(s.defaultProfileTtlSeconds);
+                                $('#profileTtlHelper').text(formatSecondsHelper(s.defaultProfileTtlSeconds));
+
+                                $('#settingManagementTtl').val(s.defaultManagementTtlSeconds);
+                                $('#managementTtlHelper').text(formatSecondsHelper(s.defaultManagementTtlSeconds));
+
+                                $('#settingMinTtl').val(s.minTtlSeconds);
+                                $('#settingMaxTtl').val(s.maxTtlSeconds);
+                                $('#settingProfileUrl').val(s.profileLandingUrl);
+                                $('#settingUsersUrl').val(s.usersLandingUrl);
+
+                                $('#settingEnforceScope').prop('checked', s.enforceScopeAccess !== false).trigger('change');
+                                $('#settingFallbackUrl').val(s.fallbackUnauthorizedRedirectUrl || '/Account/Profile');
+                                $('#settingCookieExpiry').val(s.contextCookieExpiryDays || 7);
+                                
+                                $('#settingAutoRevoke').prop('checked', s.autoRevokeOnResultExchange !== false);
+                                $('#settingStrictPort').prop('checked', s.requireStrictLocalhostPort === true);
+
+                                currentProfileActions = s.profileScopeAllowedActions ? [...s.profileScopeAllowedActions] : [];
+                                renderActionChips('profileActionsContainer', 'profileActionInput', currentProfileActions);
+
+                                currentUsersActions = s.usersScopeAllowedActions ? [...s.usersScopeAllowedActions] : [];
+                                renderActionChips('usersActionsContainer', 'usersActionInput', currentUsersActions);
+
+                                const allowed = s.allowedScopes || [];
+                                $('.scope-checkbox').each(function () {
+                                    const isChecked = allowed.includes($(this).val());
+                                    $(this).prop('checked', isChecked).trigger('change');
+                                });
+
+                                Swal.fire('Reset!', 'Settings restored to factory defaults.', 'success');
+                            }
+                        }
+                    });
+                }
+            });
+        });
+
+        // Revoke Session Action with SweetAlert2
+        $(document).on('click', '.btn-revoke, .btn-revoke-modal', function () {
+            const txId = $(this).data('id');
+            const token = $('input[name="__RequestVerificationToken"]').val();
+
+            Swal.fire({
+                title: 'Revoke Restricted Session?',
+                text: 'This will immediately terminate the active user session and prevent any further operations.',
+                icon: 'warning',
+                input: 'text',
+                inputPlaceholder: 'Enter reason (optional)',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: 'var(--bg-base)',
+                confirmButtonText: 'Yes, Revoke Session',
+                cancelButtonText: 'Cancel',
+                customClass: { popup: 'glass-modal border-glass' }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/RestrictedAccess/RevokeSession',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        headers: {
+                            'RequestVerificationToken': token
+                        },
+                        data: JSON.stringify({
+                            transactionId: txId,
+                            reason: result.value || 'Terminated by administrator'
+                        }),
+                        success: function (res) {
+                            if (res.succeeded) {
+                                Swal.fire('Revoked!', 'The session has been terminated.', 'success');
+                                overlay.classList.remove('active');
+                                dt.ajax.reload();
+                            } else {
+                                Swal.fire('Error', res.messages ? res.messages[0] : 'Failed to revoke session.', 'error');
+                            }
+                        },
+                        error: function () {
+                            Swal.fire('Error', 'An unexpected error occurred.', 'error');
+                        }
+                    });
+                }
+            });
+        });
+    });
+</script>

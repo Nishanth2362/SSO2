@@ -1,0 +1,86 @@
+@using SSO.Domain.Entities
+@{
+    var tenant = ViewBag.TenantBranding as Tenants;
+    var clientName = ViewBag.ClientName as string;
+    var appOrTenantName = !string.IsNullOrWhiteSpace(clientName) ? clientName : (tenant?.Name ?? "Schoola SSO Identity Gateway");
+    ViewData["Title"] = "Privacy Policy";
+    ViewData["ChalkSubtitle"] = "Privacy & Data Protection";
+    var returnUrl = ViewBag.ReturnUrl as string;
+}
+
+<div class="chalk-card-header" style="margin-bottom: 20px;">
+    <h2 class="chalk-card-title">Privacy Policy</h2>
+    <p class="chalk-card-desc">Last updated: September 2026</p>
+</div>
+
+<div class="legal-content-container" style="color: #E2E8F0; font-size: 0.88rem; line-height: 1.65; max-height: 480px; overflow-y: auto; padding-right: 8px; margin-bottom: 20px;">
+    <section style="margin-bottom: 16px;">
+        <h4 style="color: #38BDF8; font-size: 1rem; margin-bottom: 6px; font-weight: 600;">1. Information We Collect</h4>
+        <p style="color: #94A3B8;">
+            We collect information you provide directly to us when registering an account, verifying your email address, or logging in through our Single Sign-On (SSO) gateway:
+        </p>
+        <ul style="color: #94A3B8; padding-left: 20px; margin-top: 6px; list-style-type: disc;">
+            <li>Account identity information: Full Name, Email Address, and Mobile Phone Number;</li>
+            <li>Authentication credentials: Passwords (stored as salted cryptographic hashes using ASP.NET Core Identity);</li>
+            <li>Security telemetry: IP addresses, device identifiers, and browser user-agent signatures for anomaly detection.</li>
+        </ul>
+    </section>
+
+    <section style="margin-bottom: 16px;">
+        <h4 style="color: #38BDF8; font-size: 1rem; margin-bottom: 6px; font-weight: 600;">2. How We Use Your Information</h4>
+        <p style="color: #94A3B8;">
+            We process your information exclusively for identity verification and platform security purposes, including:
+        </p>
+        <ul style="color: #94A3B8; padding-left: 20px; margin-top: 6px; list-style-type: disc;">
+            <li>Authenticating your identity across authorized client applications;</li>
+            <li>Dispatching one-time verification codes (OTP) and security alerts;</li>
+            <li>Detecting and preventing automated bot attacks, credential brute-forcing, and fraud;</li>
+            <li>Maintaining tenant isolation and role-based access control (RBAC).</li>
+        </ul>
+    </section>
+
+    <section style="margin-bottom: 16px;">
+        <h4 style="color: #38BDF8; font-size: 1rem; margin-bottom: 6px; font-weight: 600;">3. Data Protection & Encryption</h4>
+        <p style="color: #94A3B8;">
+            We adhere to strict data security standards. All sensitive network communications are encrypted via TLS 1.3. Cryptographic tokens, time-locks, and transient verification codes are secured with HMAC-SHA256. Passwords are never stored in plaintext.
+        </p>
+    </section>
+
+    <section style="margin-bottom: 16px;">
+        <h4 style="color: #38BDF8; font-size: 1rem; margin-bottom: 6px; font-weight: 600;">4. Cookies & Session Storage</h4>
+        <p style="color: #94A3B8;">
+            We utilize essential HTTP-only, SameSite secure cookies solely for managing your authenticated sessions, multi-factor authentication (2FA) verification states, and anti-forgery protection. We do not use third-party advertising tracking cookies.
+        </p>
+    </section>
+
+    <section style="margin-bottom: 16px;">
+        <h4 style="color: #38BDF8; font-size: 1rem; margin-bottom: 6px; font-weight: 600;">5. Third-Party Disclosures</h4>
+        <p style="color: #94A3B8;">
+            Your personal information is never sold or rented. Identity claims and user profiles are shared only with the specific OAuth client applications you explicitly authorize during the single sign-on consent flow.
+        </p>
+    </section>
+
+    <section style="margin-bottom: 16px;">
+        <h4 style="color: #38BDF8; font-size: 1rem; margin-bottom: 6px; font-weight: 600;">6. Your Privacy Rights</h4>
+        <p style="color: #94A3B8;">
+            You have the right to access, review, and request deletion of your account and personal data, subject to organizational compliance retention policies.
+        </p>
+    </section>
+</div>
+
+<div class="chalk-links" style="margin-top: 20px;">
+    <div class="chalk-links-divider">
+        @if (!string.IsNullOrEmpty(returnUrl))
+        {
+            <a asp-action="Register" asp-controller="Login" asp-route-returnUrl="@returnUrl" class="chalk-link">
+                ← Back to Registration
+            </a>
+        }
+        else
+        {
+            <a asp-action="Index" asp-controller="Login" class="chalk-link">
+                ← Back to Sign In
+            </a>
+        }
+    </div>
+</div>

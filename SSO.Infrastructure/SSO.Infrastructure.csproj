@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+
+	<ItemGroup>
+		
+		<PackageReference Include="Dapper" Version="2.1.79" />
+		
+		<PackageReference Include="Dapper.SqlBuilder" Version="2.1.66" />
+		
+		<PackageReference Include="MaxMind.GeoIP2" Version="6.1.0" />
+		
+		<PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.10" />
+		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.10" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
+		<PackageReference Include="OpenIddict" Version="7.6.0" />
+		<PackageReference Include="OpenIddict.EntityFrameworkCore" Version="7.6.0" />
+		<PackageReference Include="OpenIddict.Server" Version="7.6.0" />
+		<PackageReference Include="OpenIddict.Server.AspNetCore" Version="7.6.0" />
+		<PackageReference Include="OpenIddict.Server.DataProtection" Version="7.6.0" />
+		<PackageReference Include="UAParser" Version="3.1.47" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="MailKit" Version="4.17.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.10" />
+		<PackageReference Include="MimeKit" Version="4.17.0" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Hangfire.Core" Version="1.8.24" />
+		<PackageReference Include="LazyCache" Version="2.4.0" />
+		<PackageReference Include="MySql.EntityFrameworkCore" Version="10.0.7" />
+		<PackageReference Include="OpenIddict.Validation.AspNetCore" Version="7.6.0" />
+		<PackageReference Include="Oracle.EntityFrameworkCore" Version="10.23.26200" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.19.2" />
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+		<PackageReference Include="System.Drawing.Common" Version="10.0.10" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.19.2" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\SSO.Application\SSO.Application.csproj" SkipGetTargetFrameworkProperties="true" />
+	</ItemGroup>
+	<ItemGroup>
+		<None Update="disposable_email_domains.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
+</Project>

@@ -1,0 +1,314 @@
+@* _EditRemarksPartial.cshtml
+   Shared mandatory remarks field for all edit/update modals.
+   Usage: @await Html.PartialAsync("_EditRemarksPartial", isEditMode)
+   where isEditMode is a bool passed as the model.
+*@
+@model bool
+@if (Model)
+{
+    <div class="edit-remarks-container" id="remarksSection">
+        <div class="remarks-card">
+            <div class="remarks-header">
+                <div class="remarks-header-left">
+                    <div class="remarks-icon-badge">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 20h9"/>
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="remarks-title-row">
+                            <label class="remarks-label" for="Remarks">
+                                Change Description <span class="remarks-required-star">*</span>
+                            </label>
+                            <span class="remarks-audit-pill">AUDIT LOG</span>
+                        </div>
+                        <p class="remarks-subtitle">Briefly describe what was updated and the reason for this change.</p>
+                    </div>
+                </div>
+
+                <div class="remarks-counter-badge" id="remarksCounterBadge">
+                    <span id="remarksCharCount">0</span>/500
+                </div>
+            </div>
+
+            <div class="remarks-textarea-wrapper">
+                <textarea id="Remarks"
+                          name="Remarks"
+                          class="remarks-textarea"
+                          rows="2"
+                          maxlength="500"
+                          placeholder="e.g. Updated subscription tier, adjusted permissions, or modified contact info..."
+                          required
+                          oninput="updateRemarksCount(this)"></textarea>
+                <div class="remarks-progress-bar">
+                    <div class="remarks-progress-fill" id="remarksProgressFill"></div>
+                </div>
+            </div>
+
+            <span class="field-error remarks-field-error" id="remarksError"></span>
+        </div>
+    </div>
+
+    <style>
+        .edit-remarks-container {
+            padding: 12px 24px 14px 24px;
+            background: linear-gradient(180deg, rgba(254, 243, 199, 0.25) 0%, rgba(254, 243, 199, 0.45) 100%);
+            border-top: 1px dashed rgba(245, 158, 11, 0.35);
+            border-bottom: 1px solid rgba(245, 158, 11, 0.15);
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        html[data-theme="dark"] .edit-remarks-container {
+            background: linear-gradient(180deg, rgba(120, 53, 15, 0.12) 0%, rgba(120, 53, 15, 0.25) 100%);
+            border-top-color: rgba(245, 158, 11, 0.25);
+            border-bottom-color: rgba(245, 158, 11, 0.15);
+        }
+
+        .remarks-card {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .remarks-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .remarks-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .remarks-icon-badge {
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 8px rgba(245, 158, 11, 0.3);
+            flex-shrink: 0;
+        }
+
+        .remarks-title-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .remarks-label {
+            font-size: 0.82rem !important;
+            font-weight: 700 !important;
+            color: #92400E !important;
+            margin: 0 !important;
+            letter-spacing: -0.01em;
+        }
+
+        html[data-theme="dark"] .remarks-label {
+            color: #FCD34D !important;
+        }
+
+        .remarks-required-star {
+            color: #EF4444;
+            margin-left: 2px;
+            font-weight: 700;
+        }
+
+        .remarks-audit-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 1px 7px;
+            border-radius: 999px;
+            background: #FEF3C7;
+            border: 1px solid #FDE68A;
+            color: #B45309;
+            font-size: 0.64rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        html[data-theme="dark"] .remarks-audit-pill {
+            background: rgba(245, 158, 11, 0.2);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: #FBBF24;
+        }
+
+        .remarks-subtitle {
+            font-size: 0.73rem;
+            color: #B45309;
+            margin: 1px 0 0 0;
+            line-height: 1.25;
+        }
+
+        html[data-theme="dark"] .remarks-subtitle {
+            color: #F59E0B;
+            opacity: 0.85;
+        }
+
+        .remarks-counter-badge {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #92400E;
+            background: #ffffff;
+            border: 1px solid #FDE68A;
+            border-radius: 20px;
+            padding: 3px 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+            flex-shrink: 0;
+        }
+
+        html[data-theme="dark"] .remarks-counter-badge {
+            background: #181c2b;
+            border-color: rgba(245, 158, 11, 0.3);
+            color: #FCD34D;
+        }
+
+        .remarks-textarea-wrapper {
+            position: relative;
+            width: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .remarks-textarea {
+            width: 100%;
+            min-height: 60px;
+            max-height: 110px;
+            padding: 9px 13px;
+            border-radius: 10px;
+            border: 1.5px solid #FCD34D;
+            background: #ffffff;
+            color: #1C1917;
+            font-size: 0.84rem;
+            font-weight: 500;
+            font-family: inherit;
+            outline: none;
+            box-shadow: 0 2px 5px rgba(245, 158, 11, 0.05);
+            transition: all 0.25s ease;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        html[data-theme="dark"] .remarks-textarea {
+            background: #0f1422;
+            border-color: rgba(245, 158, 11, 0.35);
+            color: #FEF3C7;
+        }
+
+        .remarks-textarea::placeholder {
+            color: #A1A1AA;
+            font-weight: 400;
+        }
+
+        html[data-theme="dark"] .remarks-textarea::placeholder {
+            color: #71717A;
+        }
+
+        .remarks-textarea:hover {
+            border-color: #F59E0B;
+        }
+
+        .remarks-textarea:focus {
+            border-color: #D97706;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+            background: #ffffff;
+        }
+
+        html[data-theme="dark"] .remarks-textarea:focus {
+            background: #0f1422;
+            border-color: #F59E0B;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+        }
+
+        .remarks-textarea.is-invalid {
+            border-color: #EF4444 !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+        }
+
+        .remarks-progress-bar {
+            height: 3px;
+            width: 100%;
+            background: rgba(245, 158, 11, 0.15);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        .remarks-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #F59E0B 0%, #D97706 100%);
+            transition: width 0.15s ease;
+        }
+
+        .remarks-field-error {
+            display: block;
+            font-size: 0.73rem;
+            color: #DC2626;
+            font-weight: 600;
+            margin-top: 2px;
+            min-height: 16px;
+        }
+    </style>
+
+    <script>
+        function updateRemarksCount(el) {
+            const count = el.value.length;
+            const counterEl = document.getElementById('remarksCharCount');
+            if (counterEl) counterEl.textContent = count;
+
+            const progressEl = document.getElementById('remarksProgressFill');
+            if (progressEl) {
+                const pct = Math.min(100, (count / 500) * 100);
+                progressEl.style.width = pct + '%';
+            }
+
+            // Clear error if user is typing
+            const err = document.getElementById('remarksError');
+            if (err && count >= 5) {
+                err.textContent = '';
+                el.classList.remove('is-invalid');
+            }
+        }
+
+        /**
+         * Call this before form submission when in edit mode.
+         * Returns true if valid, false if blocked (error shown).
+         */
+        function validateRemarks() {
+            const el = document.getElementById('Remarks');
+            if (!el) return true; // not in edit mode
+
+            const val = el.value.trim();
+            const err = document.getElementById('remarksError');
+
+            if (!val || val.length < 5) {
+                if (err) err.textContent = 'Please enter a change description (minimum 5 characters).';
+                el.classList.add('is-invalid');
+                el.focus();
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            }
+            if (el.value.length > 500) {
+                if (err) err.textContent = 'Change description cannot exceed 500 characters.';
+                el.classList.add('is-invalid');
+                el.focus();
+                return false;
+            }
+            if (err) err.textContent = '';
+            el.classList.remove('is-invalid');
+            return true;
+        }
+    </script>
+}
+

@@ -1,0 +1,134 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="SSO.Domain.Entities.ApplicationRole">
+    <Position X="0.5" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAQAQAAAAAAAAAAAAAAAAAACAAAAAAAoAQACAAE=</HashCode>
+      <FileName>Entities\ApplicationRole.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="1.3" />
+  </Class>
+  <Class Name="SSO.Domain.Entities.ApplicationUser">
+    <Position X="2.75" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAQAQAAAAAAAEAAAAAAAAAACAAAAAAAgAQACAAE=</HashCode>
+      <FileName>Entities\ApplicationUser.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="SSO.Domain.Contract.AuditableEntity&lt;TId&gt;">
+    <Position X="2.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAACAAQAQAAAAAAAAAAAAAAAAAACAAAAAAAAAQACAAE=</HashCode>
+      <FileName>Contract\AuditableEntity.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="SSO.Domain.Entities.Permission">
+    <Position X="6" Y="0.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAgAAAAAAAgAAAAAAAAAQAAAAAAAAAAAAA=</HashCode>
+      <FileName>Entities\Permissions.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SSO.Domain.Entities.RolePermission">
+    <Position X="7.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAIAAAAAAAAAEAAEAAAAAAAgAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Entities\RolePermission.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SSO.Domain.Entities.Subscriptions">
+    <Position X="12.75" Y="1.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAEAAAAAAAAAAAgAAAAAAQAAAAAAAEABAAAAAAAAAA=</HashCode>
+      <FileName>Entities\Subscriptions.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SSO.Domain.Entities.Template">
+    <Position X="10.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAAAAAAAAgAAAAQAAAAAAAQAAAAAAAAAAQAAAAAAAAA=</HashCode>
+      <FileName>Entities\Template.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SSO.Domain.Entities.TenantLicense">
+    <Position X="8" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>CAAAAAACBAAgAAAgAAAAAAAAAAAAAQAQAAAgAAAAAIA=</HashCode>
+      <FileName>Entities\TenantLicense.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SSO.Domain.Entities.Tenants">
+    <Position X="10.25" Y="3" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAgAAQAAAACAAAAACAAAAAAAAA=</HashCode>
+      <FileName>Entities\Tenants.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SSO.Domain.Entities.TenantSubscription">
+    <Position X="5.25" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAEAAAAIAAEACAAAAAAAAAAAAAAAAkAAAAACA=</HashCode>
+      <FileName>Entities\TenantSubscription.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SSO.Domain.Entities.ApplicationClient">
+    <Position X="12.25" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAQAQAgAgAAAEAAAAAAAAQACAAAAAAAgAQACAAE=</HashCode>
+      <FileName>Entities\ApplicationClient.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="SSO.Domain.Entities.ApplicationClientScope">
+    <Position X="0.75" Y="6" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAACAAgAACAAAAAAAAAAAAAAAAAAAAAAQ=</HashCode>
+      <FileName>Entities\ApplicationClientScope.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SSO.Domain.Entities.ApplicationToken">
+    <Position X="4.25" Y="6" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAiAAAAAAA=</HashCode>
+      <FileName>Entities\ApplicationToken.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SSO.Domain.Entities.ApplicationAuthorization">
+    <Position X="6.25" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAA=</HashCode>
+      <FileName>Entities\ApplicationAuthorization.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SSO.Domain.Entities.ApplicationScope">
+    <Position X="10" Y="5.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAQAAAAAAAAAABEAAAAAAAAAAAAAAAEAAAAAAAAAA=</HashCode>
+      <FileName>Entities\ApplicationScope.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SSO.Domain.Entities.ApplicationScopePermission">
+    <Position X="8" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAACAAAAAGAAAAAAAgAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Entities\ApplicationScopePermission.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Interface Name="SSO.Domain.Contract.IAuditableEntity&lt;TId&gt;" Collapsed="true">
+    <Position X="0.5" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Contract\IAuditableEntity.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="SSO.Domain.Contract.IAuditableEntity" Collapsed="true">
+    <Position X="0.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAQAQAAAAAAAAAAAAAAAAAACAAAAAAAAAQACAAE=</HashCode>
+      <FileName>Contract\IAuditableEntity.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

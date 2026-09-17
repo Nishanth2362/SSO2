@@ -1,0 +1,1379 @@
+@using System.Text.Json
+@using SSO.Application.Responses.Features
+@using SSO.Domain.Enums
+@model SSO.Application.Requests.Features.ClientRequest
+
+@{
+    Layout = null;
+    bool isEdit = Model.Id.HasValue && Model.Id.Value != Guid.Empty;
+}
+
+<style>
+    /* ═══════════════════════════════════════════════════════════
+       CREATE APPLICATION REDESIGNED MODAL STYLES (Matching Create Tenant UI)
+       ═══════════════════════════════════════════════════════════ */
+    #createClientForm {
+        --ct-primary: #10b981;
+        --ct-primary-dark: #059669;
+        --ct-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        --ct-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+        --ct-focus-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+        --ct-light-bg: rgba(16, 185, 129, 0.04);
+        --ct-icon-bg: rgba(16, 185, 129, 0.1);
+        --ct-banner-bg: #ECFEFF;
+    }
+
+    html[data-theme="dark"] #createClientForm {
+        --ct-banner-bg: rgba(16, 185, 129, 0.14);
+    }
+
+    /* Hide outer duplicate modal header injected by openModal */
+    #appModal > .modal-dialog > .modal-header {
+        display: none !important;
+    }
+
+    /* Fixed Dialog Sizing - Fits view height matching Create Tenant */
+    #appModal .modal-dialog {
+        max-width: 1100px !important;
+        width: 92vw !important;
+        max-height: calc(100vh - 32px) !important;
+        height: auto !important;
+        border-radius: 20px !important;
+        background: #ffffff !important;
+        box-shadow: 0 25px 70px rgba(15, 23, 42, 0.18) !important;
+        border: 1px solid #E5E7EB !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+        margin: auto !important;
+    }
+
+    html[data-theme="dark"] #appModal .modal-dialog {
+        background: #11141f !important;
+        border-color: #1e2436 !important;
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    #appModal #modalContent {
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+    }
+
+    #createClientForm {
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        height: 100% !important;
+        margin: 0 !important;
+    }
+
+    /* Fixed Header at Top with Light Emerald Tint & Decorative Wave Accent */
+    .ct-modal-header {
+        flex-shrink: 0;
+        padding: 18px 24px 14px 24px;
+        border-bottom: 1px solid #F1F5F9;
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(5, 150, 105, 0.02) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+    }
+
+    html[data-theme="dark"] .ct-modal-header {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 78, 59, 0.2) 100%);
+        border-color: #1e2436;
+    }
+
+    .ct-modal-header-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .ct-modal-header-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: var(--ct-gradient);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--ct-shadow);
+        flex-shrink: 0;
+    }
+
+    .ct-modal-header-text h3 {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #0F172A;
+        margin: 0;
+        letter-spacing: -0.02em;
+    }
+
+    html[data-theme="dark"] .ct-modal-header-text h3 {
+        color: #F8FAFC;
+    }
+
+    .ct-modal-header-text p {
+        font-size: 0.81rem;
+        color: #64748B;
+        margin: 2px 0 0 0;
+    }
+
+    html[data-theme="dark"] .ct-modal-header-text p {
+        color: #94A3B8;
+    }
+
+    .ct-modal-close {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid #E5E7EB;
+        background: #ffffff;
+        color: #64748B;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        z-index: 1;
+    }
+
+    html[data-theme="dark"] .ct-modal-close {
+        background: #181c2b;
+        border-color: #262d42;
+        color: #94A3B8;
+    }
+
+    .ct-modal-close:hover {
+        background: #F1F5F9;
+        color: #0F172A;
+    }
+
+    .ct-modal-header-wave {
+        position: absolute;
+        right: -20px;
+        top: -10px;
+        width: 220px;
+        height: 100px;
+        opacity: 0.12;
+        pointer-events: none;
+    }
+
+    /* Scrollable Content Wrapper */
+    .ct-modal-wrapper {
+        flex: 1 1 auto !important;
+        padding: 16px 24px !important;
+        overflow-y: auto !important;
+        min-height: 0 !important;
+    }
+
+    /* Two-Column Layout (Left Form 70% | Right Summary 30%) */
+    .ct-wizard-layout {
+        display: flex;
+        gap: 24px;
+        align-items: flex-start;
+    }
+
+    .ct-form-section {
+        flex: 1 1 660px;
+        min-width: 0;
+    }
+
+    .ct-summary-section {
+        width: 290px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 0;
+    }
+
+    /* Stepper Bar Header matching Create Tenant */
+    .wizard-steps-header {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        position: relative !important;
+        margin-bottom: 16px !important;
+        padding: 0 4px !important;
+    }
+
+    .wizard-steps-header::before {
+        content: "" !important;
+        position: absolute !important;
+        top: 14px !important;
+        left: 35px !important;
+        right: 35px !important;
+        height: 2px !important;
+        background: #E2E8F0 !important;
+        z-index: 0 !important;
+    }
+
+    html[data-theme="dark"] .wizard-steps-header::before {
+        background: #1e2436 !important;
+    }
+
+    .wizard-step-indicator {
+        position: relative !important;
+        z-index: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        cursor: default !important;
+    }
+
+    .wizard-step-indicator .step-number {
+        width: 28px !important;
+        height: 28px !important;
+        border-radius: 50% !important;
+        background: #F1F5F9 !important;
+        border: 2px solid #E2E8F0 !important;
+        color: #64748B !important;
+        font-weight: 700 !important;
+        font-size: 12px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.25s ease !important;
+    }
+
+    html[data-theme="dark"] .wizard-step-indicator .step-number {
+        background: #181c2b !important;
+        border-color: #262d42 !important;
+        color: #94A3B8 !important;
+    }
+
+    .wizard-step-indicator.active .step-number {
+        background: var(--ct-gradient) !important;
+        border-color: var(--ct-primary) !important;
+        color: #ffffff !important;
+        box-shadow: var(--ct-shadow) !important;
+    }
+
+    .wizard-step-indicator.completed .step-number {
+        background: var(--ct-primary) !important;
+        border-color: var(--ct-primary) !important;
+        color: #ffffff !important;
+    }
+
+    .wizard-step-indicator .step-label {
+        font-size: 0.73rem !important;
+        font-weight: 600 !important;
+        color: #64748B !important;
+        margin-top: 6px !important;
+    }
+
+    html[data-theme="dark"] .wizard-step-indicator .step-label {
+        color: #94A3B8 !important;
+    }
+
+    .wizard-step-indicator.active .step-label {
+        color: var(--ct-primary) !important;
+        font-weight: 700 !important;
+    }
+
+    /* Section Cards matching Create Tenant */
+    .ct-card-section {
+        background: #ffffff;
+        border: 1px solid #E5E7EB;
+        border-radius: 16px;
+        padding: 18px 20px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+    }
+
+    html[data-theme="dark"] .ct-card-section {
+        background: #181c2b;
+        border-color: #262d42;
+    }
+
+    .ct-card-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #F1F5F9;
+    }
+
+    html[data-theme="dark"] .ct-card-header {
+        border-color: #262d42;
+    }
+
+    .ct-card-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: var(--ct-icon-bg);
+        color: var(--ct-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .ct-card-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #0F172A;
+        margin: 0;
+    }
+
+    html[data-theme="dark"] .ct-card-title {
+        color: #F8FAFC;
+    }
+
+    .ct-field-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+    }
+
+    .ct-field-full {
+        grid-column: 1 / -1;
+    }
+
+    .ct-label {
+        display: block;
+        font-weight: 600;
+        font-size: 0.81rem;
+        color: #334155;
+        margin-bottom: 6px;
+    }
+
+    html[data-theme="dark"] .ct-label {
+        color: #CBD5E1;
+    }
+
+    .ct-input, .ct-select, .ct-textarea {
+        width: 100%;
+        border-radius: 10px;
+        border: 1px solid #CBD5E1;
+        background: #ffffff;
+        padding: 9px 13px;
+        font-size: 0.85rem;
+        color: #0F172A;
+        transition: all 0.2s ease;
+        box-sizing: border-box;
+    }
+
+    html[data-theme="dark"] .ct-input, html[data-theme="dark"] .ct-select, html[data-theme="dark"] .ct-textarea {
+        background: #11141f;
+        border-color: #262d42;
+        color: #F8FAFC;
+    }
+
+    .ct-input:focus, .ct-select:focus, .ct-textarea:focus {
+        outline: none;
+        border-color: var(--ct-primary);
+        box-shadow: var(--ct-focus-shadow);
+    }
+
+    .scope-row-card {
+        background: #F8FAFC;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid #E5E7EB;
+        position: relative;
+        margin-bottom: 10px;
+    }
+
+    html[data-theme="dark"] .scope-row-card {
+        background: #11141f;
+        border-color: #262d42;
+    }
+
+    .mini-label {
+        font-size: 0.75rem;
+        color: #64748B;
+        margin-bottom: 4px;
+        display: block;
+        font-weight: 600;
+    }
+
+    .btn-add-perm {
+        background: transparent;
+        border: 1px dashed var(--ct-primary);
+        color: var(--ct-primary);
+        font-size: 0.72rem;
+        padding: 3px 9px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.15s;
+    }
+
+    .btn-add-perm:hover {
+        background: var(--ct-light-bg);
+    }
+
+    .perm-row {
+        display: grid;
+        grid-template-columns: 1fr 1.2fr 36px;
+        gap: 8px;
+        margin-bottom: 6px;
+        align-items: center;
+    }
+
+    .remove-scope-btn {
+        position: absolute;
+        right: 12px;
+        top: 12px;
+        border: none;
+        background: transparent;
+        color: #EF4444;
+        opacity: 0.75;
+        cursor: pointer;
+        transition: opacity 0.2s;
+    }
+
+    .remove-scope-btn:hover {
+        opacity: 1;
+    }
+
+    .remove-perm-btn {
+        background: transparent;
+        border: none;
+        color: #EF4444;
+        opacity: 0.75;
+        cursor: pointer;
+        transition: opacity 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 32px;
+    }
+
+    .remove-perm-btn:hover {
+        opacity: 1;
+    }
+
+    /* Auth Method Cards (Step 4) */
+    .auth-method-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 6px;
+    }
+
+    .auth-method-card {
+        position: relative;
+        cursor: pointer;
+        border-radius: 12px;
+        border: 2px solid #E5E7EB;
+        background: #ffffff;
+        transition: all 0.2s ease;
+        overflow: hidden;
+    }
+
+    html[data-theme="dark"] .auth-method-card {
+        background: #11141f;
+        border-color: #262d42;
+    }
+
+    .auth-method-card input[type="radio"] { display: none; }
+
+    .auth-method-card.selected {
+        border-color: var(--ct-primary);
+        background: var(--ct-light-bg);
+        box-shadow: var(--ct-focus-shadow);
+    }
+
+    .auth-card-inner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 14px 10px;
+        gap: 4px;
+        text-align: center;
+    }
+
+    .auth-card-icon { font-size: 1.6rem; }
+
+    .auth-card-title {
+        font-size: 0.84rem;
+        font-weight: 700;
+        color: #0F172A;
+    }
+
+    html[data-theme="dark"] .auth-card-title {
+        color: #F8FAFC;
+    }
+
+    .auth-card-desc {
+        font-size: 0.73rem;
+        color: #64748B;
+        line-height: 1.3;
+    }
+
+    /* 2FA Toggle Row */
+    .auth-2fa-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 16px;
+        background: var(--ct-light-bg);
+        border-radius: 12px;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        margin-top: 16px;
+    }
+
+    /* RIGHT SIDEBAR — APPLICATION SUMMARY CARD (Exact match to Create Tenant) */
+    .ct-summary-card {
+        background: #ffffff;
+        border: 1px solid #E5E7EB;
+        border-radius: 16px;
+        padding: 14px;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+    }
+
+    html[data-theme="dark"] .ct-summary-card {
+        background: #181c2b;
+        border-color: #262d42;
+    }
+
+    .ct-summary-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 700;
+        font-size: 0.88rem;
+        color: var(--ct-primary);
+        margin-bottom: 10px;
+    }
+
+    .ct-summary-banner-box {
+        width: 100%;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 10px;
+        background: var(--ct-banner-bg);
+    }
+
+    .ct-summary-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .ct-summary-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.76rem;
+    }
+
+    .ct-summary-key {
+        color: #64748B;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .ct-summary-key svg {
+        color: #94A3B8;
+    }
+
+    .ct-summary-val {
+        font-weight: 700;
+        color: #0F172A;
+        text-align: right;
+    }
+
+    html[data-theme="dark"] .ct-summary-val {
+        color: #F8FAFC;
+    }
+
+    .summary-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.70rem;
+        font-weight: 700;
+    }
+
+    .badge-green { background: rgba(34, 197, 94, 0.1); color: #22C55E; }
+    .badge-gray { background: rgba(100, 116, 139, 0.1); color: #64748B; }
+
+    /* FOOTER BUTTONS — FIXED AT BOTTOM matching Create Tenant */
+    .wizard-footer {
+        flex-shrink: 0 !important;
+        padding: 12px 24px !important;
+        border-top: 1px solid #F1F5F9 !important;
+        background: #ffffff !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        margin-top: auto !important;
+    }
+
+    html[data-theme="dark"] .wizard-footer {
+        background: #11141f !important;
+        border-color: #1e2436 !important;
+    }
+
+    .wizard-footer-left, .wizard-footer-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .btn-primary.wizard-btn-next, .btn-primary.wizard-btn-save {
+        background: var(--ct-gradient) !important;
+        border: none !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        height: 40px !important;
+        padding: 0 20px !important;
+        border-radius: 10px !important;
+        font-size: 0.84rem !important;
+        box-shadow: var(--ct-shadow) !important;
+        transition: all 0.25s ease !important;
+        display: inline-flex;
+        align-items: center !important;
+        gap: 6px !important;
+        cursor: pointer !important;
+    }
+
+    .btn-primary.wizard-btn-next:hover, .btn-primary.wizard-btn-save:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45) !important;
+    }
+
+    .btn-secondary.wizard-btn-back, .btn-secondary.wizard-btn-prev {
+        background: #ffffff !important;
+        border: 1px solid #E5E7EB !important;
+        color: #475569 !important;
+        font-weight: 600 !important;
+        height: 40px !important;
+        padding: 0 18px !important;
+        border-radius: 10px !important;
+        font-size: 0.84rem !important;
+        transition: all 0.2s ease !important;
+        cursor: pointer !important;
+    }
+
+    html[data-theme="dark"] .btn-secondary.wizard-btn-back, html[data-theme="dark"] .btn-secondary.wizard-btn-prev {
+        background: #181c2b !important;
+        border-color: #262d42 !important;
+        color: #CBD5E1 !important;
+    }
+
+    .wizard-step {
+        display: none;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+    }
+
+    .wizard-step.active {
+        display: block;
+        opacity: 1;
+    }
+</style>
+
+<form id="createClientForm" class="wizard-container" novalidate>
+    <input type="hidden" id="editClientId" value="@Model.Id" />
+
+    <!-- Single Unified Header matching Create Tenant -->
+    <div class="ct-modal-header">
+        <div class="ct-modal-header-left">
+            <div class="ct-modal-header-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="3" y1="9" x2="21" y2="9"></line>
+                    <path d="M9 21V9"></path>
+                </svg>
+            </div>
+            <div class="ct-modal-header-text">
+                <h3>@(isEdit ? "Edit Application" : "Create Application")</h3>
+                <p>@(isEdit ? "Modify application identity, scopes, and auth settings." : "Define a new application for your organization.")</p>
+            </div>
+        </div>
+        <button type="button" class="ct-modal-close" onclick="window.closeModal()" title="Close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+        <!-- Decorative Wave Background -->
+        <svg class="ct-modal-header-wave" viewBox="0 0 200 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 50C40 20 80 80 120 40C160 0 180 60 200 30V100H0V50Z" fill="url(#appWaveGrad)" />
+            <defs>
+                <linearGradient id="appWaveGrad" x1="0" y1="0" x2="200" y2="100" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#10b981" />
+                    <stop offset="1" stop-color="#059669" />
+                </linearGradient>
+            </defs>
+        </svg>
+    </div>
+
+    <div class="modal-body ct-modal-wrapper">
+        <div class="ct-wizard-layout">
+
+            <!-- LEFT FORM SECTION (~70%) -->
+            <div class="ct-form-section">
+
+                <!-- Step 1: App Identity -->
+                <div class="wizard-step active" data-title="App Identity">
+                    <div class="ct-card-section">
+                        <div class="ct-card-header">
+                            <span class="ct-card-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="3" y1="9" x2="21" y2="9"></line>
+                                </svg>
+                            </span>
+                            <h4 class="ct-card-title">Application Identity</h4>
+                        </div>
+                        
+                        <div class="ct-field-grid">
+                            <div class="ct-field-full">
+                                <label class="ct-label" asp-for="ClientName">Display Name <span style="color:#ef4444;">*</span></label>
+                                <input id="clientName" asp-for="ClientName" type="text" class="ct-input" 
+                                       placeholder="e.g. My Customer Portal" required autocomplete="off">
+                            </div>
+                            <div>
+                                <label class="ct-label" asp-for="ClientId">Client ID <span style="color:#ef4444;">*</span></label>
+                                <input id="clientId" asp-for="ClientId" type="text" class="ct-input" 
+                                       placeholder="e.g. customer_portal_app" required autocomplete="off" readonly="@isEdit">
+                            </div>
+                            <div>
+                                <label class="ct-label" asp-for="ClientType">Application Type <span style="color:#ef4444;">*</span></label>
+                                <select id="clientType" asp-for="ClientType" class="ct-select" required>
+                                    @if (isEdit)
+                                    {
+                                        <option value="" disabled>Select application type...</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="" disabled selected>Select application type...</option>
+                                    }
+                                    @foreach (var type in Enum.GetValues<ClientType>())
+                                    {
+                                        <option value="@type">@type</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="ct-field-full" id="clientSecretGroup" style="display:none;">
+                                <label class="ct-label" asp-for="ClientSecret">Client Secret</label>
+                                <div style="position: relative;">
+                                    <input id="clientSecret" asp-for="ClientSecret" type="password" class="ct-input" 
+                                           placeholder="Leave empty for auto-generation" style="padding-right: 40px;">
+                                    <button type="button" id="toggleSecret" title="Toggle Visibility" style="position: absolute; right: 8px; top: 8px; background: transparent; border: none; color: #64748B; cursor: pointer; padding: 4px 8px;">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Redirect URIs -->
+                <div class="wizard-step" data-title="Redirect URIs">
+                    <div class="ct-card-section">
+                        <div class="ct-card-header">
+                            <span class="ct-card-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                                </svg>
+                            </span>
+                            <h4 class="ct-card-title">Redirect Configuration</h4>
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 14px;">
+                            <div>
+                                <label class="ct-label">Callback URLs (Comma separated) <span style="color:#ef4444;">*</span></label>
+                                <textarea id="redirectUris" class="ct-textarea" rows="3" required
+                                          placeholder="https://app.com/callback">@(Model.RedirectUris != null ? string.Join(", ", Model.RedirectUris) : "")</textarea>
+                            </div>
+
+                            <div>
+                                <label class="ct-label">Post-Logout URLs (Comma separated)</label>
+                                <textarea id="postLogoutRedirectUris" class="ct-textarea" rows="3" 
+                                          placeholder="https://app.com/logout">@(Model.PostLogoutRedirectUris != null ? string.Join(", ", Model.PostLogoutRedirectUris) : "")</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Scopes & Permissions -->
+                <div class="wizard-step" data-title="Scopes &amp; Permissions">
+                    <div class="ct-card-section">
+                        <div class="ct-card-header" style="justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span class="ct-card-icon">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    </svg>
+                                </span>
+                                <h4 class="ct-card-title">Scopes &amp; Granular Permissions</h4>
+                            </div>
+                            <button type="button" class="btn-add-perm" id="addScopeBtn" style="padding: 5px 12px; font-size: 0.78rem;">
+                                + Add Scope
+                            </button>
+                        </div>
+
+                        <!-- Search Bar -->
+                        <div style="position: relative; margin-bottom: 14px;">
+                            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94A3B8; pointer-events: none; display: flex; align-items: center;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                            </span>
+                            <input type="text" id="permissionsSearchInput" class="ct-input" placeholder="Search permissions by scope, code or description..." style="padding-left: 36px;" autocomplete="off" />
+                        </div>
+                        
+                        <div id="scopesContainer">
+                            <!-- Scope Rows dynamically rendered -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Auth & Security -->
+                <div class="wizard-step" data-title="Auth &amp; Security">
+                    <div class="ct-card-section">
+                        <div class="ct-card-header">
+                            <span class="ct-card-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                            </span>
+                            <h4 class="ct-card-title">Authentication &amp; Security Configuration</h4>
+                        </div>
+
+                        <div>
+                            <label class="ct-label">Login Method <span style="color:#ef4444;">*</span></label>
+                            <p style="font-size:0.80rem; color:#64748B; margin:0 0 10px;">
+                                Controls which authentication flow(s) appear on the login page for users of this application.
+                            </p>
+                            <div class="auth-method-grid" id="authMethodCards">
+                                <label class="auth-method-card" for="method_credentials">
+                                    <input type="radio" id="method_credentials" name="_authMethod" value="CredentialsOnly">
+                                    <div class="auth-card-inner">
+                                        <span class="auth-card-icon">🔐</span>
+                                        <span class="auth-card-title">Credentials</span>
+                                        <span class="auth-card-desc">Email / Username + Password</span>
+                                    </div>
+                                </label>
+                                <label class="auth-method-card" for="method_mobile">
+                                    <input type="radio" id="method_mobile" name="_authMethod" value="MobileOtpOnly">
+                                    <div class="auth-card-inner">
+                                        <span class="auth-card-icon">📱</span>
+                                        <span class="auth-card-title">Mobile OTP</span>
+                                        <span class="auth-card-desc">Passwordless — Email OTP</span>
+                                    </div>
+                                </label>
+                                <label class="auth-method-card" for="method_both">
+                                    <input type="radio" id="method_both" name="_authMethod" value="Both">
+                                    <div class="auth-card-inner">
+                                        <span class="auth-card-icon">⚡</span>
+                                        <span class="auth-card-title">Both</span>
+                                        <span class="auth-card-desc">User selects at login</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 2FA Toggle -->
+                        <div class="auth-2fa-row" id="twoFaRow">
+                            <div>
+                                <label class="ct-label" style="margin-bottom:2px;">Two-Factor Authentication (2FA)</label>
+                                <p style="font-size:0.76rem; color:#64748B; margin:0; line-height:1.4;">
+                                    When enabled, users must enter a one-time code after password login.
+                                </p>
+                            </div>
+                            <label class="luxe-toggle" id="twoFaToggleWrap">
+                                <input type="checkbox" id="require2FA">
+                                <span class="luxe-toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Info banner for Mobile OTP -->
+                        <div id="mobileOtpInfoBanner" style="display:none; margin-top:12px; padding:10px 14px; border-radius:10px; background:rgba(16, 185, 129, 0.08); border:1px solid rgba(16, 185, 129, 0.25); color:#0F172A; font-size:0.80rem;">
+                            ℹ️ <strong>Mobile OTP</strong> login is passwordless — the OTP is the authentication factor. 2FA toggle applies only to Credentials login.
+                        </div>
+
+                        <!-- Public Self-Registration Toggle -->
+                        <div class="auth-2fa-row" id="publicRegRow" style="margin-top: 14px; border-top: 1px dashed rgba(226, 232, 240, 0.8); padding-top: 14px;">
+                            <div>
+                                <label class="ct-label" style="margin-bottom:2px;">Allow Public Registration</label>
+                                <p style="font-size:0.76rem; color:#64748B; margin:0; line-height:1.4;">
+                                    When enabled, a "Sign Up" link appears on the login page, allowing new users to self-register.
+                                </p>
+                            </div>
+                            <label class="luxe-toggle" id="publicRegToggleWrap">
+                                <input type="checkbox" id="allowPublicRegistration">
+                                <span class="luxe-toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Dynamic Default Role Input -->
+                        <div class="ct-form-group" id="defaultRoleGroup" style="margin-top: 14px;">
+                            <label class="ct-label" for="defaultRoleName">Default Self-Registration Role</label>
+                            <input type="text"
+                                   id="defaultRoleName"
+                                   class="ct-input"
+                                   placeholder="e.g. End User, Student, Parent, Teacher"
+                                   value="End User"
+                                   maxlength="100">
+                            <span class="ct-input-hint" style="font-size: 0.74rem; color: #64748B;">Role assigned to newly verified self-registered users of this client.</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /ct-form-section -->
+
+            <!-- RIGHT SUMMARY SECTION (~30%) — APPLICATION SUMMARY CARD (1:1 match to Create Tenant) -->
+            <div class="ct-summary-section">
+                <div class="ct-summary-card">
+                    <div class="ct-summary-header">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="3" y1="9" x2="21" y2="9"></line>
+                        </svg>
+                        <span>APPLICATION SUMMARY</span>
+                    </div>
+
+                    <div class="ct-summary-banner-box" style="padding: 12px; text-align: center;">
+                        <div id="summaryClientNameBanner" style="font-weight: 800; font-size: 0.95rem; color: #0F172A; margin-bottom: 2px;">
+                            @(string.IsNullOrEmpty(Model.ClientName) ? "New Application" : Model.ClientName)
+                        </div>
+                        <div id="summaryClientIdBanner" style="font-size: 0.74rem; color: var(--ct-primary); font-weight: 700; font-family: monospace; word-break: break-all;">
+                            @(string.IsNullOrEmpty(Model.ClientId) ? "—" : Model.ClientId)
+                        </div>
+                    </div>
+
+                    <div class="ct-summary-list">
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                Display Name
+                            </span>
+                            <span class="ct-summary-val" id="summaryClientName">@(string.IsNullOrEmpty(Model.ClientName) ? "New Application" : Model.ClientName)</span>
+                        </div>
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>
+                                Client ID
+                            </span>
+                            <span class="ct-summary-val" id="summaryClientId" style="font-family: monospace;">@(string.IsNullOrEmpty(Model.ClientId) ? "—" : Model.ClientId)</span>
+                        </div>
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon></svg>
+                                Type
+                            </span>
+                            <span class="ct-summary-val" id="summaryClientType">@(Model.ClientType != 0 ? Model.ClientType.ToString() : "Select...")</span>
+                        </div>
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                                Callback URLs
+                            </span>
+                            <span class="ct-summary-val" id="summaryRedirectCount">0 URI(s)</span>
+                        </div>
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                                Logout URLs
+                            </span>
+                            <span class="ct-summary-val" id="summaryLogoutCount">0 URI(s)</span>
+                        </div>
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                                Scopes
+                            </span>
+                            <span class="ct-summary-val" id="summaryScopesCount">0 Scope(s)</span>
+                        </div>
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                Login Method
+                            </span>
+                            <span class="ct-summary-val" id="summaryAuthMethod">Credentials</span>
+                        </div>
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                2FA Status
+                            </span>
+                            <span class="ct-summary-val" id="summary2FaStatus"><span class="summary-badge badge-gray">Optional</span></span>
+                        </div>
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+                                Public Sign Up
+                            </span>
+                            <span class="ct-summary-val" id="summaryPublicReg"><span class="summary-badge badge-gray">Disabled</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /ct-summary-section -->
+
+        </div>
+    </div><!-- /ct-modal-wrapper -->
+
+    <!-- REMARKS FIELD (Edit mode only) -->
+    @await Html.PartialAsync("_EditRemarksPartial", isEdit)
+
+    <!-- FOOTER BUTTONS -->
+    <div class="modal-footer wizard-footer">
+        <button type="submit" class="btn btn-primary" id="submitCreateClient" style="display:none;">
+            @(isEdit ? "Update Application" : "Register Client")
+        </button>
+    </div>
+</form>
+
+<script>
+    $(function() {
+        const isEditMode = @(isEdit.ToString().ToLower());
+        const initialModel = @Html.Raw(JsonSerializer.Serialize(Model));
+
+        // Live preview updates for APPLICATION SUMMARY sidebar (Matching Create Tenant style)
+        function updateSummaryPreview() {
+            const name = $('#clientName').val()?.trim() || 'New Application';
+            const id = $('#clientId').val()?.trim() || '—';
+            const type = $('#clientType').val() || 'Select...';
+            const redirectVal = $('#redirectUris').val()?.trim() || '';
+            const redirectCount = redirectVal ? redirectVal.split(',').filter(s => s.trim() !== '').length : 0;
+            const logoutVal = $('#postLogoutRedirectUris').val()?.trim() || '';
+            const logoutCount = logoutVal ? logoutVal.split(',').filter(s => s.trim() !== '').length : 0;
+            const scopesCount = $('#scopesContainer .scope-row-card').length;
+            const authMethod = $('input[name="_authMethod"]:checked').val() || 'CredentialsOnly';
+            const is2FA = $('#require2FA').is(':checked');
+
+            $('#summaryClientNameBanner, #summaryClientName').text(name);
+            $('#summaryClientIdBanner').text(id);
+            $('#summaryClientId').text(id);
+            $('#summaryClientType').text(type);
+            $('#summaryRedirectCount').text(redirectCount > 0 ? `${redirectCount} URI(s)` : '0 URI(s)');
+            $('#summaryLogoutCount').text(logoutCount > 0 ? `${logoutCount} URI(s)` : '0 URI(s)');
+            $('#summaryScopesCount').text(`${scopesCount} Scope(s)`);
+
+            let authLabel = 'Credentials';
+            if (authMethod === 'MobileOtpOnly') authLabel = 'Mobile OTP';
+            else if (authMethod === 'Both') authLabel = 'Both';
+            $('#summaryAuthMethod').text(authLabel);
+
+            if (is2FA && authMethod !== 'MobileOtpOnly') {
+                $('#summary2FaStatus').html('<span class="summary-badge badge-green">Required</span>');
+            } else {
+                $('#summary2FaStatus').html('<span class="summary-badge badge-gray">Optional</span>');
+            }
+
+            const isPublicReg = $('#allowPublicRegistration').is(':checked');
+            if (isPublicReg) {
+                $('#summaryPublicReg').html('<span class="summary-badge badge-green">Enabled</span>');
+            } else {
+                $('#summaryPublicReg').html('<span class="summary-badge badge-gray">Disabled</span>');
+            }
+        }
+
+        // Bind preview event triggers for all left-side form fields
+        $(document).on('input change', '#clientName, #clientId, #clientType, #redirectUris, #postLogoutRedirectUris, #require2FA, #allowPublicRegistration, #defaultRoleName, input[name="_authMethod"]', updateSummaryPreview);
+
+        // Toggle Secret visibility
+        $('#toggleSecret').on('click', function() {
+            const input = $('#clientSecret');
+            const type = input.attr('type') === 'password' ? 'text' : 'password';
+            input.attr('type', type);
+        });
+
+        // Show/Hide Secret field based on Client Type
+        $('#clientType').on('change', function() {
+            const type = $(this).val();
+            if (type === 'Web' || type === 'Machine') {
+                $('#clientSecretGroup').slideDown(200);
+            } else {
+                $('#clientSecretGroup').slideUp(200);
+                $('#clientSecret').val('');
+            }
+        });
+
+        // Initial settings on edit vs create
+        if (isEditMode) {
+            $('#clientType').trigger('change');
+            
+            $('#scopesContainer').empty();
+            if (initialModel.Scopes && initialModel.Scopes.length > 0) {
+                initialModel.Scopes.forEach(s => {
+                    addScopeRow(s);
+                });
+            }
+
+            const savedMethod = initialModel.AllowedLoginMethod || 'CredentialsOnly';
+            $(`input[name="_authMethod"][value="${savedMethod}"]`).prop('checked', true);
+            highlightSelectedAuthCard();
+            if (initialModel.Require2FA) $('#require2FA').prop('checked', true);
+            if (initialModel.AllowPublicRegistration) $('#allowPublicRegistration').prop('checked', true);
+            if (initialModel.DefaultRoleName) $('#defaultRoleName').val(initialModel.DefaultRoleName);
+            updateMobileOtpBanner(savedMethod);
+        } else {
+            $('input[name="_authMethod"][value="CredentialsOnly"]').prop('checked', true);
+            highlightSelectedAuthCard();
+            addScopeRow({ Name: 'openid', Permissions: [] });
+        }
+
+        updateSummaryPreview();
+
+        function createPermissionRow(code = '', desc = '') {
+            return `
+                <div class="perm-row">
+                    <input type="text" class="ct-input perm-code" placeholder="Code (e.g. read)" value="${code}" required>
+                    <input type="text" class="ct-input perm-desc" placeholder="Description" value="${desc}">
+                    <button type="button" class="remove-perm-btn" title="Remove Permission">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="15" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                    </button>
+                </div>`;
+        }
+
+        function addScopeRow(scopeData = null) {
+            const name = scopeData ? scopeData.Name : '';
+            const rowId = 'scope_' + Math.random().toString(36).substr(2, 9);
+            const row = `
+                <div class="scope-row-card" id="${rowId}">
+                    <button type="button" class="remove-scope-btn" title="Remove Scope">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                    <div class="scope-header">
+                        <div style="width: 80%;">
+                            <label class="mini-label">Scope Name</label>
+                            <input type="text" class="ct-input scope-name" placeholder="e.g. Products" value="${name}" required>
+                        </div>
+                    </div>
+                    <div class="permissions-sub-section" style="margin-top: 10px;">
+                        <label class="mini-label" style="display: flex; justify-content: space-between; align-items: center;">
+                            Permissions (Code &amp; Description)
+                            <button type="button" class="btn-add-perm add-permission-btn">
+                                + Add Permission
+                            </button>
+                        </label>
+                        <div class="permissions-list" style="margin-top: 6px;"></div>
+                    </div>
+                </div>`;
+            
+            const $row = $(row);
+            $('#scopesContainer').append($row);
+
+            if (scopeData && scopeData.Permissions) {
+                scopeData.Permissions.forEach(p => {
+                    $row.find('.permissions-list').append(createPermissionRow(p.Code, p.Description));
+                });
+            }
+            updateSummaryPreview();
+        }
+
+        // Search & Filter Permissions function
+        function filterPermissions() {
+            const query = $('#permissionsSearchInput').val().toLowerCase().trim();
+            if (query === '') {
+                $('.scope-row-card').show();
+                $('.perm-row').show();
+                return;
+            }
+
+            $('.scope-row-card').each(function() {
+                const $card = $(this);
+                const scopeName = $card.find('.scope-name').val()?.toLowerCase() || '';
+                const scopeHasMatch = scopeName.includes(query);
+
+                let visiblePermCount = 0;
+                $card.find('.perm-row').each(function() {
+                    const $permRow = $(this);
+                    const code = $permRow.find('.perm-code').val()?.toLowerCase() || '';
+                    const desc = $permRow.find('.perm-desc').val()?.toLowerCase() || '';
+                    
+                    const permMatches = code.includes(query) || desc.includes(query);
+                    if (scopeHasMatch || permMatches) {
+                        $permRow.show();
+                        visiblePermCount++;
+                    } else {
+                        $permRow.hide();
+                    }
+                });
+
+                if (scopeHasMatch || visiblePermCount > 0) {
+                    $card.show();
+                } else {
+                    $card.hide();
+                }
+            });
+        }
+
+        $(document).on('input keyup', '#permissionsSearchInput', filterPermissions);
+
+        $(document).on('input', '.scope-name, .perm-code, .perm-desc', function() {
+            if ($('#permissionsSearchInput').val().trim() !== '') {
+                filterPermissions();
+            }
+            updateSummaryPreview();
+        });
+
+        $('#addScopeBtn').on('click', function() {
+            addScopeRow();
+            $('#permissionsSearchInput').val('').trigger('input');
+        });
+
+        $(document).off('click', '.add-permission-btn').on('click', '.add-permission-btn', function() {
+            const $list = $(this).closest('.permissions-sub-section').find('.permissions-list');
+            const $newRow = $(createPermissionRow()).hide();
+            
+            $list.prepend($newRow);
+            
+            if ($('#permissionsSearchInput').val().trim() !== '') {
+                $('#permissionsSearchInput').val('').trigger('input');
+            }
+
+            $newRow.slideDown(250, function() {
+                $newRow.find('.perm-code').focus();
+            });
+
+            const container = $('.ct-modal-wrapper')[0];
+            if (container) {
+                const newRowTop = $newRow.offset().top;
+                const containerTop = $(container).offset().top;
+                const scrollTop = $(container).scrollTop();
+                const targetScroll = scrollTop + (newRowTop - containerTop) - 20;
+                $(container).stop().animate({ scrollTop: targetScroll }, 250);
+            }
+        });
+
+        $(document).on('click', '.remove-scope-btn', function() { 
+            $(this).closest('.scope-row-card').remove(); 
+            if ($('#permissionsSearchInput').val().trim() !== '') {
+                filterPermissions();
+            }
+            updateSummaryPreview();
+        });
+        
+        $(document).on('click', '.remove-perm-btn', function() { 
+            $(this).closest('.perm-row').remove(); 
+            if ($('#permissionsSearchInput').val().trim() !== '') {
+                filterPermissions();
+            }
+        });
+
+        function highlightSelectedAuthCard() {
+            $('.auth-method-card').removeClass('selected');
+            $('input[name="_authMethod"]:checked').closest('.auth-method-card').addClass('selected');
+        }
+
+        function updateMobileOtpBanner(method) {
+            const isMobile = method === 'MobileOtpOnly';
+            $('#mobileOtpInfoBanner').toggle(isMobile);
+            if (isMobile) {
+                $('#twoFaRow').css('opacity', '0.5').find('input').prop('disabled', true);
+            } else {
+                $('#twoFaRow').css('opacity', '1').find('input').prop('disabled', false);
+            }
+        }
+
+        $(document).on('change', 'input[name="_authMethod"]', function() {
+            highlightSelectedAuthCard();
+            updateMobileOtpBanner($(this).val());
+            updateSummaryPreview();
+        });
+
+        // Initialize the Wizard Engine
+        const wizard = window.initWizardForm('#createClientForm', {
+            onFinished: function() {
+                const $btn = $('#submitCreateClient');
+                const originalHtml = $btn.html();
+
+                // Validate remarks before submission (edit mode only)
+                if (typeof validateRemarks === 'function' && !validateRemarks()) return;
+
+                $btn.prop('disabled', true).text('Processing...');
+                
+                const scopes = [];
+                
+                $('.scope-row-card').each(function() {
+                    const scopeName = $(this).find('.scope-name').val()?.trim();
+                    if (!scopeName) return;
+
+                    const permissions = [];
+                    $(this).find('.perm-row').each(function() {
+                        const code = $(this).find('.perm-code').val()?.trim();
+                        const desc = $(this).find('.perm-desc').val()?.trim();
+                        if (code) {
+                            permissions.push({ Code: code, Description: desc || code });
+                        }
+                    });
+
+                    scopes.push({
+                        Name: scopeName,
+                        DisplayName: scopeName,
+                        Permissions: permissions
+                    });
+                });
+
+                const formData = {
+                    Id: $('#editClientId').val() || null,
+                    ClientId: $('#clientId').val(),
+                    ClientName: $('#clientName').val(),
+                    ClientType: $('#clientType').val(), 
+                    ClientSecret: $('#clientSecret').val(),
+                    RedirectUris: $('#redirectUris').val().split(',').map(s => s.trim()).filter(s => s !== ''),
+                    PostLogoutRedirectUris: $('#postLogoutRedirectUris').val().split(',').map(s => s.trim()).filter(s => s !== ''),
+                    Scopes: scopes,
+                    Require2FA: $('#require2FA').is(':checked'),
+                    AllowedLoginMethod: $('input[name="_authMethod"]:checked').val() || 'CredentialsOnly',
+                    AllowPublicRegistration: $('#allowPublicRegistration').is(':checked'),
+                    DefaultRoleName: $('#defaultRoleName').val()?.trim() || 'End User',
+                    Remarks: $('#Remarks').val()?.trim() || null
+                };
+
+                $.ajax({
+                    url: '/Home/CreateClient',
+                    type: 'POST',
+                    data: JSON.stringify(formData),
+                    contentType: 'application/json',
+                    success: function(res) {
+                        if (res.succeeded) {
+                            if (typeof closeModal === 'function') closeModal();
+                            if (window.onModalSuccess) {
+                                window.onModalSuccess();
+                            } else if ($('#clientTable').length) {
+                                $('#clientTable').DataTable().ajax.reload();
+                            } else {
+                                location.reload();
+                            }
+                            if (window.appToast) {
+                                window.appToast.show('success', isEditMode ? 'Application Updated' : 'Application Registered', window.getPrimaryResultMessage(res, isEditMode ? 'Application updated successfully.' : 'Application registered successfully.'));
+                            }
+                        } else {
+                            if (window.appToast) {
+                                window.appToast.show('error', 'Error', window.getPrimaryResultMessage(res, isEditMode ? 'Update failed' : 'Registration failed'));
+                            }
+                            $btn.prop('disabled', false).html(originalHtml);
+                        }
+                    },
+                    error: function(xhr) {
+                        window.showRequestError({
+                            title: isEditMode ? 'Unable to Update Application' : 'Unable to Register Application',
+                            xhr: xhr,
+                            fallbackMessage: isEditMode ? 'We could not update the application right now. Please try again.' : 'We could not register the application right now. Please try again.'
+                        });
+                        $btn.prop('disabled', false).html(originalHtml);
+                    }
+                });
+            }
+        });
+    });
+</script>
