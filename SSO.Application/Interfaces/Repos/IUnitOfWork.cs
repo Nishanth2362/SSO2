@@ -1,4 +1,4 @@
-﻿using SSO.Domain.Contract;
+using SSO.Domain.Contract;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +11,7 @@ namespace SSO.Application.Interfaces.Repos
     {
         Task BeginTransactionAsync(CancellationToken cancellationToken);
         IRepositoryAsync<T, TId> Repository<T>() where T : AuditableEntity<TId>;
-        Task<int> Commit(CancellationToken cancellationToken);
+        Task<int> Commit(CancellationToken cancellationToken, string? remarks = null);
 
         Task<int> CommitAndRemoveCache(CancellationToken cancellationToken, params string[] cacheKeys);
 

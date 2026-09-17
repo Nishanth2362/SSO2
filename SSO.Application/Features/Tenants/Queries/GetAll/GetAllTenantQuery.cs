@@ -38,7 +38,7 @@ namespace SSO.Application.Features.Tenants.Queries.GetAll
                     ConnectionString = null,
                     IsActive = x.IsActive,
                     GracePeriodDays = x.GracePeriodDays,
-                    AllowPublicRegistration = x.AllowPublicRegistration
+                    BackgroundText = x.BackgroundText
                 }).ToListAsync();
 
                 return await Result<List<TenantResponse>>.SuccessAsync(tenants);    

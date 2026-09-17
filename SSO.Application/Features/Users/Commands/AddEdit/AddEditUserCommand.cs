@@ -36,6 +36,9 @@ namespace SSO.Application.Features.Users.Commands.AddEdit
         public string? Origin { get; set; }
         public List<Guid> ClientIds { get; set; } = new List<Guid>();
         public List<string> RoleNames { get; set; } = new List<string>();
+
+        /// <summary>Mandatory change description when editing an existing user.</summary>
+        public string? Remarks { get; set; }
     }
 
     public class AddEditUserValidator : IRequestValidator<AddEditUserCommand>
@@ -83,6 +86,16 @@ namespace SSO.Application.Features.Users.Commands.AddEdit
 
             if (!request.AutoConfirmEmail && string.IsNullOrWhiteSpace(request.Origin))
                 errors.Add(new ValidationError { PropertyName = nameof(request.Origin), ErrorMessage = "A request origin is required when email confirmation is enabled." });
+
+            if (request.Id != null && request.Id != Guid.Empty)
+            {
+                if (string.IsNullOrWhiteSpace(request.Remarks))
+                    errors.Add(new ValidationError { PropertyName = nameof(request.Remarks), ErrorMessage = "A change description (remarks) is required when editing." });
+                else if (request.Remarks.Trim().Length < 5)
+                    errors.Add(new ValidationError { PropertyName = nameof(request.Remarks), ErrorMessage = "Remarks must be at least 5 characters." });
+                else if (request.Remarks.Length > 500)
+                    errors.Add(new ValidationError { PropertyName = nameof(request.Remarks), ErrorMessage = "Remarks cannot exceed 500 characters." });
+            }
 
             return Task.FromResult(errors.AsEnumerable());
         }
@@ -179,10 +192,10 @@ namespace SSO.Application.Features.Users.Commands.AddEdit
 
                             MailRequest mailRequest = new()
                             {
-                                From = "info@b2lsolutions.in",
+                                From = "support@auxinz.io",
                                 To = new List<string>() { user.Email },
-                                Body = emailTemplate?.Body ?? string.Format("Please confirm your account by <a href='{0}'>clicking here</a>.", verificationUri),
-                                Subject = emailTemplate?.Subject ?? "Confirm Registration"
+                                Body = !string.IsNullOrWhiteSpace(emailTemplate?.Body) ? emailTemplate.Value.Body : string.Format("Please confirm your account by <a href='{0}'>clicking here</a>.", verificationUri),
+                                Subject = !string.IsNullOrWhiteSpace(emailTemplate?.Subject) ? emailTemplate.Value.Subject : "Confirm Registration"
                             };
                             _ = BackgroundJob.Enqueue(() => _mailService.SendAsync(mailRequest));
                         }
@@ -202,10 +215,10 @@ namespace SSO.Application.Features.Users.Commands.AddEdit
 
                             MailRequest mailRequest = new()
                             {
-                                From = "info@b2lsolutions.in",
+                                From = null, // Automatically resolved from MailConfiguration:From in AppSettings,
                                 To = new List<string>() { user.Email },
-                                Body = emailTemplate?.Body ?? "Welcome! You have been invited to join the platform.",
-                                Subject = emailTemplate?.Subject ?? "Invitation to join"
+                                Body = !string.IsNullOrWhiteSpace(emailTemplate?.Body) ? emailTemplate.Value.Body : "Welcome! You have been invited to join the platform.",
+                                Subject = !string.IsNullOrWhiteSpace(emailTemplate?.Subject) ? emailTemplate.Value.Subject : "Invitation to join"
                             };
                             _ = BackgroundJob.Enqueue(() => _mailService.SendAsync(mailRequest));
                         }
@@ -223,9 +236,30 @@ namespace SSO.Application.Features.Users.Commands.AddEdit
                     var user = await _userManager.FindByIdAsync(request.Id.ToString()!);
                     if (user == null) return await Result<Guid>.FailAsync("User not found.");
 
+                    // Check if new username is taken by another user
+                    if (!string.Equals(user.UserName, request.UserName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        var setUserNameResult = await _userManager.SetUserNameAsync(user, request.UserName);
+                        if (!setUserNameResult.Succeeded)
+                        {
+                            return await Result<Guid>.FailAsync(setUserNameResult.Errors.Select(e => e.Description).ToList());
+                        }
+                    }
+
+                    // Check if new email is taken by another user
+                    if (!string.Equals(user.Email, request.Email, StringComparison.OrdinalIgnoreCase))
+                    {
+                        var setEmailResult = await _userManager.SetEmailAsync(user, request.Email);
+                        if (!setEmailResult.Succeeded)
+                        {
+                            return await Result<Guid>.FailAsync(setEmailResult.Errors.Select(e => e.Description).ToList());
+                        }
+                    }
+
                     user.Name = request.Name;
                     user.PhoneNumber = request.PhoneNumber;
                     user.IsActive = request.ActivateUser;
+                    user.EmailConfirmed = request.AutoConfirmEmail;
                     user.TenantId = request.TenantId;
 
                     var result = await _userManager.UpdateAsync(user);

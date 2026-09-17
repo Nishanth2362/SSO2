@@ -67,5 +67,17 @@ namespace SSO.WebApplication.Controllers.v1
             }
             return BadRequest(result);
         }
+
+        [HttpGet("Get/{Id}")]
+        [Authorize(Policy = Permissions.Client.View)]
+        public async Task<IActionResult> Get(Guid Id)
+        {
+            var result = await _clientService.GetByIdAsync(Id);
+            if (result.Succeeded)
+            {
+                return Ok(result);
+            }
+            return BadRequest(result);
+        }
     }
 }

@@ -50,14 +50,23 @@ namespace SSO.Application.Features.RolePermissions.Queries.GetAll
                     query = query.Where(x => x.ClientApplicationId == defaultClient.Data.Id); 
                 }
 
-                var permissions = await query
+                var permissionsList = await query
+                    .Select(x => new
+                    {
+                        x.Id,
+                        x.Code,
+                        x.Description,
+                        x.ClientApplicationId
+                    }).ToListAsync(cancellationToken);
+
+                var permissions = permissionsList
                     .Select(x => new PermissionResponse
                     {
                         Id = x.Id,
                         Code = x.Code,
                         Description = x.Description,
-                        Category = x.ClientApplicationId == defaultClient.Data.Id ? "SSO" : x.Code.Split('.')[1]
-                    }).ToListAsync(cancellationToken);
+                        Category = x.ClientApplicationId == defaultClient.Data.Id ? "SSO" : (x.Code.Contains('.') ? x.Code.Split('.')[1] : "General")
+                    }).ToList();
 
                 return await Result<List<PermissionResponse>>.SuccessAsync(permissions);
             }

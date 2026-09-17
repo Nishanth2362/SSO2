@@ -1,6 +1,7 @@
 @{
     Layout = null;
 }
+@Html.AntiForgeryToken()
 
 <div class="modal-body">
     <div style="padding: 20px;">
@@ -40,101 +41,89 @@
 
 <script>
     $(function() {
-        const $fileInput = $('#importExcelFile');
-        const $dropZone = $('#excelDropZone');
-        const $nameDisplay = $('#fileNameDisplay');
-        const $submitBtn = $('#submitImportScopes');
-        const allowedExtensions = ['.xlsx', '.xls'];
-        const maxBytes = 10 * 1024 * 1024;
+    const $fileInput = $('#importExcelFile');
+    const $dropZone = $('#excelDropZone');
+    const $nameDisplay = $('#fileNameDisplay');
+    const $submitBtn = $('#submitImportScopes');
+    const allowedExtensions = ['.xlsx', '.xls'];
+    const maxBytes = 10 * 1024 * 1024;
 
-        function resetImportSelection(message) {
-            $fileInput.val('');
-            $nameDisplay.text(message || 'Click to browse or drag and drop').css('color', '');
-            $submitBtn.prop('disabled', true);
-        }
+    function resetImportSelection(message) {
+    $fileInput.val('');
+    $nameDisplay.text(message || 'Click to browse or drag and drop').css('color', '');
+    $submitBtn.prop('disabled', true);
+    }
 
-        $dropZone.on('click', () => $fileInput[0].click());
+    $dropZone.on('click', () => $fileInput[0].click());
 
-        $fileInput.on('change', function() {
-            if (this.files && this.files[0]) {
-                const file = this.files[0];
-                const normalizedName = file.name.toLowerCase();
-                const hasValidExtension = allowedExtensions.some(ext => normalizedName.endsWith(ext));
+    $fileInput.on('change', function() {
+    if (this.files && this.files[0]) {
+    const file = this.files[0];
+    const normalizedName = file.name.toLowerCase();
+    const hasValidExtension = allowedExtensions.some(ext => normalizedName.endsWith(ext));
 
-                if (!hasValidExtension) {
-                    Swal.fire('Invalid File', 'Please choose an Excel file in .xlsx or .xls format.', 'warning');
-                    resetImportSelection();
-                    return;
-                }
+    if (!hasValidExtension) {
+    Swal.fire('Invalid File', 'Please choose an Excel file in .xlsx or .xls format.', 'warning');
+    resetImportSelection();
+    return;
+    }
 
-                if (file.size > maxBytes) {
-                    Swal.fire('File Too Large', 'Excel imports must be 10 MB or smaller.', 'warning');
-                    resetImportSelection();
-                    return;
-                }
+    if (file.size > maxBytes) {
+    Swal.fire('File Too Large', 'Excel imports must be 10 MB or smaller.', 'warning');
+    resetImportSelection();
+    return;
+    }
 
-                $nameDisplay.text(file.name).css('color', 'var(--brand-primary)');
-                $submitBtn.prop('disabled', false);
-            }
-        });
+    $nameDisplay.text(file.name).css('color', 'var(--brand-primary)');
+    $submitBtn.prop('disabled', false);
+    }
+    });
 
-        $dropZone.on('dragover', function(e) {
-            e.preventDefault();
-            $(this).css('border-color', 'var(--brand-primary)');
-        }).on('dragleave', function() {
-            $(this).css('border-color', 'var(--border-color)');
-        }).on('drop', function(e) {
-            e.preventDefault();
-            const files = e.originalEvent.dataTransfer.files;
-            if (files.length) {
-                $fileInput[0].files = files;
-                $fileInput.trigger('change');
-            }
-            $(this).css('border-color', 'var(--border-color)');
-        });
+    $dropZone.on('dragover', function(e) {
+    e.preventDefault();
+    $(this).css('border-color', 'var(--brand-primary)');
+    }).on('dragleave', function() {
+    $(this).css('border-color', 'var(--border-color)');
+    }).on('drop', function(e) {
+    e.preventDefault();
+    const files = e.originalEvent.dataTransfer.files;
+    if (files.length) {
+    $fileInput[0].files = files;
+    $fileInput.trigger('change');
+    }
+    $(this).css('border-color', 'var(--border-color)');
+    });
 
-        $('#submitImportScopes').off('click').on('click', function() {
-            const file = $fileInput[0].files[0];
-            if (!file) return;
+    $('#submitImportScopes').off('click').on('click', function() {
+    const file = $fileInput[0].files[0];
+    if (!file) return;
 
-            const formData = new FormData();
-            formData.append('file', file);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('__RequestVerificationToken', $('input[name="__RequestVerificationToken"]').val());
 
-            const $btn = $(this);
-            $btn.prop('disabled', true).html('Importing...');
+    const $btn = $(this);
+    $btn.prop('disabled', true).html('Importing...');
 
-            $.ajax({
-                url: '/Home/ImportScopes?clientId=@ViewBag.ClientId',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(result) {
-                    if (result.succeeded) {
-                        window.closeModal();
-                        if (window.onModalSuccess) window.onModalSuccess(result);
-                        
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: `Successfully imported ${result.data} items.`,
-                            showConfirmButton: false,
-                            timer: 2000
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Import Failed',
-                            text: window.getPrimaryResultMessage(result, 'Unknown error occurred.')
-                        });
-                        $btn.prop('disabled', false).html('Start Import');
-                    }
-                },
-                error: function() {
-                    Swal.fire('Error', 'Server communication failed.', 'error');
-                    $btn.prop('disabled', false).html('Start Import');
-                }
-            });
-        });
+    $.ajax({
+    url: '/Home/ImportScopes?clientId=@ViewBag.ClientId',
+    type: 'POST',
+    data: formData,
+    processData: false,
+    contentType: false,
+    success: function(result) {
+    if (result.succeeded) {
+    window.closeModal();
+    if (window.onModalSuccess) window.onModalSuccess(result);
+    } else {
+    $btn.prop('disabled', false).html('Start Import');
+    }
+    },
+    error: function() {
+    Swal.fire('Error', 'Server communication failed.', 'error');
+    $btn.prop('disabled', false).html('Start Import');
+    }
+    });
+    });
     });
 </script>

@@ -95,9 +95,22 @@ namespace SSO.Infrastructure.Services
             // ──────────────────────────────────────────────────────────────────────
             if (isSsoAdminApp)
             {
-                var isAuthorized = await IsUserSSOAdminAuthorizedAsync(user);
-                if (!isAuthorized)
-                    return "You have not been assigned any SSO Admin roles. Contact your system administrator.";
+                if (isMasterTenant)
+                {
+                    var isAuthorized = await IsUserSSOAdminAuthorizedAsync(user);
+                    if (!isAuthorized)
+                        return "You have not been assigned any SSO Admin roles. Contact your system administrator.";
+                }
+                else
+                {
+                    // Allow client tenant users to log in if they have at least one role assigned in their tenant
+                    var hasRoles = await (from ur in _dbContext.UserRoles
+                                          join r in _dbContext.Roles on ur.RoleId equals r.Id
+                                          where ur.UserId == user.Id && r.TenantId == user.TenantId
+                                          select ur.RoleId).AnyAsync();
+                    if (!hasRoles)
+                        return "You have not been assigned any roles in your organization. Contact your administrator.";
+                }
 
                 // Skip the OpenIddict consent check for SSO Admin (it's a first-party app)
                 return null;
@@ -235,11 +248,33 @@ namespace SSO.Infrastructure.Services
         // ─────────────────────────────────────────────────────────────────────────
         public async Task<List<string>> GetSSOAdminPermissionsForUserAsync(Guid userId)
         {
-            var adminClientId = await GetSSOAdminClientIdAsync();
-            if (adminClientId == null)
+            var user = await _dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
                 return new List<string>();
 
-            return await GetPermissionsForUserAsync(userId, adminClientId.Value);
+            var tenant = await _dbContext.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == user.TenantId);
+            bool isMasterTenant = (tenant?.Code == _defaultSettings.TenantCode);
+
+            if (isMasterTenant)
+            {
+                var adminClientId = await GetSSOAdminClientIdAsync();
+                if (adminClientId == null)
+                    return new List<string>();
+
+                return await GetPermissionsForUserAsync(userId, adminClientId.Value);
+            }
+            else
+            {
+                // Non-master tenant user logging into the SSO portal (restricted view context):
+                // Load all permissions mapped to their roles across all client applications.
+                var permissions = await (from rp in _dbContext.RolePermissions
+                                         join ur in _dbContext.UserRoles on rp.RoleId equals ur.RoleId
+                                         where ur.UserId == userId
+                                         select rp.Permission.Code)
+                                         .Distinct()
+                                         .ToListAsync();
+                return permissions;
+            }
         }
 
         // ─────────────────────────────────────────────────────────────────────────
@@ -296,6 +331,7 @@ namespace SSO.Infrastructure.Services
 
             var firstMappedTenant = await _dbContext.TenantClients
                 .Where(tc => tc.ApplicationClientId == client.Id)
+                .OrderBy(tc => tc.Tenant.Code)
                 .Select(tc => tc.Tenant)
                 .AsNoTracking()
                 .FirstOrDefaultAsync();

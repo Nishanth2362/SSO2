@@ -60,6 +60,35 @@ namespace SSO.WebApplication.Server.Extensions
         {
             IConfigurationSection applicationSettingsConfiguration = configuration.GetSection(nameof(AppConfiguration));
             AppConfiguration config = applicationSettingsConfiguration.Get<AppConfiguration>();
+
+            // Always register CORS — independent of SSL proxy setting
+            var configuredOrigins = configuration.GetSection("SecuritySettings:AllowedCorsOrigins").Get<string[]>() ?? Array.Empty<string>();
+            var allowedOrigins = configuredOrigins
+                .Concat(GetApplicationOrigins(config.ApplicationUrl))
+                .Where(origin => !string.IsNullOrWhiteSpace(origin))
+                .Select(origin => origin.TrimEnd('/'))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            _ = services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(builder =>
+                {
+                    if (allowedOrigins.Length == 0)
+                    {
+                        _ = builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+                        return;
+                    }
+
+                    _ = builder
+                        .WithOrigins(allowedOrigins)
+                        .AllowCredentials()
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .SetPreflightMaxAge(TimeSpan.FromSeconds(600));
+                });
+            });
+
             if (config.BehindSSLProxy)
             {
                 _ = services.Configure<ForwardedHeadersOptions>(options =>
@@ -77,31 +106,6 @@ namespace SSO.WebApplication.Server.Extensions
                             Log.Logger.Warning("Invalid Proxy IP of {IpCheck}, Not Loaded", ipCheck);
                         }
                     }
-                });
-
-                _ = services.AddCors(options =>
-                {
-                    var configuredOrigins = configuration.GetSection("SecuritySettings:AllowedCorsOrigins").Get<string[]>() ?? Array.Empty<string>();
-                    var allowedOrigins = configuredOrigins
-                        .Concat(GetApplicationOrigins(config.ApplicationUrl))
-                        .Where(origin => !string.IsNullOrWhiteSpace(origin))
-                        .Distinct(StringComparer.OrdinalIgnoreCase)
-                        .ToArray();
-
-                    options.AddDefaultPolicy(
-                        builder =>
-                        {
-                            if (allowedOrigins.Length == 0)
-                            {
-                                return;
-                            }
-
-                            _ = builder
-                                .WithOrigins(allowedOrigins)
-                                .AllowCredentials()
-                                .AllowAnyHeader()
-                                .AllowAnyMethod();
-                        });
                 });
             }
 
@@ -241,67 +245,78 @@ namespace SSO.WebApplication.Server.Extensions
             if (provider!.ToLower().Equals(ApplicationConstants.DBProvider.SqlServer.ToLower()))
             {
                 // Sql Server (works with both Pomelo and official provider)
-                services.AddHangfire(x => x.UseStorage(new SqlServerStorage(conn, new SqlServerStorageOptions()
-                {
-                    QueuePollInterval = TimeSpan.FromSeconds(15),
-                    JobExpirationCheckInterval = TimeSpan.FromHours(1),
-                    CountersAggregateInterval = TimeSpan.FromMinutes(5),
-                    PrepareSchemaIfNecessary = true,
-                    DashboardJobListLimit = 50000,
-                    TransactionTimeout = TimeSpan.FromMinutes(1),
-                    SchemaName = "Hangfire"
-                })));
+                services.AddHangfire((sp, x) => {
+                    x.UseStorage(new SqlServerStorage(conn, new SqlServerStorageOptions()
+                    {
+                        QueuePollInterval = TimeSpan.FromSeconds(15),
+                        JobExpirationCheckInterval = TimeSpan.FromHours(1),
+                        CountersAggregateInterval = TimeSpan.FromMinutes(5),
+                        PrepareSchemaIfNecessary = true,
+                        DashboardJobListLimit = 50000,
+                        TransactionTimeout = TimeSpan.FromMinutes(1),
+                        SchemaName = "Hangfire"
+                    }));
+                    x.UseFilter(new SSO.WebApplication.Filters.JobFailureFilter(sp));
+                });
             }           
             else if (provider!.ToLower().Equals(ApplicationConstants.DBProvider.Mysql.ToLower()))
             {
                 // MySQL / MariaDB (works with both Pomelo and official provider)
-                services.AddHangfire(x => x.UseStorage(new MySqlStorage(conn, new MySqlStorageOptions()
-                {
-                    TransactionIsolationLevel = System.Transactions.IsolationLevel.ReadCommitted,
-                    QueuePollInterval = TimeSpan.FromSeconds(15),
-                    JobExpirationCheckInterval = TimeSpan.FromHours(1),
-                    CountersAggregateInterval = TimeSpan.FromMinutes(5),
-                    PrepareSchemaIfNecessary = true,
-                    DashboardJobListLimit = 50000,
-                    TransactionTimeout = TimeSpan.FromMinutes(1),
-                    TablesPrefix = "Hangfire"
-                })));
+                services.AddHangfire((sp, x) => {
+                    x.UseStorage(new MySqlStorage(conn, new MySqlStorageOptions()
+                    {
+                        TransactionIsolationLevel = System.Transactions.IsolationLevel.ReadCommitted,
+                        QueuePollInterval = TimeSpan.FromSeconds(15),
+                        JobExpirationCheckInterval = TimeSpan.FromHours(1),
+                        CountersAggregateInterval = TimeSpan.FromMinutes(5),
+                        PrepareSchemaIfNecessary = true,
+                        DashboardJobListLimit = 50000,
+                        TransactionTimeout = TimeSpan.FromMinutes(1),
+                        TablesPrefix = "Hangfire"
+                    }));
+                    x.UseFilter(new SSO.WebApplication.Filters.JobFailureFilter(sp));
+                });
             }
             else if (provider!.ToLower().Equals(ApplicationConstants.DBProvider.Oracle.ToLower()))
             {
                 // Oracle
-                services.AddHangfire(x => x.UseStorage(new OracleStorage(conn, new OracleStorageOptions()
-                {
-                    TransactionIsolationLevel = System.Data.IsolationLevel.ReadUncommitted,
-                    QueuePollInterval = TimeSpan.FromSeconds(15),
-                    JobExpirationCheckInterval = TimeSpan.FromHours(1),
-                    CountersAggregateInterval = TimeSpan.FromMinutes(5),
-                    PrepareSchemaIfNecessary = true,
-                    DashboardJobListLimit = 50000,
-                    TransactionTimeout = TimeSpan.FromMinutes(1),
-                    SchemaName = "Hangfire"
-                })));
+                services.AddHangfire((sp, x) => {
+                    x.UseStorage(new OracleStorage(conn, new OracleStorageOptions()
+                    {
+                        TransactionIsolationLevel = System.Data.IsolationLevel.ReadUncommitted,
+                        QueuePollInterval = TimeSpan.FromSeconds(15),
+                        JobExpirationCheckInterval = TimeSpan.FromHours(1),
+                        CountersAggregateInterval = TimeSpan.FromMinutes(5),
+                        PrepareSchemaIfNecessary = true,
+                        DashboardJobListLimit = 50000,
+                        TransactionTimeout = TimeSpan.FromMinutes(1),
+                        SchemaName = "Hangfire"
+                    }));
+                    x.UseFilter(new SSO.WebApplication.Filters.JobFailureFilter(sp));
+                });
             }
             else if (provider!.ToLower().Equals(ApplicationConstants.DBProvider.PostgreSql.ToLower()))
             {
-                _ = services.AddHangfire(x => x.UseStorage(new PostgreSqlStorage(conn, new PostgreSqlStorageOptions()
-                {
-                    QueuePollInterval = TimeSpan.FromSeconds(15),
-                    JobExpirationCheckInterval = TimeSpan.FromHours(1),
-                    CountersAggregateInterval = TimeSpan.FromMinutes(5),
-                    PrepareSchemaIfNecessary = true,
-                    SchemaName = "Hangfire",
-                    UseNativeDatabaseTransactions = true,
-                    AllowUnsafeValues = false,
-                    DeleteExpiredBatchSize = 1000,
-                    DistributedLockTimeout = TimeSpan.FromMinutes(1),
-                    EnableLongPolling = true,
-                    EnableTransactionScopeEnlistment = true,
-                    InvisibilityTimeout = TimeSpan.FromMinutes(5),
-                    TransactionSynchronisationTimeout = TimeSpan.FromMinutes(1),
-                    UseSlidingInvisibilityTimeout = true
-                })));
-
+                services.AddHangfire((sp, x) => {
+                    x.UseStorage(new PostgreSqlStorage(conn, new PostgreSqlStorageOptions()
+                    {
+                        QueuePollInterval = TimeSpan.FromSeconds(15),
+                        JobExpirationCheckInterval = TimeSpan.FromHours(1),
+                        CountersAggregateInterval = TimeSpan.FromMinutes(5),   
+                        PrepareSchemaIfNecessary = true,
+                        SchemaName = "Hangfire",
+                        UseNativeDatabaseTransactions = true,
+                        AllowUnsafeValues = false,
+                        DeleteExpiredBatchSize = 1000,
+                        DistributedLockTimeout = TimeSpan.FromMinutes(1),
+                        EnableLongPolling = true,
+                        EnableTransactionScopeEnlistment = true,
+                        InvisibilityTimeout = TimeSpan.FromMinutes(5),
+                        TransactionSynchronisationTimeout = TimeSpan.FromMinutes(1),
+                        UseSlidingInvisibilityTimeout = true
+                    }));
+                    x.UseFilter(new SSO.WebApplication.Filters.JobFailureFilter(sp));
+                });
             }
             else
             {
@@ -368,8 +383,10 @@ namespace SSO.WebApplication.Server.Extensions
             return services;
         }
 
-        internal static IServiceCollection AddIdentity(this IServiceCollection services)
+        internal static IServiceCollection AddIdentity(this IServiceCollection services, IConfiguration configuration)
         {
+            var cookieExpireMinutes = configuration.GetValue<int>("SecuritySettings:CookieExpireTimeSpanInMinutes", 480);
+
             _ = services
                 .AddIdentity<ApplicationUser, ApplicationRole>(options =>
                 {
@@ -401,7 +418,7 @@ namespace SSO.WebApplication.Server.Extensions
                 options.LoginPath = "/Login";
                 options.LogoutPath = "/Login/Logout";
                 options.AccessDeniedPath = "/Login/AccessDenied";
-                options.ExpireTimeSpan = TimeSpan.FromHours(8);
+                options.ExpireTimeSpan = TimeSpan.FromMinutes(cookieExpireMinutes);
                 options.Cookie.MaxAge = options.ExpireTimeSpan;
                 options.SlidingExpiration = true;
                 options.Events.OnRedirectToLogin = context =>
@@ -436,6 +453,7 @@ namespace SSO.WebApplication.Server.Extensions
             _ = services.AddTransient<IDateTimeService, SystemDateTimeService>();
             _ = services.Configure<MailConfiguration>(configuration.GetSection("MailConfiguration"));
             _ = services.AddTransient<IMailService, SMTPMailService>();
+            _ = services.AddScoped<SSO.Application.Interfaces.Services.IJobProgressService, SSO.WebApplication.Services.JobProgressService>();
             return services;
         }
 

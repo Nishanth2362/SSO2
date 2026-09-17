@@ -28,6 +28,10 @@ namespace SSO.Application.Features.Roles.Queries.GetPaged
             this.Draw = request.Draw;
             this.SortColumn = request.SortColumn;
             this.SortDirection = request.SortDirection;
+            this.SearchColumn = request.SearchColumn;
+            this.Filters = request.Filters;
+            this.StartDate = request.StartDate;
+            this.EndDate = request.EndDate;
         }
     }
 
@@ -36,21 +40,31 @@ namespace SSO.Application.Features.Roles.Queries.GetPaged
         private readonly RoleManager<ApplicationRole> _roleManager;
         private readonly IDataTableService _dataTableService;
         private readonly ILogger<GetPagedRolesQueryHandler> _logger;
-        public GetPagedRolesQueryHandler(RoleManager<ApplicationRole> roleManager, IDataTableService dataTableService, ILogger<GetPagedRolesQueryHandler> logger)
+        private readonly ICurrentUserService _currentUserService;
+
+        public GetPagedRolesQueryHandler(RoleManager<ApplicationRole> roleManager, IDataTableService dataTableService, ILogger<GetPagedRolesQueryHandler> logger, ICurrentUserService currentUserService)
         {
             _roleManager = roleManager;
             _dataTableService = dataTableService;
             _logger = logger;
+            _currentUserService = currentUserService;
         }
         public async Task<DataTableResponse<RoleResponse>> Handle(GetPagedRolesQuery request, CancellationToken cancellationToken)
         {
             try
             {
                 var query = _roleManager.Roles;
-                if (request.TenantId != Guid.Empty)
+
+                if (!_currentUserService.IsMasterTenant)
                 {
-                    query.Where(x => x.TenantId == request.TenantId).AsNoTracking();
+                    var tenantId = _currentUserService.TenantId;
+                    query = query.Where(x => x.TenantId == tenantId);
                 }
+                else if (request.TenantId != Guid.Empty)
+                {
+                    query = query.Where(x => x.TenantId == request.TenantId);
+                }
+
                 return await _dataTableService.BuildAsync(
                                 query,
                                 request,
@@ -60,13 +74,25 @@ namespace SSO.Application.Features.Roles.Queries.GetPaged
                                     Name = e.Name,
                                     Description = e.Description,
                                     TenantId = e.TenantId,
-                                    IsSystemRole = e.IsSystemRole
+                                    IsSystemRole = e.IsSystemRole,
+                                    CreatedBy = e.CreatedBy,
+                                    CreatedOn = e.CreatedOn,
+                                    LastModifiedBy = e.LastModifiedBy,
+                                    LastModifiedOn = e.LastModifiedOn,
+                                    IPAddress = e.IPAddress,
+                                    IsDeleted = e.IsDeleted
                                 },
                                 e => true,
                                 new List<string>
                                 {
                                     nameof(Domain.Entities.ApplicationRole.Name),
-                                    nameof(Domain.Entities.ApplicationRole.Description)
+                                    nameof(Domain.Entities.ApplicationRole.Description),
+                                    nameof(Domain.Entities.ApplicationRole.CreatedBy),
+                                    nameof(Domain.Entities.ApplicationRole.CreatedOn),
+                                    nameof(Domain.Entities.ApplicationRole.LastModifiedBy),
+                                    nameof(Domain.Entities.ApplicationRole.LastModifiedOn),
+                                    nameof(Domain.Entities.ApplicationRole.IPAddress),
+                                    nameof(Domain.Entities.ApplicationRole.IsDeleted)
                                 },
                                 cancellationToken);
 

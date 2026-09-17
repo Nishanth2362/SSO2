@@ -61,8 +61,14 @@ namespace SSO.Application.Features.Tenants.Queries.GetById
                     BillingAddress = tenant.BillingAddress,
                     GracePeriodDays = tenant.GracePeriodDays,
                     Currency = tenant.Currency,
-                    AllowPublicRegistration = tenant.AllowPublicRegistration,
-                    ClientIds = tenant.TenantClients?.Select(tc => tc.ApplicationClientId).ToList()
+                    BackgroundText = tenant.BackgroundText,
+                    ClientIds = tenant.TenantClients?.Select(tc => tc.ApplicationClientId).ToList(),
+                    CreatedBy = tenant.CreatedBy,
+                    CreatedOn = tenant.CreatedOn,
+                    LastModifiedBy = tenant.LastModifiedBy,
+                    LastModifiedOn = tenant.LastModifiedOn,
+                    IPAddress = tenant.IPAddress,
+                    IsDeleted = tenant.IsDeleted
                 };
 
                 return await Result<TenantResponse>.SuccessAsync(response);

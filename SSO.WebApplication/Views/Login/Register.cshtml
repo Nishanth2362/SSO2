@@ -2,90 +2,555 @@
 @model SSO.Application.Requests.Identity.RegisterRequest
 @{
     var tenant = ViewBag.TenantBranding as Tenants;
-    var rawLogo = tenant?.LogoUrl?.Replace("\\", "/");
-    var logo = !string.IsNullOrEmpty(rawLogo) ? "/" + rawLogo : "/pwa-icon-512.png";
-    var tenantName = tenant?.Name ?? "Identity System";
-    ViewData["Title"] = "Register";
-    ViewData["ChalkSubtitle"] = "Create Your Account";
+    var clientName = ViewBag.ClientName as string;
+    var appOrTenantName = !string.IsNullOrWhiteSpace(clientName) ? clientName : (tenant?.Name ?? "Schoola SSO Gateway");
+    var step = Model?.Step ?? 1;
+
+    ViewData["Title"] = step == 1 ? "Register - Details" : step == 2 ? "Register - Verify Email" : "Register - Set Password";
+    ViewData["ChalkSubtitle"] = step == 1 ? "Create Your Account" : step == 2 ? "Email Verification" : "Set Your Password";
 }
 
-<div class="chalk-card-header">
-    <h2 class="chalk-card-title">Create Account</h2>
-    <p class="chalk-card-desc">Join @tenantName and start your journey today.</p>
+<!-- ═════════════════════════════════════════════════════════════════════════ -->
+<!-- 3-STEP PROGRESS INDICATOR                                                 -->
+<!-- ═════════════════════════════════════════════════════════════════════════ -->
+<div class="chalk-step-indicator" id="regStepIndicator" style="margin-bottom: 24px;">
+    <!-- Node 1: Profile Details -->
+    <div class="chalk-step-node @(step > 1 ? "chalk-step-completed" : "chalk-step-active")" id="regStepNode1">
+        <div class="chalk-step-circle">
+            <svg class="chalk-step-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span class="chalk-step-number">1</span>
+        </div>
+        <span class="chalk-step-label">Details</span>
+    </div>
+
+    <!-- Line 1 -->
+    <div class="chalk-step-line @(step > 1 ? "chalk-step-active" : "")"></div>
+
+    <!-- Node 2: Email Verification -->
+    <div class="chalk-step-node @(step > 2 ? "chalk-step-completed" : step == 2 ? "chalk-step-active" : "")" id="regStepNode2">
+        <div class="chalk-step-circle">
+            <svg class="chalk-step-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span class="chalk-step-number">2</span>
+        </div>
+        <span class="chalk-step-label">Verify</span>
+    </div>
+
+    <!-- Line 2 -->
+    <div class="chalk-step-line @(step > 2 ? "chalk-step-active" : "")"></div>
+
+    <!-- Node 3: Create Password -->
+    <div class="chalk-step-node @(step == 3 ? "chalk-step-active" : "")" id="regStepNode3">
+        <div class="chalk-step-circle">
+            <svg class="chalk-step-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span class="chalk-step-number">3</span>
+        </div>
+        <span class="chalk-step-label">Security</span>
+    </div>
 </div>
 
-<form method="post" asp-action="Register" asp-controller="Login" asp-route-returnUrl="@Model.ReturnUrl">
-    <input type="hidden" asp-for="ReturnUrl" />
-    <input type="hidden" asp-for="ClientId" />
-    <input type="hidden" asp-for="TenantId" />
+@{
+    var errorMessages = ViewData.ModelState.Values
+        .SelectMany(v => v.Errors)
+        .Select(e => e.ErrorMessage)
+        .Where(m => !string.IsNullOrWhiteSpace(m))
+        .Distinct()
+        .ToList();
+}
 
-    <!-- Full Name -->
-    <div class="form-group">
-        <div class="chalk-input-wrap">
-            <svg class="chalk-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-            <input type="text" class="form-input" asp-for="Name" placeholder="Full Name" required>
-        </div>
-        <span asp-validation-for="Name" class="text-danger"></span>
+@if (step == 1)
+{
+    <!-- ═════════════════════════════════════════════════════════════════════════ -->
+    <!-- STEP 1: Name, Email Address & Mobile Number                               -->
+    <!-- ═════════════════════════════════════════════════════════════════════════ -->
+    <div class="chalk-card-header">
+        <h2 class="chalk-card-title">Create Account</h2>
+        <p class="chalk-card-desc">Step 1 of 3: Enter your details to join @appOrTenantName.</p>
     </div>
 
-    <!-- Email -->
-    <div class="form-group">
-        <div class="chalk-input-wrap">
-            <svg class="chalk-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
-                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
-            </svg>
-            <input type="email" class="form-input" asp-for="Email" placeholder="Email Address" required>
+    <form method="post" asp-action="Register" asp-controller="Login" asp-route-returnUrl="@Model?.ReturnUrl" id="regForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="ReturnUrl" />
+        <input type="hidden" asp-for="ClientId" />
+        <input type="hidden" asp-for="TenantId" />
+        <input type="hidden" asp-for="Step" value="1" />
+        <input type="hidden" asp-for="FormTimestampToken" />
+
+        <!-- 🛡️ Anti-Bot Honeypot trap (Invisible decoy) -->
+        <input type="text"
+               name="Website_Hp"
+               id="Website_Hp"
+               value=""
+               tabindex="-1"
+               autocomplete="off"
+               style="opacity: 0; position: absolute; top: 0; left: -9999px; height: 1px; width: 1px; pointer-events: none;" />
+
+        <!-- Full Name -->
+        <div class="form-group">
+            <div class="chalk-input-wrap">
+                <svg class="chalk-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <input type="text" class="form-input" asp-for="Name" placeholder="Full Name" maxlength="100" required autofocus>
+                <button type="button" class="clear-input-btn" aria-label="Clear text" tabindex="-1" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="m15 9-6 6"></path>
+                        <path d="m9 9 6 6"></path>
+                    </svg>
+                </button>
+            </div>
+            <span asp-validation-for="Name" class="text-danger"></span>
         </div>
-        <span asp-validation-for="Email" class="text-danger"></span>
+
+        <!-- Email Address -->
+        <div class="form-group">
+            <div class="chalk-input-wrap">
+                <svg class="chalk-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+                </svg>
+                <input type="email" class="form-input" asp-for="Email" placeholder="Email Address" maxlength="256" required>
+                <button type="button" class="clear-input-btn" aria-label="Clear text" tabindex="-1" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="m15 9-6 6"></path>
+                        <path d="m9 9 6 6"></path>
+                    </svg>
+                </button>
+            </div>
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+
+        <!-- Mobile Number -->
+        <div class="form-group">
+            <div class="chalk-input-wrap">
+                <svg class="chalk-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
+                <input type="tel"
+                       class="form-input"
+                       asp-for="PhoneNumber"
+                       placeholder="Mobile Phone Number (e.g. +919876543210)"
+                       maxlength="16"
+                       required>
+                <button type="button" class="clear-input-btn" aria-label="Clear text" tabindex="-1" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="m15 9-6 6"></path>
+                        <path d="m9 9 6 6"></path>
+                    </svg>
+                </button>
+            </div>
+            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+        </div>
+
+        <!-- Terms & Privacy Agreement Notice -->
+        <p style="text-align: center; font-size: 0.82rem; color: #94A3B8; margin: 15px 0 20px 0; line-height: 1.5;">
+            By continuing you agree to our 
+            <a asp-action="Terms" asp-controller="Login" asp-route-returnUrl="@Model?.ReturnUrl" target="_blank" class="chalk-link-bold" style="color: #38BDF8; text-decoration: underline;">Terms</a> 
+            and 
+            <a asp-action="Privacy" asp-controller="Login" asp-route-returnUrl="@Model?.ReturnUrl" target="_blank" class="chalk-link-bold" style="color: #38BDF8; text-decoration: underline;">Privacy Policy</a>.
+        </p>
+
+        <!-- Submit Button -->
+        <button type="submit" class="chalk-btn" id="regSubmitBtn">
+            <span>Continue to Email Verification</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14"></path>
+                <path d="m12 5 7 7-7 7"></path>
+            </svg>
+        </button>
+    </form>
+
+    <!-- Links -->
+    <div class="chalk-links">
+        <div class="chalk-links-divider">
+            <span class="chalk-link">Already have an account? </span>
+            <a asp-action="Index" asp-controller="Login" asp-route-returnUrl="@Model?.ReturnUrl" class="chalk-link-bold">Sign In</a>
+        </div>
+    </div>
+}
+else if (step == 2)
+{
+    <!-- ═════════════════════════════════════════════════════════════════════════ -->
+    <!-- STEP 2: Email OTP Verification Card                                     -->
+    <!-- ═════════════════════════════════════════════════════════════════════════ -->
+    <div class="chalk-card-header">
+        <h2 class="chalk-card-title">Verify Your Email</h2>
+        <p class="chalk-card-desc">
+            Step 2 of 3: We sent a 6-digit verification code to
+            <strong style="color: var(--chalk-accent, #38BDF8);">@(ViewBag.MaskedEmail ?? Model?.Email)</strong>.
+        </p>
     </div>
 
-    <!-- Password -->
-    <div class="form-group">
-        <div class="chalk-input-wrap">
-            <svg class="chalk-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-            </svg>
-            <input type="password" class="form-input" asp-for="Password" placeholder="Password" required>
+    <form method="post" asp-action="VerifyRegistrationOtp" asp-controller="Login" asp-route-returnUrl="@Model?.ReturnUrl" id="regVerifyForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="ReturnUrl" />
+        <input type="hidden" asp-for="ClientId" />
+        <input type="hidden" asp-for="TenantId" />
+        <input type="hidden" asp-for="RegistrationToken" />
+        <input type="hidden" asp-for="Step" value="2" />
+        <input type="hidden" asp-for="Name" />
+        <input type="hidden" asp-for="Email" />
+        <input type="hidden" asp-for="PhoneNumber" />
+
+        <!-- 6-digit Verification Code -->
+        <div class="form-group">
+            <div class="chalk-input-wrap">
+                <svg class="chalk-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+                </svg>
+                <input type="text"
+                       class="form-input"
+                       asp-for="VerificationCode"
+                       placeholder="Enter 6-digit code"
+                       autocomplete="one-time-code"
+                       maxlength="6"
+                       inputmode="numeric"
+                       pattern="[0-9]{6}"
+                       autofocus
+                       required>
+            </div>
+            <span asp-validation-for="VerificationCode" class="text-danger"></span>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                <span style="font-size: 0.82rem; color: #94A3B8;">Didn't receive the code?</span>
+                <a class="otp-resend-link" id="regResendOtpBtn" style="cursor:pointer; color: #38BDF8; font-weight: 500;">Resend Code</a>
+            </div>
         </div>
-        <span asp-validation-for="Password" class="text-danger"></span>
+
+        <!-- Action Buttons: Back + Verify -->
+        <div style="display: flex; gap: 12px; margin-top: 20px;">
+            <button type="submit" class="chalk-btn" id="regVerifySubmitBtn" style="flex: 1;">
+                <span>Verify & Next</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12h14"></path>
+                    <path d="m12 5 7 7-7 7"></path>
+                </svg>
+            </button>
+        </div>
+    </form>
+
+    <!-- Back Button to Step 1 -->
+    <div class="chalk-links" style="margin-top: 20px;">
+        <form method="post" asp-action="BackToStep1" asp-controller="Login">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="ReturnUrl" />
+            <input type="hidden" asp-for="ClientId" />
+            <input type="hidden" asp-for="TenantId" />
+            <input type="hidden" asp-for="RegistrationToken" />
+            <button type="submit" style="background: none; border: none; color: #94A3B8; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: 0.88rem;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                <span>Back to Details</span>
+            </button>
+        </form>
+    </div>
+}
+else if (step == 3)
+{
+    <!-- ═════════════════════════════════════════════════════════════════════════ -->
+    <!-- STEP 3: Create & Confirm Password                                         -->
+    <!-- ═════════════════════════════════════════════════════════════════════════ -->
+    <div class="chalk-card-header">
+        <h2 class="chalk-card-title">Create Password</h2>
+        <p class="chalk-card-desc">Step 3 of 3: Choose a strong password to protect your account.</p>
     </div>
 
-    <!-- Confirm Password -->
-    <div class="form-group">
-        <div class="chalk-input-wrap">
-            <svg class="chalk-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+    <form method="post" asp-action="CompleteRegistration" asp-controller="Login" asp-route-returnUrl="@Model?.ReturnUrl" id="step3Form">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="ReturnUrl" />
+        <input type="hidden" asp-for="ClientId" />
+        <input type="hidden" asp-for="TenantId" />
+        <input type="hidden" asp-for="RegistrationToken" />
+        <input type="hidden" asp-for="Step" value="3" />
+        <input type="hidden" asp-for="Name" />
+        <input type="hidden" asp-for="Email" />
+        <input type="hidden" asp-for="PhoneNumber" />
+
+        <!-- Password -->
+        <div class="form-group">
+            <div class="chalk-input-wrap">
+                <svg class="chalk-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <input type="password" class="form-input" asp-for="Password" id="regPassword" placeholder="Create Password (min. 6 characters)" required autofocus>
+                <button type="button" class="password-toggle-btn" onclick="toggleRegPassword(this)" aria-label="Toggle password visibility">
+                    <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <svg class="eye-off-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                </button>
+            </div>
+            <span asp-validation-for="Password" class="text-danger"></span>
+
+            <!-- Live Password Strength Meter -->
+            <div id="passwordStrengthWrap" style="margin-top: 8px;">
+                <div style="height: 4px; width: 100%; background: rgba(255, 255, 255, 0.1); border-radius: 4px; overflow: hidden;">
+                    <div id="passwordStrengthBar" style="height: 100%; width: 0%; transition: all 0.3s ease; border-radius: 4px;"></div>
+                </div>
+                <div id="passwordStrengthLabel" style="font-size: 0.76rem; color: #94A3B8; margin-top: 4px; text-align: right;"></div>
+            </div>
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="form-group">
+            <div class="chalk-input-wrap">
+                <svg class="chalk-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <input type="password" class="form-input" asp-for="ConfirmPassword" id="regConfirmPassword" placeholder="Confirm Password" required>
+                <button type="button" class="password-toggle-btn" onclick="toggleRegPassword(this)" aria-label="Toggle password visibility">
+                    <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <svg class="eye-off-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                </button>
+            </div>
+            <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+            <div id="passwordMatchMessage" style="font-size: 0.78rem; margin-top: 4px; display: none;"></div>
+        </div>
+
+        <!-- Terms & Privacy Agreement Notice -->
+        <p style="text-align: center; font-size: 0.82rem; color: #94A3B8; margin: 15px 0 20px 0; line-height: 1.5;">
+            By completing registration you agree to our 
+            <a asp-action="Terms" asp-controller="Login" asp-route-returnUrl="@Model?.ReturnUrl" target="_blank" class="chalk-link-bold" style="color: #38BDF8; text-decoration: underline;">Terms</a> 
+            and 
+            <a asp-action="Privacy" asp-controller="Login" asp-route-returnUrl="@Model?.ReturnUrl" target="_blank" class="chalk-link-bold" style="color: #38BDF8; text-decoration: underline;">Privacy Policy</a>.
+        </p>
+
+        <!-- Submit Button -->
+        <button type="submit" class="chalk-btn" id="regCompleteBtn">
+            <span>Create Account & Sign In</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
-            <input type="password" class="form-input" asp-for="ConfirmPassword" placeholder="Confirm Password" required>
-        </div>
-        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+        </button>
+    </form>
+
+    <!-- Back Button to Step 2 -->
+    <div class="chalk-links" style="margin-top: 20px;">
+        <form method="post" asp-action="BackToStep2" asp-controller="Login">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="ReturnUrl" />
+            <input type="hidden" asp-for="ClientId" />
+            <input type="hidden" asp-for="TenantId" />
+            <input type="hidden" asp-for="RegistrationToken" />
+            <button type="submit" style="background: none; border: none; color: #94A3B8; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: 0.88rem;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                <span>Back to Verification</span>
+            </button>
+        </form>
     </div>
+}
 
-    @if (!ViewData.ModelState.IsValid)
-    {
-        <div class="chalk-alert chalk-alert-error">
-            <div asp-validation-summary="All" class="chalk-validation-summary"></div>
-        </div>
-    }
+@section Scripts {
+    <script>
+        @if (errorMessages.Any())
+        {
+            <text>
+            (function () {
+                const errors = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(errorMessages));
+                if (errors && errors.length > 0) {
+                    const msg = errors.length === 1 
+                        ? errors[0] 
+                        : '<ul style="margin:0;padding-left:16px;text-align:left;">' + errors.map(function (e) { return '<li>' + e + '</li>'; }).join('') + '</ul>';
+                    if (window.showToast) {
+                        window.showToast('error', 'Registration Error', msg, 6000);
+                    }
+                }
+            })();
+            </text>
+        }
 
-    <!-- Submit Button -->
-    <button type="submit" class="chalk-btn">
-        Create Account
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 12h14"></path>
-            <path d="m12 5 7 7-7 7"></path>
-        </svg>
-    </button>
-</form>
+        function toggleRegPassword(btn) {
+            const input = btn.closest('.chalk-input-wrap').querySelector('input');
+            const eye = btn.querySelector('.eye-icon');
+            const eyeOff = btn.querySelector('.eye-off-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                eye.style.display = 'none';
+                eyeOff.style.display = 'block';
+            } else {
+                input.type = 'password';
+                eye.style.display = 'block';
+                eyeOff.style.display = 'none';
+            }
+        }
 
-<!-- Links -->
-<div class="chalk-links">
-    <span class="chalk-link">Already have an account? </span>
-    <a asp-action="Index" asp-controller="Login" asp-route-returnUrl="@Model.ReturnUrl" class="chalk-link-bold">Sign In</a>
-</div>
+        // Auto-show/hide clear buttons
+        document.querySelectorAll('.chalk-input-wrap .form-input').forEach(input => {
+            const clearBtn = input.parentElement.querySelector('.clear-input-btn');
+            if (clearBtn) {
+                const toggle = () => clearBtn.style.display = input.value.length > 0 ? 'flex' : 'none';
+                input.addEventListener('input', toggle);
+                clearBtn.addEventListener('click', () => {
+                    input.value = '';
+                    toggle();
+                    input.focus();
+                });
+                toggle();
+            }
+        });
+
+        // ═════════════════════════════════════════════════════════════════════
+        // Step 2 OTP Resend Countdown Logic
+        // ═════════════════════════════════════════════════════════════════════
+        const resendBtn = document.getElementById('regResendOtpBtn');
+
+        if (resendBtn) {
+            let resendCooldown = 60;
+            let cooldownTimer = null;
+
+            function startCooldown(seconds) {
+                resendCooldown = seconds;
+                resendBtn.style.pointerEvents = 'none';
+                resendBtn.style.opacity = '0.5';
+                resendBtn.textContent = `Resend in ${resendCooldown}s`;
+
+                if (cooldownTimer) clearInterval(cooldownTimer);
+                cooldownTimer = setInterval(() => {
+                    resendCooldown--;
+                    if (resendCooldown <= 0) {
+                        clearInterval(cooldownTimer);
+                        resendBtn.style.pointerEvents = 'auto';
+                        resendBtn.style.opacity = '1';
+                        resendBtn.textContent = 'Resend Code';
+                    } else {
+                        resendBtn.textContent = `Resend in ${resendCooldown}s`;
+                    }
+                }, 1000);
+            }
+
+            startCooldown(60);
+
+            resendBtn.addEventListener('click', async function (e) {
+                e.preventDefault();
+                if (resendCooldown > 0) return;
+
+                const tokenInput = document.querySelector('input[name="RegistrationToken"]');
+                const token = tokenInput ? tokenInput.value : '';
+                if (!token) return;
+
+                resendBtn.textContent = 'Sending...';
+                resendBtn.style.pointerEvents = 'none';
+
+                try {
+                    const tokenVerificationInput = document.querySelector('input[name="__RequestVerificationToken"]');
+                    const antiforgery = tokenVerificationInput ? tokenVerificationInput.value : '';
+
+                    const resp = await fetch('/Login/ResendRegistrationOtp', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': antiforgery
+                        },
+                        body: JSON.stringify({ registrationToken: token })
+                    });
+
+                    const data = await resp.json();
+                    if (data.success) {
+                        if (window.showToast) {
+                            window.showToast('success', 'Verification Sent', data.message || 'New verification code sent to your email.');
+                        }
+                        startCooldown(60);
+                    } else {
+                        if (window.showToast) {
+                            window.showToast('error', 'Resend Failed', data.message || 'Could not resend code. Please try again.');
+                        }
+                        resendBtn.style.pointerEvents = 'auto';
+                        resendBtn.textContent = 'Resend Code';
+                    }
+                } catch (err) {
+                    if (window.showToast) {
+                        window.showToast('error', 'Network Error', 'Network error while requesting code.');
+                    }
+                    resendBtn.style.pointerEvents = 'auto';
+                    resendBtn.textContent = 'Resend Code';
+                }
+            });
+        }
+
+        // ═════════════════════════════════════════════════════════════════════
+        // Step 3 Password Strength Meter & Live Match Validator
+        // ═════════════════════════════════════════════════════════════════════
+        const pwdInput = document.getElementById('regPassword');
+        const confirmInput = document.getElementById('regConfirmPassword');
+        const bar = document.getElementById('passwordStrengthBar');
+        const label = document.getElementById('passwordStrengthLabel');
+        const matchMsg = document.getElementById('passwordMatchMessage');
+
+        if (pwdInput && bar && label) {
+            pwdInput.addEventListener('input', function () {
+                const val = pwdInput.value;
+                let score = 0;
+                if (val.length >= 6) score += 25;
+                if (val.length >= 10) score += 25;
+                if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score += 25;
+                if (/[0-9]/.test(val) && /[^A-Za-z0-9]/.test(val)) score += 25;
+
+                bar.style.width = score + '%';
+                if (score <= 25) {
+                    bar.style.backgroundColor = '#EF4444';
+                    label.textContent = 'Weak password';
+                    label.style.color = '#EF4444';
+                } else if (score <= 50) {
+                    bar.style.backgroundColor = '#F59E0B';
+                    label.textContent = 'Fair password';
+                    label.style.color = '#F59E0B';
+                } else if (score <= 75) {
+                    bar.style.backgroundColor = '#38BDF8';
+                    label.textContent = 'Good password';
+                    label.style.color = '#38BDF8';
+                } else {
+                    bar.style.backgroundColor = '#10B981';
+                    label.textContent = 'Strong password';
+                    label.style.color = '#10B981';
+                }
+
+                validateMatch();
+            });
+        }
+
+        if (confirmInput) {
+            confirmInput.addEventListener('input', validateMatch);
+        }
+
+        function validateMatch() {
+            if (!pwdInput || !confirmInput || !matchMsg) return;
+            if (confirmInput.value.length === 0) {
+                matchMsg.style.display = 'none';
+                return;
+            }
+
+            matchMsg.style.display = 'block';
+            if (pwdInput.value === confirmInput.value) {
+                matchMsg.textContent = '✓ Passwords match';
+                matchMsg.style.color = '#10B981';
+            } else {
+                matchMsg.textContent = '✕ Passwords do not match';
+                matchMsg.style.color = '#EF4444';
+            }
+        }
+    </script>
+}

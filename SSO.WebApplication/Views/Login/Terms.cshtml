@@ -1,0 +1,81 @@
+@using SSO.Domain.Entities
+@{
+    var tenant = ViewBag.TenantBranding as Tenants;
+    var clientName = ViewBag.ClientName as string;
+    var appOrTenantName = !string.IsNullOrWhiteSpace(clientName) ? clientName : (tenant?.Name ?? "Schoola SSO Identity Gateway");
+    ViewData["Title"] = "Terms of Service";
+    ViewData["ChalkSubtitle"] = "Terms & Conditions";
+    var returnUrl = ViewBag.ReturnUrl as string;
+}
+
+<div class="chalk-card-header" style="margin-bottom: 20px;">
+    <h2 class="chalk-card-title">Terms of Service</h2>
+    <p class="chalk-card-desc">Last updated: September 2026</p>
+</div>
+
+<div class="legal-content-container" style="color: #E2E8F0; font-size: 0.88rem; line-height: 1.65; max-height: 480px; overflow-y: auto; padding-right: 8px; margin-bottom: 20px;">
+    <section style="margin-bottom: 16px;">
+        <h4 style="color: #38BDF8; font-size: 1rem; margin-bottom: 6px; font-weight: 600;">1. Acceptance of Terms</h4>
+        <p style="color: #94A3B8;">
+            By accessing or registering an account on @appOrTenantName ("Platform", "we", "our", or "us"), you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using or accessing this service.
+        </p>
+    </section>
+
+    <section style="margin-bottom: 16px;">
+        <h4 style="color: #38BDF8; font-size: 1rem; margin-bottom: 6px; font-weight: 600;">2. User Accounts & Security</h4>
+        <p style="color: #94A3B8;">
+            You are responsible for safeguarding your password and account credentials. You agree to provide accurate, complete, and up-to-date information during registration and notify us immediately upon becoming aware of any unauthorized access to your account. You may not use throwaway or disposable email services to create accounts on this platform.
+        </p>
+    </section>
+
+    <section style="margin-bottom: 16px;">
+        <h4 style="color: #38BDF8; font-size: 1rem; margin-bottom: 6px; font-weight: 600;">3. Acceptable Use Policy</h4>
+        <p style="color: #94A3B8;">
+            You agree not to misuse our authentication and SSO services. Specifically, you may not:
+        </p>
+        <ul style="color: #94A3B8; padding-left: 20px; margin-top: 6px; list-style-type: disc;">
+            <li>Deploy automated bots, scrapers, or scripts against our authentication endpoints;</li>
+            <li>Attempt credential stuffing, brute force, or account enumeration attacks;</li>
+            <li>Interfere with or disrupt the integrity or performance of the security telemetry;</li>
+            <li>Circumvent multi-factor authentication (MFA) or anti-bot verification mechanisms.</li>
+        </ul>
+    </section>
+
+    <section style="margin-bottom: 16px;">
+        <h4 style="color: #38BDF8; font-size: 1rem; margin-bottom: 6px; font-weight: 600;">4. Authentication & Single Sign-On (SSO)</h4>
+        <p style="color: #94A3B8;">
+            Our platform provides unified OpenID Connect and OAuth 2.0 single sign-on services. When you authorize third-party client applications connected to our identity gateway, you grant those applications permission to access your profile information in accordance with the requested scopes and permissions.
+        </p>
+    </section>
+
+    <section style="margin-bottom: 16px;">
+        <h4 style="color: #38BDF8; font-size: 1rem; margin-bottom: 6px; font-weight: 600;">5. Account Termination & Suspension</h4>
+        <p style="color: #94A3B8;">
+            We reserve the right to suspend or terminate your account immediately, without prior notice, in the event of suspected bot activity, security breaches, or violations of these Terms.
+        </p>
+    </section>
+
+    <section style="margin-bottom: 16px;">
+        <h4 style="color: #38BDF8; font-size: 1rem; margin-bottom: 6px; font-weight: 600;">6. Contact & Support</h4>
+        <p style="color: #94A3B8;">
+            For questions regarding these Terms of Service or to report security vulnerabilities, please contact your organization administrator or our security operations center.
+        </p>
+    </section>
+</div>
+
+<div class="chalk-links" style="margin-top: 20px;">
+    <div class="chalk-links-divider">
+        @if (!string.IsNullOrEmpty(returnUrl))
+        {
+            <a asp-action="Register" asp-controller="Login" asp-route-returnUrl="@returnUrl" class="chalk-link">
+                ← Back to Registration
+            </a>
+        }
+        else
+        {
+            <a asp-action="Index" asp-controller="Login" class="chalk-link">
+                ← Back to Sign In
+            </a>
+        }
+    </div>
+</div>

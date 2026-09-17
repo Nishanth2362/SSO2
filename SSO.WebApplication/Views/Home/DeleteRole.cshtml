@@ -5,48 +5,61 @@
 
 <form id="deleteRoleForm">
     <input type="hidden" asp-for="Id" />
-    <div class="modal-body">
-        <div style="text-align: center; padding: 20px 0;">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-error" style="margin-bottom: 16px;">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                <line x1="12" y1="9" x2="12" y2="13"></line>
-                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-            </svg>
-            <h3 style="margin-bottom: 8px;">Are you sure?</h3>
-            <p style="color: var(--text-muted); font-size: 0.95rem;">
-                This action cannot be undone. This will permanently delete the selected role across the system.
-            </p>
+    <div class="modal-body" style="padding: 20px;">
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0 0 16px; line-height: 1.5;">
+            This cannot be undone. Type <strong style="color: var(--text-main); font-weight: 700;">DELETE</strong> to confirm.
+        </p>
+        <div style="margin-bottom: 8px;">
+            <input type="text" class="form-input delete-confirm-input" placeholder="Type DELETE to confirm" autocomplete="off" style="width: 100%; height: 40px; padding: 0 12px; font-size: 0.88rem; border-radius: var(--radius-md, 8px); border: 1px solid var(--border-subtle); background: var(--bg-base); color: var(--text-main);" />
         </div>
     </div>
-    <div class="modal-footer" style="justify-content: center; border-top: none; padding-top: 0;">
+    <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--border-subtle);">
         <button type="button" class="btn btn-secondary" onclick="window.closeModal()">Cancel</button>
-        <button type="submit" class="btn text-error" id="submitDeleteRole" style="background: rgba(239, 68, 68, 0.1);">
-            Yes, Delete Role
+        <button type="submit" class="btn btn-error btn-delete-confirm" id="submitDeleteRole" disabled style="opacity: 0.5; cursor: not-allowed;">
+            Delete forever
         </button>
     </div>
 </form>
 
 <script>
-    $('#deleteRoleForm').on('submit', function (e) {
+    $('.delete-confirm-input').off('input keyup paste change').on('input keyup paste change', function() {
+        const val = $(this).val().trim();
+        const $btn = $('#submitDeleteRole');
+        if (val === 'DELETE') {
+            $btn.prop('disabled', false).css({ opacity: '1', cursor: 'pointer' });
+        } else {
+            $btn.prop('disabled', true).css({ opacity: '0.5', cursor: 'not-allowed' });
+        }
+    });
+
+    $('#deleteRoleForm').off('submit').on('submit', function (e) {
         e.preventDefault();
+        const $input = $(this).find('.delete-confirm-input');
+        if ($input.length && $input.val().trim() !== 'DELETE') return;
+
         const $btn = $('#submitDeleteRole');
         $btn.prop('disabled', true).html('Deleting...');
 
         $.post('/Home/DeleteRole', $(this).serialize(), function (result) {
             if (result.succeeded) {
                 window.closeModal();
-                if ($('#roleTable').length) {
-                    $('#roleTable').DataTable().ajax.reload(null, false);
+                if (window.appToast) {
+                    window.appToast.show('delete', 'Role Deleted', result.messages ? result.messages[0] : 'Role has been deleted successfully.');
+                }
+                if (window.onModalSuccess) {
+                    window.onModalSuccess(result);
                 } else {
-                    location.reload();
+                    if ($('#roleTable').length) {
+                        $('#roleTable').DataTable().ajax.reload(null, false);
+                    } else {
+                        location.reload();
+                    }
                 }
             } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error Deleting Role',
-                    text: window.getPrimaryResultMessage(result, 'Unknown error')
-                });
-                $btn.prop('disabled', false).html('Yes, Delete Role');
+                if (window.appToast) {
+                    window.appToast.show('error', 'Delete Failed', result.messages ? result.messages[0] : 'Failed to delete role.');
+                }
+                $btn.prop('disabled', false).html('Delete forever');
             }
         }).fail(function(xhr) {
             window.showRequestError({
@@ -54,7 +67,7 @@
                 xhr: xhr,
                 fallbackMessage: 'We could not delete the role right now. Please try again.'
             });
-            $btn.prop('disabled', false).html('Yes, Delete Role');
+            $btn.prop('disabled', false).html('Delete forever');
         });
     });
 </script>

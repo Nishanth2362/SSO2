@@ -65,11 +65,21 @@ namespace SSO.Infrastructure.Services
             return await Result<IEnumerable<AuditResponse>>.SuccessAsync(trails);
         }
 
-        public async Task<IResult<string>> ExportToExcelAsync(string userId = "", string searchString = "", bool searchInOldValues = false, bool searchInNewValues = false, DateTime? start = null, DateTime? end = null)
+        public async Task<IResult<string>> ExportToExcelAsync(string userId = "", string searchString = "", bool searchInOldValues = false, bool searchInNewValues = false, DateTime? start = null, DateTime? end = null, List<string>? selectedIds = null)
         {
-            AuditFilterSpecification auditSpec = new(userId, searchString, searchInOldValues, searchInNewValues, start, end);
-            List<Audit> trails = await _context.AuditTrails
-                .Specify(auditSpec)
+            IQueryable<Audit> query;
+            if (selectedIds != null && selectedIds.Count > 0)
+            {
+                var intIds = selectedIds.Select(id => int.TryParse(id, out var parsedId) ? parsedId : 0).Where(id => id > 0).ToList();
+                query = _context.AuditTrails.Where(a => intIds.Contains(a.Id));
+            }
+            else
+            {
+                AuditFilterSpecification auditSpec = new(userId, searchString, searchInOldValues, searchInNewValues, start, end);
+                query = _context.AuditTrails.Specify(auditSpec);
+            }
+
+            List<Audit> trails = await query
                 .OrderByDescending(a => a.DateTime)
                 .ToListAsync();
             var data = await _excelService.ExportAsync("ExportAuditData", trails, CancellationToken.None);

@@ -17,6 +17,9 @@ namespace SSO.Application.Features.Roles.Commands.AddEdit
         public string? Description { get; set; }
         public Guid TenantId { get; set; }
         public bool IsSystemRole { get; set; }
+
+        /// <summary>Mandatory change description when editing an existing role.</summary>
+        public string? Remarks { get; set; }
     }
 
     public class AddEditRolesValidator : IRequestValidator<AddEditRolesCommand>
@@ -33,24 +36,54 @@ namespace SSO.Application.Features.Roles.Commands.AddEdit
             if (request.TenantId == Guid.Empty)
                 errors.Add(new ValidationError { PropertyName = nameof(request.TenantId), ErrorMessage = "Tenant selection is required." });
 
+            if (request.Id != null && request.Id != Guid.Empty)
+            {
+                if (string.IsNullOrWhiteSpace(request.Remarks))
+                    errors.Add(new ValidationError { PropertyName = nameof(request.Remarks), ErrorMessage = "A change description (remarks) is required when editing." });
+                else if (request.Remarks.Trim().Length < 5)
+                    errors.Add(new ValidationError { PropertyName = nameof(request.Remarks), ErrorMessage = "Remarks must be at least 5 characters." });
+                else if (request.Remarks.Length > 500)
+                    errors.Add(new ValidationError { PropertyName = nameof(request.Remarks), ErrorMessage = "Remarks cannot exceed 500 characters." });
+            }
+
             return Task.FromResult(errors.AsEnumerable());
         }
     }
 
     internal class AddEditRolesCommandHandler : IRequestHandler<AddEditRolesCommand, Result<Guid>>
     {
-        private readonly ILogger<AddEditRolesCommandHandler>   _logger;
+        private readonly ILogger<AddEditRolesCommandHandler> _logger;
         private readonly RoleManager<ApplicationRole> _roleManager;
-        public AddEditRolesCommandHandler(ILogger<AddEditRolesCommandHandler> logger, RoleManager<ApplicationRole> roleManager)
+        private readonly SSO.Application.Interfaces.Services.ICurrentUserService _currentUserService;
+
+        public AddEditRolesCommandHandler(
+            ILogger<AddEditRolesCommandHandler> logger, 
+            RoleManager<ApplicationRole> roleManager,
+            SSO.Application.Interfaces.Services.ICurrentUserService currentUserService)
         {
             _logger = logger;
             _roleManager = roleManager;
+            _currentUserService = currentUserService;
         }
+
         public async Task<Result<Guid>> Handle(AddEditRolesCommand request, CancellationToken cancellationToken)
         {
             try
             {
-                if(request.Id == null || request.Id == Guid.Empty)
+                // Enforce tenant isolation and system role checks
+                if (!_currentUserService.IsMasterTenant)
+                {
+                    if (request.TenantId != _currentUserService.TenantId)
+                    {
+                        return await Result<Guid>.FailAsync("Access denied: You cannot create or modify roles outside of your tenant.");
+                    }
+                    if (request.IsSystemRole)
+                    {
+                        return await Result<Guid>.FailAsync("Access denied: System roles can only be created by Master Administrators.");
+                    }
+                }
+
+                if (request.Id == null || request.Id == Guid.Empty)
                 {
                     var newRole = new ApplicationRole
                     {
@@ -76,10 +109,24 @@ namespace SSO.Application.Features.Roles.Commands.AddEdit
                     {
                         return await Result<Guid>.FailAsync("Role not found.");
                     }
-                    existingRole.TenantId=request.TenantId;
+
+                    if (!_currentUserService.IsMasterTenant)
+                    {
+                        if (existingRole.TenantId != _currentUserService.TenantId)
+                        {
+                            return await Result<Guid>.FailAsync("Access denied: Target role does not belong to your tenant.");
+                        }
+                        if (existingRole.IsSystemRole)
+                        {
+                            return await Result<Guid>.FailAsync("Access denied: System roles cannot be modified by Tenant Administrators.");
+                        }
+                    }
+
+                    existingRole.TenantId = request.TenantId;
                     existingRole.Name = request.Name;
                     existingRole.Description = request.Description ?? "";
                     existingRole.IsSystemRole = request.IsSystemRole;
+
                     var result = await _roleManager.UpdateAsync(existingRole);
                     if (result.Succeeded)
                     {

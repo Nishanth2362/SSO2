@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,5 +12,7 @@ namespace SSO.Application.Interfaces.Services
         string UserName { get; }
         string IpAddress { get; }
         bool IsAdmin { get; }
+        Guid TenantId { get; }
+        bool IsMasterTenant { get; }
     }
 }

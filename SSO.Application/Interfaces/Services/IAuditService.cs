@@ -11,6 +11,6 @@ namespace SSO.Application.Interfaces.Services
         Task<IResult<IEnumerable<AuditResponse>>> GetCurrentUserTrailsAsync(string userId);
         Task<IResult<IEnumerable<AuditResponse>>> GetAllTrailsAsync();
 
-        Task<IResult<string>> ExportToExcelAsync(string userId = "", string searchString = "", bool searchInOldValues = false, bool searchInNewValues = false, DateTime? start = null, DateTime? end = null);
+        Task<IResult<string>> ExportToExcelAsync(string userId = "", string searchString = "", bool searchInOldValues = false, bool searchInNewValues = false, DateTime? start = null, DateTime? end = null, List<string>? selectedIds = null);
     }
 }

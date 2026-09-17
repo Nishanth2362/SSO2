@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SSO.Application.Interfaces.Repos;
 using SSO.Application.Interfaces.Services;
@@ -24,6 +24,10 @@ namespace SSO.Application.Features.Templates.Queries.GetPaged
             this.Draw = request.Draw;
             this.SortColumn = request.SortColumn;
             this.SortDirection = request.SortDirection;
+            this.SearchColumn = request.SearchColumn;
+            this.Filters = request.Filters;
+            this.StartDate = request.StartDate;
+            this.EndDate = request.EndDate;
         }
     }
 

@@ -1,0 +1,829 @@
+@model IEnumerable<SSO.Application.Interfaces.Services.SecurityEventResponse>
+@{
+    ViewData["Title"] = "Security Management";
+    var summary = ViewBag.Summary as SSO.Application.Interfaces.Services.SecurityEventSummary;
+    var cspNonce = Context.Items["CSPNonce"]?.ToString();
+}
+
+<style>
+    /* Premium Animations */
+    @@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .animated-item { animation: fadeInUp 0.5s ease-out forwards; opacity: 0; }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+
+    /* Premium Slide-over Panel */
+    .slideover-overlay {
+        position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px);
+        z-index: 1050; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    }
+    .slideover-overlay.active { opacity: 1; pointer-events: auto; }
+    
+    .slideover {
+        position: fixed; right: 0; top: 0; bottom: 0; width: 100%; max-width: 500px;
+        background: var(--bg-surface); border-left: 1px solid var(--border-subtle);
+        box-shadow: -10px 0 40px rgba(0,0,0,0.15); transform: translateX(100%);
+        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex; flex-direction: column; z-index: 1051;
+    }
+    .slideover-overlay.active .slideover { transform: translateX(0); }
+    
+    .slideover-header {
+        padding: 24px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-surface);
+        display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+    }
+    .slideover-title { font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 10px; }
+    .slideover-close { background: var(--bg-surface-hover); border: 1px solid var(--border-subtle); color: var(--text-muted); width: 32px; height: 32px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+    .slideover-close:hover { background: var(--status-error-bg); color: var(--status-error-text); border-color: var(--status-error-bg); transform: rotate(90deg); }
+    
+    .slideover-body { padding: 24px; overflow-y: auto; flex: 1; }
+    
+    .so-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .so-item { background: var(--bg-base); padding: 16px; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 8px; transition: transform 0.2s; }
+    .so-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+    .so-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .so-value { font-size: 0.9rem; font-weight: 600; color: var(--text-main); word-break: break-word; }
+    
+    .so-code-block {
+        background: #111827; border: 1px solid var(--border-strong); padding: 16px; border-radius: var(--radius-md);
+        font-family: var(--font-family, 'Fira Code', monospace); font-size: 0.85rem; color: #4ade80;
+        word-break: break-all; margin-top: 8px; line-height: 1.5;
+    }
+    
+    /* Table Enhancements integrating with global theme */
+    .panel { background: var(--bg-surface); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+    .dashboard-table th { background: var(--bg-surface-hover); padding: 14px 20px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border-subtle); }
+    .dashboard-table td { padding: 16px 20px; vertical-align: middle; border-bottom: 1px solid var(--border-subtle); }
+    table.dataTable#securityTable thead > tr > th.text-left,
+    table.dataTable#securityTable thead > tr > th.text-left.sorting,
+    table.dataTable#securityTable thead > tr > th.text-left.sorting_asc,
+    table.dataTable#securityTable thead > tr > th.text-left.sorting_desc {
+        padding-left: 20px !important;
+        text-align: left !important;
+    }
+    .dashboard-table tbody tr { transition: all 0.2s ease; cursor: default; }
+    .dashboard-table tbody tr:hover { background: rgba(59, 130, 246, 0.03); }
+    
+    .status-badge {
+        display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+        border-radius: 20px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em;
+    }
+    .status-badge.success { background: var(--status-success-bg); color: var(--status-success-text); border: 1px solid rgba(16, 185, 129, 0.2); }
+    .status-badge.error { background: var(--status-error-bg); color: var(--status-error-text); border: 1px solid rgba(239, 68, 68, 0.2); }
+    .status-badge.warning { background: var(--status-warning-bg); color: var(--status-warning-text); border: 1px solid rgba(245, 158, 11, 0.2); }
+    .status-badge.anomaly { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.3); }
+    
+    .tbl-avatar {
+        width: 40px; height: 40px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 0.9rem; flex-shrink: 0; background: var(--brand-bg-subtle); color: var(--brand-primary);
+        box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.2);
+    }
+    
+    .cell-main { font-weight: 600; color: var(--text-main); margin-bottom: 4px; }
+    .cell-sub { font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
+    .cell-mono { font-family: 'Fira Code', monospace; font-size: 0.85rem; font-weight: 500; }
+
+    .icon-btn { transition: all 0.2s; border-radius: 8px; padding: 8px; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid transparent; color: var(--text-muted); cursor: pointer; }
+    .icon-btn:hover { background: var(--brand-bg-subtle); color: var(--brand-primary); border-color: rgba(59, 130, 246, 0.2); transform: scale(1.05); }
+
+    /* Premium KPI Cards - Rose Theme */
+    body {
+        background: linear-gradient(150deg,
+                        rgba(244, 63, 94, 0.08) 0%,
+                        rgba(225, 29, 72, 0.03) 25%,
+                        rgba(254, 226, 226, 0.3) 60%,
+                        rgba(255, 255, 255, 0.95) 100%) !important;
+        background-attachment: fixed !important;
+        background-repeat: no-repeat !important;
+        background-size: cover !important;
+    }
+
+    html[data-theme="dark"] body {
+        background: linear-gradient(150deg,
+                        rgba(244, 63, 94, 0.16) 0%,
+                        rgba(225, 29, 72, 0.06) 25%,
+                        rgba(76, 5, 25, 0.45) 60%,
+                        rgba(9, 12, 20, 0.96) 100%) !important;
+        background-attachment: fixed !important;
+        background-repeat: no-repeat !important;
+        background-size: cover !important;
+    }
+
+    .page-wrapper, .content-wrapper, .container-xl, main, #content, .page-body {
+        background: transparent !important;
+    }
+
+    .th-page-card {
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        overflow: visible;
+        margin-bottom: 8px;
+    }
+
+    .security-hero {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        flex-wrap: wrap;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        padding: 12px 4px 6px;
+        margin-bottom: 0;
+        overflow: hidden;
+    }
+
+    /* Scattered Background Pattern (8-12% opacity outline SVGs) - Rose Theme */
+    .security-hero-bg-pattern {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 0;
+    }
+
+    .hero-bg-icon {
+        position: absolute;
+        stroke: #f43f5e;
+        stroke-width: 1.5;
+        fill: none;
+        opacity: 0.10;
+        transition: opacity 0.3s ease;
+    }
+
+    html[data-theme="dark"] .hero-bg-icon {
+        stroke: #fb7185;
+        opacity: 0.12;
+    }
+
+    .hero-bg-icon.icon-shieldalert-1 { top: 8%; left: 1%; width: 32px; height: 32px; transform: rotate(-12deg); }
+    .hero-bg-icon.icon-radar-1       { top: 14%; left: 36%; width: 26px; height: 26px; transform: rotate(10deg); }
+    .hero-bg-icon.icon-lockalert-1   { bottom: 10%; left: 18%; width: 30px; height: 30px; transform: rotate(-8deg); }
+    .hero-bg-icon.icon-alerttri-1    { top: 58%; left: 3%; width: 28px; height: 28px; transform: rotate(6deg); }
+    .hero-bg-icon.icon-fingerprint-1 { top: 10%; left: 22%; width: 28px; height: 28px; transform: rotate(-10deg); }
+    .hero-bg-icon.icon-zap-1         { top: 62%; left: 44%; width: 26px; height: 26px; transform: rotate(-14deg); }
+    .hero-bg-icon.icon-shield-1      { top: 12%; right: 44%; width: 28px; height: 28px; transform: rotate(18deg); }
+    .hero-bg-icon.icon-eye-1         { bottom: 8%; right: 36%; width: 32px; height: 32px; transform: rotate(-10deg); }
+    .hero-bg-icon.icon-layers-1      { top: 10%; right: 26%; width: 26px; height: 26px; transform: rotate(8deg); }
+
+    .th-hero-left { 
+        position: relative; 
+        display: flex; 
+        align-items: center; 
+        gap: 18px; 
+        min-width: 260px; 
+        flex: 1 1 320px; 
+        z-index: 1; 
+    }
+    .th-hero-icon {
+        width: 52px; 
+        height: 52px; 
+        flex-shrink: 0; 
+        border-radius: 14px;
+        background: linear-gradient(135deg, #f43f5e, #e11d48);
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        color: #fff;
+        box-shadow: 0 6px 16px rgba(244, 63, 94, 0.25);
+    }
+    .th-hero-title {
+        font-size: 1.7rem !important;
+        font-weight: 800 !important;
+        color: var(--text-main);
+        letter-spacing: -0.02em;
+        margin: 0 0 6px;
+        line-height: 1.2;
+    }
+    .th-hero-subtitle {
+        font-size: 0.86rem;
+        color: var(--text-muted);
+        margin: 0;
+        max-width: 480px;
+        line-height: 1.5;
+    }
+
+    .sub-kpi-container {
+        position: relative;
+        display: flex;
+        gap: 14px;
+        align-items: stretch;
+        z-index: 1;
+        flex-wrap: wrap;
+        margin-left: 0;
+        margin-right: 0;
+    }
+    .sub-kpi-card {
+        cursor: pointer;
+        user-select: none;
+        width: 178px;
+        flex-shrink: 0;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        padding: 10px 14px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 6px 16px -8px rgba(15,23,42,0.08);
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+    .sub-kpi-card:hover { 
+        transform: translateY(-2px); 
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05), 0 10px 24px -8px rgba(15,23,42,0.14); 
+    }
+    .sub-kpi-card.active, .stat-box.active {
+        border-color: #f43f5e !important;
+        box-shadow: 0 0 0 2px rgba(244, 63, 94, 0.18), var(--shadow-sm) !important;
+    }
+
+    .sub-kpi-card .tabler-stat-header { 
+        display: flex; 
+        align-items: center; 
+        gap: 10px; 
+        margin-bottom: 8px; 
+    }
+    .sub-kpi-card .tabler-stat-title { 
+        font-size: 0.66rem; 
+        font-weight: 700; 
+        letter-spacing: 0.04em; 
+        text-transform: uppercase; 
+        color: #64748b; 
+        line-height: 1.3; 
+    }
+    html[data-theme="dark"] .sub-kpi-card .tabler-stat-title { 
+        color: #94a3b8; 
+    }
+    .sub-kpi-card .tabler-stat-value { 
+        font-size: 1.6rem; 
+        font-weight: 800; 
+        color: var(--text-main); 
+        line-height: 1; 
+    }
+    .tabler-stat-icon {
+        width: 38px; 
+        height: 38px; 
+        border-radius: 10px; 
+        flex-shrink: 0;
+        display: flex; 
+        align-items: center; 
+        justify-content: center;
+        transition: transform 0.2s ease;
+    }
+    .sub-kpi-card:hover .tabler-stat-icon { 
+        transform: scale(1.08); 
+    }
+    .tabler-stat-icon.total-icon { 
+        background: rgba(244, 63, 94, 0.14) !important; 
+        color: #f43f5e !important; 
+    }
+    .tabler-stat-icon.failure-icon { 
+        background: rgba(245, 158, 11, 0.14) !important; 
+        color: #f59e0b !important; 
+    }
+    .tabler-stat-icon.lockout-icon { 
+        background: rgba(239, 68, 68, 0.14) !important; 
+        color: #ef4444 !important; 
+    }
+    .tabler-stat-icon.success-icon { 
+        background: rgba(16, 185, 129, 0.14) !important; 
+        color: #10b981 !important; 
+    }
+
+    .kpi-mini-visual {
+        position: absolute;
+        right: 10px;
+        bottom: 6px;
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+    /* Custom DataTables Pagination Styling */
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        padding: 6px 12px; margin-left: 4px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);
+        background: var(--bg-surface); color: var(--text-main) !important; transition: all 0.2s;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background: var(--bg-surface-hover); border-color: var(--border-strong);
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current, 
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+        background: #f43f5e !important; color: #fff !important; border-color: #f43f5e !important;
+    }
+</style>
+
+<div class="breadcrumbs">
+    <span>Auxinz SSO</span>
+    <a href="#">Identity & Access</a>
+    <span class="current">Security</span>
+</div>
+
+<div class="th-page-card">
+    <div class="security-hero">
+        <!-- Scattered background outline icons -->
+        <div class="security-hero-bg-pattern">
+            <!-- Shield Alert -->
+            <svg class="hero-bg-icon icon-shieldalert-1" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <!-- Radar / Target -->
+            <svg class="hero-bg-icon icon-radar-1" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle><line x1="12" y1="2" x2="12" y2="22"></line></svg>
+            <!-- Lock Alert -->
+            <svg class="hero-bg-icon icon-lockalert-1" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path><line x1="12" y1="15" x2="12" y2="17"></line></svg>
+            <!-- Alert Triangle -->
+            <svg class="hero-bg-icon icon-alerttri-1" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            <!-- Fingerprint -->
+            <svg class="hero-bg-icon icon-fingerprint-1" viewBox="0 0 24 24"><path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4"></path><path d="M5 19.5A10 10 0 0 1 4 12a8 8 0 0 1 8-8 8 8 0 0 1 7.7 5.8"></path><path d="M12 10a2 2 0 0 0-2 2c0 2 2 3 2 5"></path></svg>
+            <!-- Zap / Lightning -->
+            <svg class="hero-bg-icon icon-zap-1" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            <!-- Shield -->
+            <svg class="hero-bg-icon icon-shield-1" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <!-- Eye -->
+            <svg class="hero-bg-icon icon-eye-1" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            <!-- Layers -->
+            <svg class="hero-bg-icon icon-layers-1" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+            <!-- Sparkles & Geometry -->
+            <svg class="hero-bg-icon" style="top:18%; left:48%; width:16px; height:16px;" viewBox="0 0 24 24"><path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5Z" fill="#f43f5e" opacity="0.16"></path></svg>
+            <svg class="hero-bg-icon" style="top:62%; right:22%; width:14px; height:14px;" viewBox="0 0 24 24"><path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5Z" fill="#e11d48" opacity="0.18"></path></svg>
+            <svg class="hero-bg-icon" style="top:25%; right:14%; width:10px; height:10px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f43f5e" opacity="0.25"></circle></svg>
+        </div>
+
+        <div class="th-hero-left">
+            <div class="th-hero-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="th-hero-title">Security Intelligence</h1>
+                <p class="th-hero-subtitle">Proactive monitoring and threat detection for all authentication activity.</p>
+            </div>
+        </div>
+
+        <!-- Compact KPI cards -->
+        <div class="sub-kpi-container">
+            <!-- Card 1: Total Events -->
+            <div class="tabler-card tabler-stat-card sub-kpi-card stat-box active" id="kpiTotalEvents" data-filter="">
+                <div class="tabler-card-body">
+                    <div class="tabler-stat-header">
+                        <div class="tabler-stat-icon total-icon">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            </svg>
+                        </div>
+                        <span class="tabler-stat-title">Total Events</span>
+                    </div>
+                    <div class="tabler-stat-main">
+                        <div class="tabler-stat-value">@(summary?.TotalEventsToday ?? 0)</div>
+                    </div>
+                    <svg class="kpi-mini-visual" width="52" height="40" viewBox="0 0 52 40" fill="none">
+                        <rect x="4" y="18" width="12" height="20" rx="1.5" fill="#f43f5e" opacity="0.16" />
+                        <rect x="18" y="8" width="14" height="30" rx="1.5" fill="#f43f5e" opacity="0.22" />
+                        <rect x="34" y="14" width="12" height="24" rx="1.5" fill="#f43f5e" opacity="0.16" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Card 2: Auth Failures -->
+            <div class="tabler-card tabler-stat-card sub-kpi-card stat-box" id="kpiAuthFailures" data-filter="LoginFailed">
+                <div class="tabler-card-body">
+                    <div class="tabler-stat-header">
+                        <div class="tabler-stat-icon failure-icon">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                        </div>
+                        <span class="tabler-stat-title">Auth Failures</span>
+                    </div>
+                    <div class="tabler-stat-main">
+                        <div class="tabler-stat-value">@(summary?.TotalFailuresToday ?? 0)</div>
+                    </div>
+                    <svg class="kpi-mini-visual" width="52" height="30" viewBox="0 0 52 30" fill="none">
+                        <path d="M2,26 8,17 15,21 23,9 31,14 40,4 50,10 50,30 2,30 Z" fill="#f59e0b" opacity="0.16" />
+                        <polyline points="2,26 8,17 15,21 23,9 31,14 40,4 50,10" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Card 3: Lockouts -->
+            <div class="tabler-card tabler-stat-card sub-kpi-card stat-box" id="kpiLockouts" data-filter="AccountLocked">
+                <div class="tabler-card-body">
+                    <div class="tabler-stat-header">
+                        <div class="tabler-stat-icon lockout-icon">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </div>
+                        <span class="tabler-stat-title">Lockouts</span>
+                    </div>
+                    <div class="tabler-stat-main">
+                        <div class="tabler-stat-value">@(summary?.LockedAccountsToday ?? 0)</div>
+                    </div>
+                    <svg class="kpi-mini-visual" width="42" height="34" viewBox="0 0 42 34" fill="none">
+                        <circle cx="30" cy="17" r="5" fill="#ef4444" opacity="0.5" />
+                        <circle cx="16" cy="10" r="2.6" fill="#ef4444" opacity="0.35" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Card 4: Secure Logins -->
+            <div class="tabler-card tabler-stat-card sub-kpi-card stat-box" id="kpiSecureLogins" data-filter="LoginSuccess">
+                <div class="tabler-card-body">
+                    <div class="tabler-stat-header">
+                        <div class="tabler-stat-icon success-icon">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </div>
+                        <span class="tabler-stat-title">Secure Logins</span>
+                    </div>
+                    <div class="tabler-stat-main">
+                        <div class="tabler-stat-value">@(Model.Count(e => e.EventType == "LoginSuccess"))</div>
+                    </div>
+                    <svg class="kpi-mini-visual" width="42" height="34" viewBox="0 0 42 34" fill="none">
+                        <circle cx="30" cy="17" r="5" fill="#10b981" opacity="0.5" />
+                        <circle cx="16" cy="10" r="2.6" fill="#10b981" opacity="0.35" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="panel animated-item delay-2">
+    <div class="panel-header" style="padding: 20px 24px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main); font-weight: 600;">Global Event Stream</h3>
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <div style="position: relative; width: 100%; max-width: 320px;">
+                <svg style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted);" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="secSearch" class="form-input" placeholder="Search IP, User, or Location..." style="padding-left: 36px; width: 100%; background: var(--bg-base); border-color: var(--border-subtle); border-radius: var(--radius-md); transition: all 0.2s;">
+            </div>
+            <div class="smart-export-dropdown-wrapper">
+                <button type="button" class="btn btn-secondary smart-export-dropdown-btn smart-export-btn btn-toolbar" id="exportSecurityBtn" title="More Options">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="1.5"></circle>
+                        <circle cx="12" cy="5" r="1.5"></circle>
+                        <circle cx="12" cy="19" r="1.5"></circle>
+                    </svg>
+                </button>
+                <span class="smart-export-badge" id="securitySelectionBadge"></span>
+                <div class="smart-export-menu glass-dropdown">
+                    <button type="button" class="dropdown-item smart-import-option" onclick="window.openImportModal('Security Events')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Import
+                    </button>
+                    <button type="button" class="dropdown-item smart-export-option" onclick="window.smartExport('securityTable', '/Reporting/ExportAuditLogs')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Export
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="table-responsive" style="padding: 0;">
+        <table class="dashboard-table manual-init" id="securityTable">
+            <thead>
+                <tr>
+                    <th class="text-left">Timestamp</th>
+                    <th class="text-left">User Identity</th>
+                    <th class="text-center">Event Context</th>
+                    <th class="text-left">Network</th>
+                    <th class="text-left">Endpoint Device</th>
+                    <th class="text-left">Client ID</th>
+                    <th class="text-center">Attempt Number</th>
+                    <th class="text-center">Blocked</th>
+                    <th class="text-center">IP Address</th>
+                    <th class="text-left">Location</th>
+                    <th class="text-center">Device Type</th>
+                    <th class="text-left">User Agent</th>
+                    <th class="text-center" style="width: 120px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var evt in Model)
+                {
+                    var statType = evt.EventType == "LoginSuccess" ? "success" : 
+                                   evt.EventType == "AccountLocked" ? "error" : 
+                                   evt.EventType == "SuspiciousActivity" ? "anomaly" : "warning";
+                    <tr data-search="@evt.UserName @evt.IpAddress @evt.City @evt.Country @evt.EventType @evt.BrowserName @evt.OsName">
+                        <td class="local-time-cell" data-utc="@evt.OccurredAtUtc.ToString("o")">
+                            <div class="cell-main ts-date">@evt.OccurredAtUtc.ToString("yyyy-MM-dd")</div>
+                            <div class="cell-sub cell-mono ts-time">@evt.OccurredAtUtc.ToString("HH:mm:ss")</div>
+                        </td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div class="tbl-avatar">
+                                    @(evt.UserName?.Substring(0, Math.Min(2, evt.UserName.Length)).ToUpper() ?? "?")
+                                </div>
+                                <div>
+                                    <div class="cell-main">@(evt.UserName ?? "Anonymous")</div>
+                                    <div class="cell-sub cell-mono">@evt.ClientId</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="status-badge @statType">
+                                @if (statType == "success") { <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:2px"><path d="M20 6L9 17l-5-5"></path></svg> }
+                                else if (statType == "error") { <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:2px"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg> }
+                                else if (statType == "anomaly") { <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:2px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> }
+                                else { <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:2px"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> }
+                                @evt.EventType
+                            </div>
+                            @if (evt.AttemptNumber > 1)
+                            {
+                                <span class="nav-badge" style="margin-left: 8px; background: rgba(0,0,0,0.05); color: var(--text-muted);">Try @evt.AttemptNumber</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="cell-main cell-mono">@evt.IpAddress</div>
+                            <div class="cell-sub">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                @(!string.IsNullOrEmpty(evt.CountryCode) ? $"{evt.CountryFlag} {evt.City}, {evt.CountryCode}" : "Unknown Location")
+                            </div>
+                        </td>
+                        <td>
+                            <div class="cell-main">@(!string.IsNullOrEmpty(evt.BrowserName) ? evt.BrowserName : "Unknown Browser")</div>
+                            <div class="cell-sub">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                                @(!string.IsNullOrEmpty(evt.OsName) ? evt.OsName : "Unknown OS")
+                            </div>
+                        </td>
+                        <td>@(evt.ClientId ?? "—")</td>
+                        <td>@evt.AttemptNumber</td>
+                        <td>@(evt.IsBlocked ? "Yes" : "No")</td>
+                        <td>@(evt.IpAddress ?? "—")</td>
+                        <td>@(!string.IsNullOrEmpty(evt.City) ? $"{evt.City}, {evt.Country}" : "—")</td>
+                        <td>@(evt.DeviceType ?? "—")</td>
+                        <td>@(evt.UserAgent ?? "—")</td>
+                        <td style="text-align: right;">
+                            <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                                <button class="icon-btn btn-view-details"
+                                        data-eventtype="@evt.EventType"
+                                        data-ip="@evt.IpAddress"
+                                        data-occurred="@evt.OccurredAtDisplay"
+                                        data-occurred-iso="@evt.OccurredAtUtc.ToString("o")"
+                                        data-city="@evt.City"
+                                        data-country="@evt.Country"
+                                        data-browser="@evt.BrowserName"
+                                        data-os="@evt.OsName"
+                                        data-devicetype="@evt.DeviceType"
+                                        data-blocked="@(evt.IsBlocked ? "Yes" : "No")"
+                                        data-useragent="@evt.UserAgent"
+                                        data-status="@statType"
+                                        data-user="@evt.UserName"
+                                        data-client="@evt.ClientId"
+                                        data-attempt="@evt.AttemptNumber"
+                                        title="Inspect Details">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                </button>
+                                @if (evt.UserId.HasValue)
+                                {
+                                    <a asp-action="UserHistory" asp-route-userId="@evt.UserId" asp-route-userName="@evt.UserName" class="icon-btn" title="View User Timeline">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                    </a>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Premium Slide-over Panel -->
+<div class="slideover-overlay" id="secSlideover">
+    <div class="slideover">
+        <div class="slideover-header">
+            <h3 class="slideover-title">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                Security Event Inspector
+            </h3>
+            <button class="slideover-close" id="secSlideoverClose">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="slideover-body">
+            <div class="so-grid">
+                <div class="so-item" style="grid-column: 1 / -1; align-items: flex-start;">
+                    <span class="so-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path></svg>
+                        Classification
+                    </span>
+                    <div class="status-badge" id="modStatusBadge" style="width: fit-content; margin-top: 4px; padding: 6px 14px; font-size: 0.85rem;"></div>
+                </div>
+                
+                <div class="so-item">
+                    <span class="so-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        User Identity
+                    </span>
+                    <div class="so-value" id="modUser"></div>
+                </div>
+
+                <div class="so-item">
+                    <span class="so-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                        Application Client
+                    </span>
+                    <div class="so-value cell-mono" id="modClient"></div>
+                </div>
+
+                <div class="so-item">
+                    <span class="so-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        Local Timestamp
+                    </span>
+                    <div class="so-value cell-mono" id="modTime"></div>
+                </div>
+                
+                <div class="so-item">
+                    <span class="so-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                        Network IP Address
+                    </span>
+                    <div class="so-value cell-mono" id="modIp"></div>
+                </div>
+                
+                <div class="so-item">
+                    <span class="so-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                        Mapped Location
+                    </span>
+                    <div class="so-value" id="modLocation"></div>
+                </div>
+                
+                <div class="so-item">
+                    <span class="so-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                        Client Device
+                    </span>
+                    <div class="so-value" id="modDevice"></div>
+                </div>
+                
+                <div class="so-item">
+                    <span class="so-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        Attempt Count
+                    </span>
+                    <div class="so-value" id="modAttempt"></div>
+                </div>
+
+                <div class="so-item">
+                    <span class="so-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                        Security Policy Action
+                    </span>
+                    <div class="so-value" id="modBlocked"></div>
+                </div>
+            </div>
+            
+            <div class="so-item" style="grid-column: 1 / -1; background: transparent; border: none; padding: 0;">
+                <span class="so-label" style="margin-bottom: 8px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                    Raw User Agent Header
+                </span>
+                <div class="so-code-block" id="modUa"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script nonce="@cspNonce">
+$(function () {
+    // 1. Time Formatting
+    document.querySelectorAll('.local-time-cell').forEach(cell => {
+        const iso = cell.getAttribute('data-utc');
+        if (iso) {
+            const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+            if (!isNaN(d.getTime())) {
+                const dateElem = cell.querySelector('.ts-date');
+                const timeElem = cell.querySelector('.ts-time');
+                if (dateElem) dateElem.textContent = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+                if (timeElem) timeElem.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            }
+        }
+    });
+
+    // 2. DataTables Injection
+    const dt = $('#securityTable').DataTable({
+        pageLength: 10,
+        responsive: false,
+        autoWidth: false,
+        columnDefs: [
+            { targets: [5, 6, 7, 8, 9, 10, 11], visible: false }
+        ],
+        dom: '<"table-toolbar datatables-injected"<"table-filters">f>t<"if-table-footer-wrap"<"footer-right"<"if-pill-pagination-mount">>>',
+        drawCallback: function(settings) {
+            const api = this.api();
+            if (typeof window.renderPillPagination === 'function') {
+                window.renderPillPagination(api, '.if-pill-pagination-mount', 'security events');
+            }
+        }
+    });
+
+    // 3. Search Hook
+    const searchInput = document.getElementById('secSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            if (dt) {
+                dt.search(query).draw();
+            } else {
+                document.querySelectorAll('#securityTable tbody tr').forEach(row => {
+                    const text = row.getAttribute('data-search').toLowerCase();
+                    row.style.display = text.includes(query) ? '' : 'none';
+                });
+            }
+        });
+    }
+
+    // KPI Filters Hook
+    document.querySelectorAll('.stat-box').forEach(box => {
+        box.addEventListener('click', () => {
+            const filter = box.getAttribute('data-filter');
+            
+            if (box.classList.contains('active')) {
+                box.classList.remove('active');
+                if (dt) dt.search('').draw();
+            } else {
+                document.querySelectorAll('.stat-box').forEach(b => b.classList.remove('active'));
+                box.classList.add('active');
+                
+                if (dt) {
+                    if (filter) {
+                        // Assuming Event Context is in column index 2
+                        dt.column(2).search(filter, true, false).draw();
+                    } else {
+                        dt.search('').columns().search('').draw();
+                    }
+                }
+            }
+        });
+    });
+
+    // 4. Slide-over Logic
+    const slideover = document.getElementById('secSlideover');
+    const closeBtn = document.getElementById('secSlideoverClose');
+    
+    document.querySelectorAll('.btn-view-details').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const statusClass = btn.getAttribute('data-status');
+            const eventType = btn.getAttribute('data-eventtype');
+            
+            const badge = document.getElementById('modStatusBadge');
+            badge.className = `status-badge ${statusClass}`;
+            badge.textContent = eventType;
+            
+            document.getElementById('modIp').textContent = btn.getAttribute('data-ip') || 'N/A';
+            
+            let displayTime = btn.getAttribute('data-occurred');
+            const iso = btn.getAttribute('data-occurred-iso');
+            if (iso) {
+                const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+                if (!isNaN(d.getTime())) {
+                    displayTime = d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                }
+            }
+            document.getElementById('modTime').textContent = displayTime;
+            
+            const city = btn.getAttribute('data-city');
+            const country = btn.getAttribute('data-country');
+            document.getElementById('modLocation').textContent = (city || 'Unknown') + ', ' + (country || 'Unknown');
+            
+            const browser = btn.getAttribute('data-browser') || 'Unknown';
+            const os = btn.getAttribute('data-os') || 'Unknown';
+            const devType = btn.getAttribute('data-devicetype') || 'Unknown';
+            document.getElementById('modDevice').textContent = `${devType} • ${browser} / ${os}`;
+            
+            document.getElementById('modUser').textContent = btn.getAttribute('data-user') || 'Anonymous';
+            document.getElementById('modClient').textContent = btn.getAttribute('data-client') || 'N/A';
+            document.getElementById('modAttempt').textContent = btn.getAttribute('data-attempt') || '1';
+            
+            const isBlocked = btn.getAttribute('data-blocked') === 'Yes';
+            document.getElementById('modBlocked').innerHTML = isBlocked 
+                ? '<span style="color: var(--status-error-text); display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg> Blocked Access</span>' 
+                : '<span style="color: var(--status-success-text); display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Allowed Access</span>';
+                
+            document.getElementById('modUa').textContent = btn.getAttribute('data-useragent') || 'N/A';
+            
+            slideover.classList.add('active');
+        });
+    });
+
+    if (closeBtn && slideover) {
+        closeBtn.addEventListener('click', () => slideover.classList.remove('active'));
+        slideover.addEventListener('click', (e) => {
+            if (e.target === slideover) slideover.classList.remove('active');
+        });
+    }
+});
+</script>

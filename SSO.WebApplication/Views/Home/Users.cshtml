@@ -2,83 +2,654 @@
 
 @{
     ViewData["Title"] = "Users Management";
+    var canCreateUser = (await AuthorizationService.AuthorizeAsync(User, Permissions.Users.Create)).Succeeded;
+    var canExportUser = (await AuthorizationService.AuthorizeAsync(User, Permissions.Users.Export)).Succeeded || (await AuthorizationService.AuthorizeAsync(User, Permissions.Users.View)).Succeeded;
+    var canEditUser = (await AuthorizationService.AuthorizeAsync(User, Permissions.Users.Edit)).Succeeded;
+    var canDeleteUser = (await AuthorizationService.AuthorizeAsync(User, Permissions.Users.Delete)).Succeeded;
+    var canSendResetLink = (await AuthorizationService.AuthorizeAsync(User, Permissions.Users.SendResetLink)).Succeeded;
+    var canResetPassword = (await AuthorizationService.AuthorizeAsync(User, Permissions.Users.ResetPassword)).Succeeded;
 }
 
+<style>
+    /* Full-page background for seamless integration */
+    body {
+        background: linear-gradient(150deg,
+                        rgba(124, 92, 252, 0.08) 0%,
+                        rgba(139, 92, 246, 0.03) 25%,
+                        rgba(224, 231, 255, 0.3) 60%,
+                        rgba(255, 255, 255, 0.95) 100%) !important;
+        background-attachment: fixed !important;
+        background-repeat: no-repeat !important;
+        background-size: cover !important;
+    }
+
+    html[data-theme="dark"] body {
+        background: linear-gradient(150deg,
+                        rgba(124, 92, 252, 0.16) 0%,
+                        rgba(139, 92, 246, 0.06) 25%,
+                        rgba(30, 27, 75, 0.45) 60%,
+                        rgba(9, 12, 20, 0.96) 100%) !important;
+        background-attachment: fixed !important;
+        background-repeat: no-repeat !important;
+        background-size: cover !important;
+    }
+
+    .page-wrapper, .content-wrapper, .container-xl, main, #content, .page-body {
+        background: transparent !important;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       UNIFIED PAGE CARD — hero + table read as ONE surface, sitting
+       on top of the page gradient with just enough glass/frost so
+       the gradient still reads through at the edges.
+       ═══════════════════════════════════════════════════════════ */
+    .th-page-card {
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        overflow: visible;
+        margin-bottom: 8px;
+    }
+
+    .users-hero {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        flex-wrap: wrap;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        padding: 12px 4px 6px;
+        margin-bottom: 0;
+        overflow: hidden;
+    }
+    html[data-theme="dark"] .users-hero {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+    }
+    
+    .users-hero-bg-pattern {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 0;
+    }
+    .hero-bg-svg {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+    }
+    html[data-theme="dark"] .hero-bg-svg {
+        opacity: 0.6;
+    }
+
+    .th-hero-left { 
+        position: relative; 
+        display: flex; 
+        align-items: center; 
+        gap: 18px; 
+        min-width: 260px; 
+        flex: 1 1 320px; 
+        z-index: 1; 
+    }
+    .th-hero-icon {
+        width: 52px; 
+        height: 52px; 
+        flex-shrink: 0; 
+        border-radius: 14px;
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        color: #fff;
+        box-shadow: 0 6px 16px rgba(124, 92, 252, 0.25);
+    }
+    .th-hero-title {
+        font-size: 1.7rem !important;
+        font-weight: 800 !important;
+        color: var(--text-main);
+        letter-spacing: -0.02em;
+        margin: 0 0 6px;
+        line-height: 1.2;
+    }
+    .th-hero-subtitle {
+        font-size: 0.86rem;
+        color: var(--text-muted);
+        margin: 0;
+        max-width: 480px;
+        line-height: 1.5;
+    }
+    /* ═══════════════════════════════════════════════════════════
+       COMPACT KPI CARDS (Matching Billing & Invoices page)
+       ═══════════════════════════════════════════════════════════ */
+    .sub-kpi-container {
+        position: relative;
+        display: flex;
+        gap: 14px;
+        align-items: stretch;
+        z-index: 1;
+        flex-wrap: wrap;
+        margin-left: 0;
+        margin-right: 0;
+    }
+    .sub-kpi-card {
+        cursor: pointer;
+        user-select: none;
+        width: 178px;
+        flex-shrink: 0;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        padding: 10px 14px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 6px 16px -8px rgba(15,23,42,0.08);
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+    .sub-kpi-card:hover { 
+        transform: translateY(-2px); 
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05), 0 10px 24px -8px rgba(15,23,42,0.14); 
+    }
+    .sub-kpi-card.active {
+        border-color: #7c5cfc !important;
+        box-shadow: 0 0 0 2px rgba(124, 92, 252, 0.18), var(--shadow-sm) !important;
+    }
+
+    .sub-kpi-card .tabler-stat-header { 
+        display: flex; 
+        align-items: center; 
+        gap: 10px; 
+        margin-bottom: 8px; 
+    }
+    .sub-kpi-card .tabler-stat-title { 
+        font-size: 0.66rem; 
+        font-weight: 700; 
+        letter-spacing: 0.04em; 
+        text-transform: uppercase; 
+        color: #64748b; 
+        line-height: 1.3; 
+    }
+    html[data-theme="dark"] .sub-kpi-card .tabler-stat-title { 
+        color: #94a3b8; 
+    }
+    .sub-kpi-card .tabler-stat-value { 
+        font-size: 1.6rem; 
+        font-weight: 800; 
+        color: var(--text-main); 
+        line-height: 1; 
+    }
+    .tabler-stat-icon {
+        width: 38px; 
+        height: 38px; 
+        border-radius: 10px; 
+        flex-shrink: 0;
+        display: flex; 
+        align-items: center; 
+        justify-content: center;
+        transition: transform 0.2s ease;
+    }
+    .sub-kpi-card:hover .tabler-stat-icon { 
+        transform: scale(1.08); 
+    }
+    .tabler-stat-icon.total-icon { 
+        background: rgba(124, 92, 252, 0.14) !important; 
+        color: #7c5cfc !important; 
+    }
+    .tabler-stat-icon.active-icon { 
+        background: rgba(16, 185, 129, 0.14) !important; 
+        color: #10b981 !important; 
+    }
+    .tabler-stat-icon.inactive-icon { 
+        background: rgba(245, 158, 11, 0.14) !important; 
+        color: #f59e0b !important; 
+    }
+
+    .kpi-mini-visual {
+        position: absolute;
+        right: 10px;
+        bottom: 6px;
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+    @@media (max-width: 1024px) {
+        .sub-kpi-container { width: 100%; }
+        .sub-kpi-card { flex: 1 1 150px; }
+    }
+    @@media (max-width: 768px) {
+        .sub-kpi-container { flex-direction: column; align-items: stretch; }
+        .sub-kpi-card { width: 100% !important; }
+    }
+
+    /* Action Button Colors */
+    .action-btn {
+        width: 30px !important; height: 30px !important; border-radius: 50% !important;
+        display: inline-flex !important; align-items: center !important; justify-content: center !important;
+        border: 1px solid transparent !important; background: transparent !important;
+        cursor: pointer !important; transition: all 0.15s ease !important; padding: 0 !important; margin: 0 2px !important;
+    }
+    .action-btn svg { width: 14px !important; height: 14px !important; flex-shrink: 0 !important; }
+    .action-btn-view { background: rgba(59, 130, 246, 0.1) !important; color: #3b82f6 !important; border-color: rgba(59, 130, 246, 0.2) !important; }
+    .action-btn-view:hover { background: rgba(59, 130, 246, 0.22) !important; color: #2563eb !important; border-color: rgba(59, 130, 246, 0.35) !important; transform: scale(1.05) !important; }
+    .action-btn-notify { background: rgba(59, 130, 246, 0.08) !important; color: #3b82f6 !important; border-color: rgba(59, 130, 246, 0.15) !important; }
+    .action-btn-notify:hover { background: rgba(59, 130, 246, 0.18) !important; color: #2563eb !important; transform: scale(1.05) !important; }
+    .action-btn-edit  { background: rgba(245, 158, 11, 0.1) !important; color: #f59e0b !important; border-color: rgba(245, 158, 11, 0.2) !important; }
+    .action-btn-edit:hover { background: rgba(245, 158, 11, 0.22) !important; color: #d97706 !important; border-color: rgba(245, 158, 11, 0.35) !important; transform: scale(1.05) !important; }
+    .action-btn-delete, .action-btn.text-error { background: rgba(239, 68, 68, 0.1) !important; color: #ef4444 !important; border-color: rgba(239, 68, 68, 0.2) !important; }
+    .action-btn-delete:hover, .action-btn.text-error:hover { background: rgba(239, 68, 68, 0.22) !important; color: #dc2626 !important; border-color: rgba(239, 68, 68, 0.35) !important; transform: scale(1.05) !important; }
+
+    /* ──────────────────────────────────────────────────────────
+       VIEW SWITCHER & WRAPPERS
+       ────────────────────────────────────────────────────────── */
+    .view-toggle-wrapper {
+        display: flex; background: #f8fafc; border: 1px solid #e2e8f0;
+        border-radius: 8px; padding: 3px; gap: 2px; align-items: center; flex-shrink: 0;
+    }
+    html[data-theme="dark"] .view-toggle-wrapper { background: #18181b; border-color: #27272a; }
+    .view-toggle-wrapper .view-toggle-btn {
+        display: flex; align-items: center; justify-content: center;
+        width: 32px; height: 32px; border: 1px solid transparent; background: transparent;
+        border-radius: 6px; color: #94a3b8; cursor: pointer; transition: all 0.2s ease;
+        padding: 0; outline: none; box-shadow: none;
+    }
+    .view-toggle-wrapper .view-toggle-btn:hover { color: var(--text-main); background: rgba(0,0,0,0.05); }
+    html[data-theme="dark"] .view-toggle-wrapper .view-toggle-btn:hover { background: rgba(255,255,255,0.05); }
+    .view-toggle-wrapper .view-toggle-btn.active {
+        background: #ffffff; border-color: #e2e8f0; color: #3b82f6; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    html[data-theme="dark"] .view-toggle-wrapper .view-toggle-btn.active {
+        background: #27272a; border-color: #3f3f46; color: #3b82f6;
+    }
+    .view-wrapper {
+        opacity: 0; transform: translateY(10px);
+        transition: opacity 0.25s cubic-bezier(0.4,0,0.2,1), transform 0.25s cubic-bezier(0.4,0,0.2,1));
+    }
+    .view-wrapper.active  { opacity: 1; transform: translateY(0); }
+    .view-wrapper:not(.active) { display: none !important; }
+
+    /* ──────────────────────────────────────────────────────────
+       USER GRID LAYOUT
+       ────────────────────────────────────────────────────────── */
+    #userGridViewWrapper.grid-cards-container {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 20px !important;
+        padding: 16px 20px 28px 20px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    @@media (max-width: 1024px) { #userGridViewWrapper.grid-cards-container { grid-template-columns: repeat(2, 1fr) !important; padding: 14px 16px 24px 16px !important; } }
+    @@media (max-width: 767px)  { #userGridViewWrapper.grid-cards-container { grid-template-columns: 1fr !important; padding: 12px 12px 20px 12px !important; } }
+
+    /* ──────────────────────────────────────────────────────────
+       USER GRID CARD STYLES
+       ────────────────────────────────────────────────────────── */
+    .user-grid-card {
+        background: var(--bg-surface);
+        border: 1.5px solid var(--border-subtle);
+        border-radius: 16px;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 14px -3px rgba(59,130,246,0.08);
+        transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), box-shadow 0.25s ease, border-color 0.25s ease;
+        height: 100%; box-sizing: border-box;
+    }
+    .user-grid-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(59,130,246,0.4);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06), 0 16px 32px -8px rgba(59,130,246,0.18), 0 0 0 1px rgba(59,130,246,0.15);
+    }
+    .user-card-banner {
+        padding: 18px 16px 16px; display: flex; align-items: center;
+        justify-content: space-between; position: relative;
+        background: linear-gradient(135deg, #dbeafe, #eff6ff);
+    }
+    html[data-theme="dark"] .user-card-banner { background: linear-gradient(135deg, #1e2d6a, #152248); }
+    .user-card-avatar {
+        width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center;
+        justify-content: center; background: rgba(255,255,255,0.5); backdrop-filter: blur(6px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.12); font-size: 1.2rem; font-weight: 700;
+        color: #1d4ed8; transition: transform 0.25s ease;
+    }
+    html[data-theme="dark"] .user-card-avatar { color: #93c5fd; background: rgba(255,255,255,0.1); }
+    .user-grid-card:hover .user-card-avatar { transform: scale(1.1) rotate(-3deg); }
+    .user-card-body { display: flex; flex-direction: column; padding: 14px 16px; flex: 1; }
+    .user-card-name { font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin: 0 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-card-username { font-size: 0.75rem; color: var(--text-muted); margin: 0 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-card-email { font-size: 0.71rem; color: var(--text-muted); font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
+    .ucard-divider { height: 1px; background: linear-gradient(90deg, #dbeafe, #e0f2fe 50%, transparent); margin: 10px 0; }
+    html[data-theme="dark"] .ucard-divider { background: linear-gradient(90deg, #1e2d6a, #152248 50%, transparent); }
+    .user-card-meta-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.72rem; }
+    .user-card-meta-label { font-weight: 600; color: var(--text-muted); }
+    .user-card-actions { display: flex; gap: 5px; margin-top: 10px; }
+    .btn-ucard-action {
+        width: 32px; height: 32px; border-radius: 8px; border: 1.5px solid var(--border-subtle);
+        background: var(--bg-surface-hover); color: var(--text-muted); display: inline-flex; align-items: center;
+        justify-content: center; cursor: pointer; transition: all 0.2s ease; padding: 0; flex-shrink: 0;
+    }
+    .btn-ucard-action:hover { border-color: #3b82f6; color: #3b82f6; background: rgba(59,130,246,0.08); transform: scale(1.05); }
+    .btn-ucard-action.udanger { color: #ef4444; border-color: rgba(239,68,68,0.2); }
+    .btn-ucard-action.udanger:hover { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.5); color: #dc2626; }
+</style>
+
 <div class="breadcrumbs">
-    <span>Auxinz Identity</span>
+    <span>Auxinz SSO Server</span>
     <a href="#">Identity & Access</a>
     <span class="current">Users</span>
 </div>
 
-<div class="page-header">
-    <div>
-        <h1>System Users</h1>
-        <p style="color: var(--text-muted); margin-top: 4px;">
-            Manage user accounts, authentication methods, and tenant assignments.
-        </p>
+<div class="th-page-card">
+
+<div class="users-hero">
+    <!-- SVG Waves and connecting lines for background decoration -->
+    <div class="users-hero-bg-pattern">
+        <svg class="hero-bg-svg" width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 1440 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.06" />
+                    <stop offset="50%" stop-color="#a78bfa" stop-opacity="0.08" />
+                    <stop offset="100%" stop-color="#c084fc" stop-opacity="0.04" />
+                </linearGradient>
+                <radialGradient id="glowPurple" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#c084fc" stop-opacity="0.22" />
+                    <stop offset="100%" stop-color="#c084fc" stop-opacity="0" />
+                </radialGradient>
+                <radialGradient id="glowBlue" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.18" />
+                    <stop offset="100%" stop-color="#3b82f6" stop-opacity="0" />
+                </radialGradient>
+            </defs>
+            
+            <!-- Glowing spheres -->
+            <circle cx="200" cy="180" r="160" fill="url(#glowBlue)" />
+            <circle cx="850" cy="60" r="180" fill="url(#glowPurple)" />
+            <circle cx="1200" cy="160" r="120" fill="url(#glowBlue)" />
+            
+            <!-- Mesh waves curving from left to right -->
+            <path d="M-100,200 C300,280 500,80 900,160 C1100,200 1300,100 1500,140" stroke="#8b5cf6" stroke-width="1.5" stroke-opacity="0.12" fill="none" />
+            <path d="M-100,170 C280,240 480,60 880,130 C1080,170 1280,80 1500,110" stroke="#a78bfa" stroke-width="1" stroke-opacity="0.1" fill="none" />
+            <path d="M-100,140 C260,200 460,40 860,100 C1060,140 1260,60 1500,80" stroke="#c084fc" stroke-width="1" stroke-opacity="0.08" fill="none" />
+            <path d="M-100,230 C320,320 520,100 920,190 C1120,230 1320,120 1500,170" stroke="#8b5cf6" stroke-width="1" stroke-opacity="0.08" stroke-dasharray="4 4" fill="none" />
+            
+            <!-- Connection nodes and dotted lines -->
+            <g opacity="0.8">
+                <circle cx="340" cy="210" r="4" fill="#8b5cf6" opacity="0.3" />
+                <circle cx="580" cy="100" r="6" fill="#a78bfa" opacity="0.35" />
+                <circle cx="720" cy="130" r="3" fill="#c084fc" opacity="0.4" />
+                <circle cx="950" cy="180" r="5" fill="#8b5cf6" opacity="0.3" />
+                <circle cx="1140" cy="110" r="7" fill="#3b82f6" opacity="0.25" />
+                <circle cx="1280" cy="70" r="4" fill="#a78bfa" opacity="0.4" />
+                
+                <line x1="1140" y1="110" x2="1280" y2="70" stroke="#a78bfa" stroke-width="1" stroke-dasharray="3 3" opacity="0.2" />
+                <line x1="950" y1="180" x2="1140" y2="110" stroke="#8b5cf6" stroke-width="1" stroke-dasharray="3 3" opacity="0.15" />
+            </g>
+        </svg>
     </div>
-    <div style="display: flex; gap: 12px;">
-        <button class="btn btn-primary" id="openCreateUserModal">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
+
+    <div class="th-hero-left">
+        <div class="th-hero-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
-            Create User
-        </button>
-        <a href="/Home/ExportUsers" class="btn btn-secondary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            Export Excel
-        </a>
+        </div>
+        <div>
+            <h1 class="th-hero-title">System Users</h1>
+            <p class="th-hero-subtitle">Manage user accounts, authentication methods, and tenant assignments.</p>
+        </div>
     </div>
-</div>
+
+    <!-- Compact KPI cards -->
+    <div class="sub-kpi-container">
+        <!-- Card 1: Total Users -->
+        <div class="tabler-card tabler-stat-card sub-kpi-card" id="kpiTotalUsers" data-filter="">
+            <div class="tabler-card-body">
+                <div class="tabler-stat-header">
+                    <div class="tabler-stat-icon total-icon">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <span class="tabler-stat-title">Total Users</span>
+                </div>
+                <div class="tabler-stat-main">
+                    <div class="tabler-stat-value" id="totalUsersKpi">—</div>
+                </div>
+                <svg class="kpi-mini-visual" width="52" height="40" viewBox="0 0 52 40" fill="none">
+                    <rect x="4" y="18" width="12" height="20" rx="1.5" fill="#7c5cfc" opacity="0.16" />
+                    <rect x="18" y="8" width="14" height="30" rx="1.5" fill="#7c5cfc" opacity="0.22" />
+                    <rect x="34" y="14" width="12" height="24" rx="1.5" fill="#7c5cfc" opacity="0.16" />
+                    <rect x="7" y="22" width="3" height="3" fill="#7c5cfc" opacity="0.4" />
+                    <rect x="12" y="22" width="3" height="3" fill="#7c5cfc" opacity="0.4" />
+                    <rect x="21" y="12" width="3" height="3" fill="#7c5cfc" opacity="0.4" />
+                    <rect x="26" y="12" width="3" height="3" fill="#7c5cfc" opacity="0.4" />
+                    <rect x="21" y="18" width="3" height="3" fill="#7c5cfc" opacity="0.4" />
+                    <rect x="26" y="18" width="3" height="3" fill="#7c5cfc" opacity="0.4" />
+                    <rect x="37" y="18" width="3" height="3" fill="#7c5cfc" opacity="0.4" />
+                    <rect x="42" y="18" width="3" height="3" fill="#7c5cfc" opacity="0.4" />
+                </svg>
+            </div>
+        </div>
+
+        <!-- Card 2: Active Users -->
+        <div class="tabler-card tabler-stat-card sub-kpi-card" id="kpiActiveUsers" data-filter="true">
+            <div class="tabler-card-body">
+                <div class="tabler-stat-header">
+                    <div class="tabler-stat-icon active-icon">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="m9 12 2 2 4-4"></path>
+                        </svg>
+                    </div>
+                    <span class="tabler-stat-title">Active</span>
+                </div>
+                <div class="tabler-stat-main">
+                    <div class="tabler-stat-value" id="activeUsersKpi">—</div>
+                </div>
+                <svg class="kpi-mini-visual" width="52" height="30" viewBox="0 0 52 30" fill="none">
+                    <path d="M2,26 8,17 15,21 23,9 31,14 40,4 50,10 50,30 2,30 Z" fill="#10b981" opacity="0.16" />
+                    <polyline points="2,26 8,17 15,21 23,9 31,14 40,4 50,10" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
+                </svg>
+            </div>
+        </div>
+
+        <!-- Card 3: Inactive Users -->
+        <div class="tabler-card tabler-stat-card sub-kpi-card" id="kpiInactiveUsers" data-filter="false">
+            <div class="tabler-card-body">
+                <div class="tabler-stat-header">
+                    <div class="tabler-stat-icon inactive-icon">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                        </svg>
+                    </div>
+                    <span class="tabler-stat-title">Inactive</span>
+                </div>
+                <div class="tabler-stat-main">
+                    <div class="tabler-stat-value" id="inactiveUsersKpi">—</div>
+                </div>
+                <svg class="kpi-mini-visual" width="42" height="34" viewBox="0 0 42 34" fill="none">
+                    <circle cx="30" cy="17" r="5" fill="#f59e0b" opacity="0.5" />
+                    <circle cx="16" cy="10" r="2.6" fill="#f59e0b" opacity="0.35" />
+                    <circle cx="37" cy="8" r="2.2" fill="#f59e0b" opacity="0.3" />
+                    <circle cx="22" cy="22" r="2" fill="#f59e0b" opacity="0.35" />
+                    <circle cx="36" cy="26" r="2.4" fill="#f59e0b" opacity="0.3" />
+                    <circle cx="10" cy="20" r="1.8" fill="#f59e0b" opacity="0.25" />
+                </svg>
+            </div>
+        </div>
+    </div>
+</div> <!-- /.users-hero -->
+</div> <!-- /.th-page-card -->
 
 <div class="panel">
-    <div class="table-toolbar">
-        <div class="table-filters">
+    <div class="table-toolbar" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; width: 100%;">
+        <!-- Search + Filters (left) -->
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; flex: 1; min-width: 0;">
             <div style="position: relative;">
-                <svg style="position: absolute; left: 10px; top: 10px; color: var(--text-muted);"
-                     width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2">
+                <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"
+                     width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
                 <input type="text" class="form-input" placeholder="Search by name, email..."
-                       style="padding-left: 32px; width: 250px;">
+                       style="padding-left: 32px; width: 240px; height: 38px;" id="userSearchInput">
+            </div>
+
+            @if (ViewBag.IsMasterTenant == true)
+            {
+                <select class="form-select" id="filterTenant" style="height: 38px; min-width: 160px;">
+                    <option value="">All Tenants</option>
+                    @foreach (var tenant in ViewBag.Tenants)
+                    {
+                        <option value="@tenant.Id">@tenant.Name</option>
+                    }
+                </select>
+            }
+
+            <select class="form-select" id="filterRole" style="height: 38px; min-width: 140px;">
+                <option value="">All Roles</option>
+                @foreach (var role in ViewBag.Roles)
+                {
+                    <option value="@role.Id">@role.Name</option>
+                }
+            </select>
+
+            <select class="form-select" id="filterApplication" style="height: 38px; min-width: 150px;">
+                <option value="">All Applications</option>
+                @foreach (var client in ViewBag.Clients)
+                {
+                    <option value="@client.Id">@client.DisplayName</option>
+                }
+            </select>
+
+            <select class="form-select" id="filterStatus" style="height: 38px; min-width: 130px;">
+                <option value="">All Statuses</option>
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+            </select>
+        </div>
+
+        <!-- Right: Create + Export + View Switcher -->
+        <div style="display: flex; gap: 10px; align-items: center; flex-shrink: 0;">
+            @if (canExportUser)
+            {
+                <div class="smart-export-dropdown-wrapper">
+                    <button type="button" class="btn btn-secondary smart-export-dropdown-btn smart-export-btn btn-toolbar" id="exportUsersBtn" title="More Options">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="1.5"></circle>
+                            <circle cx="12" cy="5" r="1.5"></circle>
+                            <circle cx="12" cy="19" r="1.5"></circle>
+                        </svg>
+                    </button>
+                    <span class="smart-export-badge" id="userSelectionBadge"></span>
+                    <div class="smart-export-menu glass-dropdown">
+                        <button type="button" class="dropdown-item smart-import-option" onclick="window.openImportModal('Users')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            Import
+                        </button>
+                        <button type="button" class="dropdown-item smart-export-option" onclick="window.smartExport('userTable','/Home/ExportUsers')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Export
+                        </button>
+                    </div>
+                </div>
+            }
+            @if (canCreateUser)
+            {
+                <button class="btn btn-primary btn-toolbar" id="openCreateUserModal">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Create User
+                </button>
+            }
+
+            <!-- View Switcher -->
+            <div class="view-toggle-wrapper">
+                <button class="view-toggle-btn active" id="btnUserListView" data-view="list" data-target="userTable" title="List View">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="4" y1="6" x2="20" y2="6"></line>
+                        <line x1="4" y1="12" x2="20" y2="12"></line>
+                        <line x1="4" y1="18" x2="20" y2="18"></line>
+                    </svg>
+                </button>
+                <button class="view-toggle-btn" id="btnUserGridView" data-view="grid" data-target="userTable" title="Grid View">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+                        <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+                        <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+                        <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
 
-    <div class="table-responsive">
+    <!-- Table View -->
+    <div class="table-responsive view-wrapper active" id="userTableViewWrapper">
         <table id="userTable" class="data-table table-hoverable manual-init">
             <thead>
                 <tr>
-                    <th style="width: 48px;"><input type="checkbox" class="custom-checkbox"></th>
-                    <th class="sorted">User</th>
-                    <th>Email</th>
-                    <th>Tenant</th>
-                    <th>Created</th>
-                    <th>Status</th>
-                    <th style="text-align: right;">Actions</th>
+                    <th class="text-center" style="width: 48px;"><input type="checkbox" class="master-select-cb" data-table="userTable"></th>
+                    <th class="text-left">User</th>
+                    <th class="text-left">Email</th>
+                    <th class="text-center">Tenant</th>
+                    <th class="text-left">Roles</th>
+                    <th class="text-left">Applications</th>
+                    <th class="text-center">Created</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-left">Username</th>
+                    <th class="text-left">First Name</th>
+                    <th class="text-left">Last Name</th>
+                    <th class="text-left">Phone Number</th>
+                    <th class="text-center">Email Confirmed</th>
+                    <th class="text-center">Updated At</th>
+                    <th class="text-center">Lockout Status</th>
+                    <th class="text-center">Actions</th>
                 </tr>
             </thead>
             <tbody>
             </tbody>
         </table>
     </div>
+
+    <!-- Grid View -->
+    <div class="grid-cards-container view-wrapper" id="userGridViewWrapper">
+        <!-- Grid items loaded dynamically here -->
+    </div>
+
+
 </div>
 
 <script type="text/javascript">
+
+
     $(function () {
         const $panel = $('#userTable').closest('.panel');
         const $customSearch = $panel.find('.table-toolbar .form-input');
         const $customFilters = $panel.find('.table-toolbar .form-select');
+        const canEditUser = @canEditUser.ToString().ToLower();
+        const canDeleteUser = @canDeleteUser.ToString().ToLower();
+        const canSendResetLink = @canSendResetLink.ToString().ToLower();
+        const canResetPassword = @canResetPassword.ToString().ToLower();
 
-        window.dt = $('#userTable').DataTable({
+        const dt = $('#userTable').DataTable({
             processing: true,
             serverSide: true,
             ajax: {
@@ -88,61 +659,198 @@
                     if ($customSearch.length > 0) {
                         d.customSearchValue = $customSearch.val();
                     }
-                    // Additional filters can be added here
+                    d.Filters = {};
+                    const tenantVal = $('#filterTenant').val();
+                    if (tenantVal) d["Filters[TenantId]"] = tenantVal;
+
+                    const roleVal = $('#filterRole').val();
+                    if (roleVal) d["Filters[RoleId]"] = roleVal;
+
+                    const appVal = $('#filterApplication').val();
+                    if (appVal) d["Filters[ClientId]"] = appVal;
+
+                    const statusVal = $('#filterStatus').val();
+                    if (statusVal) d["Filters[IsActive]"] = statusVal;
                 }
             },
-            responsive: true,
-            dom: '<"table-toolbar datatables-injected"<"table-filters"l>f>t<"pagination"ip>',
+            responsive: false,
+            dom: '<"table-toolbar datatables-injected"<"table-filters">f>t<"if-table-footer-wrap"<"footer-right"<"if-pill-pagination-mount">>>',
+            drawCallback: function(settings) {
+                const api = this.api();
+                window.renderPillPagination(api, '.if-pill-pagination-mount', 'users');
+
+                // Update KPI counters
+                const info = api.page.info();
+                const rows = api.rows({ page: 'current' }).data().toArray();
+                const total = info.recordsTotal;
+                const activeCount = rows.filter(r => r.isActive).length;
+                const inactiveCount = rows.filter(r => !r.isActive).length;
+                const activeRatio = rows.length > 0 ? activeCount / rows.length : 0;
+                $('#totalUsersKpi').text(total || '\u2014');
+                $('#activeUsersKpi').text(Math.round(activeRatio * total) || '\u2014');
+                $('#inactiveUsersKpi').text(Math.round((1 - activeRatio) * total) || '\u2014');
+
+                // Highlight active KPI card based on filterStatus select dropdown value
+                const currentStatus = $('#filterStatus').val();
+                $('.sub-kpi-card').removeClass('active');
+                if (currentStatus === 'true') {
+                    $('#kpiActiveUsers').addClass('active');
+                } else if (currentStatus === 'false') {
+                    $('#kpiInactiveUsers').addClass('active');
+                } else {
+                    $('#kpiTotalUsers').addClass('active');
+                }
+
+                // Render dynamic Grid View
+                renderUserGridView(api.rows({ page: 'current' }).data().toArray());
+
+                // Sync footer when grid is active
+                var _sUView = localStorage.getItem('view-mode-userTable') || 'list';
+                if (_sUView === 'grid') {
+                    var $uF = $panel.find('.if-table-footer-wrap');
+                    if ($uF.length) $panel.append($uF);
+                }
+            },
             columns: [
                 {
                     data: null,
                     orderable: false,
                     searchable: false,
-                    render: function () { return '<input type="checkbox" class="custom-checkbox">'; }
+                    render: function (data, type, row) {
+                        return '<input type="checkbox" class="row-select-cb" data-row-id="' + (row.id || row.Id || '') + '">';
+                    }
                 },
                 {
                     data: 'userName',
-                    render: function (data, type, row) {
+                    render: function (data, type, row, meta) {
                         const name = row.firstName || data;
+                        const avatarPalette = [
+                            { bg: 'rgba(124, 92, 252, 0.14)', fg: '#7c5cfc' },
+                            { bg: 'rgba(245, 158, 11, 0.14)', fg: '#f59e0b' },
+                            { bg: 'rgba(24, 167, 223, 0.14)', fg: '#18a7df' },
+                            { bg: 'rgba(236, 72, 153, 0.14)', fg: '#ec4899' },
+                            { bg: 'rgba(16, 185, 129, 0.14)', fg: '#10b981' },
+                            { bg: 'rgba(99, 102, 241, 0.14)', fg: '#6366f1' }
+                        ];
+                        const tint = avatarPalette[(meta && typeof meta.row === 'number' ? meta.row : 0) % avatarPalette.length];
                         return `<div class="cell-flex">
-                                    <div class="cell-avatar primary">
+                                    <div class="cell-avatar" style="background: ${tint.bg}; color: ${tint.fg}; font-weight: 700; overflow: hidden; display: flex; align-items: center; justify-content: center;">
                                         ${name.charAt(0).toUpperCase()}
                                     </div>
                                     <div class="cell-text">
                                         <h5>${name}</h5>
-                                        <p>${data}</p>
+                                        <p>@@${data}</p>
                                     </div>
                                 </div>`;
                     }
                 },
                 { data: 'email' },
                 { 
-                    data: 'tenantId',
+                    data: 'tenantName',
+                    render: function(data, type, row) {
+                        if (!data || data === 'Global') {
+                            return `<span class="badge badge-neutral" style="background: rgba(100, 116, 139, 0.1); color: #475569; border: 1px solid rgba(100, 116, 139, 0.2); font-weight: 600;">Global</span>`;
+                        }
+                        let hash = 0;
+                        for (let i = 0; i < data.length; i++) {
+                            hash = data.charCodeAt(i) + ((hash << 5) - hash);
+                        }
+                        const badgeColors = [
+                            { bg: 'rgba(59, 130, 246, 0.1)', fg: '#3b82f6', border: 'rgba(59, 130, 246, 0.2)' },
+                            { bg: 'rgba(139, 92, 246, 0.1)', fg: '#8b5cf6', border: 'rgba(139, 92, 246, 0.2)' },
+                            { bg: 'rgba(236, 72, 153, 0.1)', fg: '#ec4899', border: 'rgba(236, 72, 153, 0.2)' },
+                            { bg: 'rgba(24, 167, 223, 0.1)', fg: '#18a7df', border: 'rgba(24, 167, 223, 0.2)' }
+                        ];
+                        const color = badgeColors[Math.abs(hash) % badgeColors.length];
+                        return `<span class="badge" style="background: ${color.bg}; color: ${color.fg}; border: 1px solid ${color.border}; font-weight: 600;">${data}</span>`;
+                    }
+                },
+                { 
+                    data: 'roles',
                     render: function(data) {
-                        return `<span class="badge badge-neutral">${data ? 'Assigned' : 'Global' }</span>`;
+                        if (!data || data.length === 0) return '<span class="text-muted" style="font-size:0.75rem;">None</span>';
+                        return data.map(r => `<span class="badge badge-info" style="margin-right:2px; margin-bottom:2px; display:inline-block;">${r}</span>`).join('');
+                    }
+                },
+                { 
+                    data: 'clientNames',
+                    render: function(data) {
+                        if (!data || data.length === 0) return '<span class="text-muted">—</span>';
+                        return data.map(c => `<span class="badge badge-primary" style="margin-right:2px; margin-bottom:2px; display:inline-block;">${c}</span>`).join('');
                     }
                 },
                 { 
                     data: 'createdAt',
                     render: function(data) {
-                        return new Date(data).toLocaleDateString();
+                        if (!data) return '—';
+                        const date = new Date(data);
+                        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                        return `<div style="line-height: 1.4;">
+                                    <div style="font-weight: 600; color: var(--text-main);">${dateStr}</div>
+                                    <div style="font-size: 0.72rem; color: var(--text-muted);">${timeStr}</div>
+                                </div>`;
                     }
                 },
                 {
                     data: 'isActive',
                     render: function (data) {
-                        return data ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-error">Inactive</span>';
+                        return data 
+                            ? `<span class="if-status if-status-active"><span class="if-status-dot"></span>Active</span>`
+                            : `<span class="if-status if-status-inactive"><span class="if-status-dot"></span>Inactive</span>`;
                     }
+                },
+                { data: 'userName', visible: false, render: function(d){ return d || '—'; } },
+                { data: 'firstName', visible: false, render: function(d){ return d || '—'; } },
+                { data: 'lastName', visible: false, render: function(d){ return d || '—'; } },
+                { data: 'phoneNumber', visible: false, render: function(d){ return d || '—'; } },
+                { 
+                    data: 'isEmailConfirmed', 
+                    visible: false, 
+                    render: function(d){ 
+                        return d 
+                            ? '<span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">Verified</span>' 
+                            : '<span class="badge" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">Unverified</span>'; 
+                    } 
+                },
+                { 
+                    data: 'updatedAt', 
+                    visible: false, 
+                    render: function(d){ 
+                        if(!d) return '—'; 
+                        const date = new Date(d); 
+                        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); 
+                    } 
+                },
+                { 
+                    data: 'isLockedOut', 
+                    visible: false, 
+                    render: function(d){ 
+                        return d 
+                            ? '<span class="badge" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">Locked</span>' 
+                            : '<span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">Normal</span>'; 
+                    } 
                 },
                 {
                     data: null,
                     orderable: false,
                     render: function (data, type, row) {
-                        return `<div style="text-align: right;">
-                                    <button class="action-btn" title="Reset Password"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></button>
-                                    <button class="action-btn" title="Edit" onclick="editUser('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
-                                    <button class="action-btn text-error" title="Delete" onclick="deleteUser('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
-                                </div>`;
+                        let html = `<div style="text-align: right;">
+                                    <button class="action-btn action-btn-view" title="View Details" data-type="user" data-id="${row.id}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path></svg></button>`;
+                        if (canEditUser) {
+                            if (canSendResetLink) {
+                                html += `<button class="action-btn action-btn-notify" title="Send Reset Link" onclick="sendResetLink('${row.email}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg></button>`;
+                            }
+                            if (canResetPassword) {
+                                html += `<button class="action-btn action-btn-notify" title="Change Password" onclick="resetUserPassword('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.778-7.778zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg></button>`;
+                            }
+                            html += `<button class="action-btn action-btn-edit" title="Edit" onclick="editUser('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>`;
+                        }
+                        if (canDeleteUser) {
+                            html += `<button class="action-btn action-btn-delete" title="Delete" onclick="deleteUser('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>`;
+                        }
+                        html += `</div>`;
+                        return html;
                     }
                 }
             ]
@@ -159,10 +867,232 @@
             });
         }
 
+        $('#filterTenant, #filterRole, #filterApplication, #filterStatus').on('change', function() {
+            dt.ajax.reload();
+        });
+
+        /* ── KPI Cards Click Routing ── */
+        $(document).on('click', '.sub-kpi-card', function (e) {
+            e.preventDefault();
+            const $card = $(this).closest('.sub-kpi-card');
+            let filterVal = $card.attr('data-filter');
+            if (filterVal === undefined) {
+                filterVal = $card.attr('data-value');
+            }
+            if (filterVal === undefined || filterVal === null || filterVal === 'all') {
+                filterVal = '';
+            }
+
+            $('.sub-kpi-card').removeClass('active');
+            $card.addClass('active');
+
+            $('#filterStatus').val(String(filterVal)).trigger('change');
+        });
+
         $('#openCreateUserModal').on('click', function() {
             openUserModal();
         });
+
+        // Initialize row selection for smart export
+        window.initRowSelection('userTable', 'id');
+
+    /* ═══════════════════════════════════════════════════════════
+       USER GRID VIEW RENDERER
+       ═══════════════════════════════════════════════════════════ */
+
+    function _uEsc(s) { return $('<div>').text(s || '').html(); }
+
+    function renderUserGridView(dataArray) {
+        var $c = $('#userGridViewWrapper');
+        $c.empty();
+        if (!dataArray || dataArray.length === 0) {
+            $c.html('<div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 20px;color:var(--text-muted);text-align:center;background:var(--bg-surface);border:1px dashed var(--border-strong);border-radius:var(--radius-lg);margin:16px;">' +
+                '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:12px;opacity:0.7;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>' +
+                '<h5 style="margin:0 0 4px;font-weight:600;color:var(--text-main);">No Users Found</h5>' +
+                '<p style="margin:0;font-size:0.75rem;">Try adjusting your search terms or filters.</p></div>');
+            return;
+        }
+
+        var palLight = [{bg:'#dbeafe',clr:'#1d4ed8'},{bg:'#ede9fe',clr:'#6d28d9'},{bg:'#ccfbf1',clr:'#0d9488'},{bg:'#fef3c7',clr:'#b45309'},{bg:'#fee2e2',clr:'#b91c1c'},{bg:'#e0e7ff',clr:'#4338ca'}];
+        var palDark  = [{bg:'#152248',clr:'#93c5fd'},{bg:'#3b2f6e',clr:'#c4b5fd'},{bg:'#124040',clr:'#5eead4'},{bg:'#44330a',clr:'#fcd34d'},{bg:'#4a1818',clr:'#fca5a5'},{bg:'#1e2d6a',clr:'#a5b4fc'}];
+        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+        $.each(dataArray, function (idx, row) {
+            var pal = isDark ? palDark[idx % palDark.length] : palLight[idx % palLight.length];
+            var name = _uEsc(row.firstName || row.userName || 'User');
+            var avatarChar = (row.firstName || row.userName || 'U').charAt(0).toUpperCase();
+
+            var rolesHtml = (row.roles && row.roles.length > 0)
+                ? row.roles.map(function(r){ return '<span class="badge badge-info" style="margin-right:2px;margin-bottom:2px;display:inline-block;">' + _uEsc(r) + '</span>'; }).join('')
+                : '<span class="text-muted" style="font-size:0.75rem;">None</span>';
+            var appsHtml = (row.clientNames && row.clientNames.length > 0)
+                ? row.clientNames.map(function(c){ return '<span class="badge badge-primary" style="margin-right:2px;margin-bottom:2px;display:inline-block;">' + _uEsc(c) + '</span>'; }).join('')
+                : '<span class="text-muted" style="font-size:0.75rem;">None</span>';
+            var statusBadge = row.isActive
+                ? '<span class="if-status if-status-active"><span class="if-status-dot"></span>Active</span>'
+                : '<span class="if-status if-status-inactive"><span class="if-status-dot"></span>Inactive</span>';
+
+            var actions = '<button class="btn-ucard-action action-btn-view" data-type="user" data-id="' + row.id + '" title="View Details">' +
+                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path></svg></button>';
+            if (canEditUser) {
+                if (canSendResetLink) {
+                    actions += '<button class="btn-ucard-action" title="Send Reset Link" onclick="sendResetLink(\'' + _uEsc(row.email) + '\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg></button>';
+                }
+                if (canResetPassword) {
+                    actions += '<button class="btn-ucard-action" title="Change Password" onclick="resetUserPassword(\'' + row.id + '\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.778-7.778zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg></button>';
+                }
+                actions += '<button class="btn-ucard-action" title="Edit" onclick="editUser(\'' + row.id + '\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>';
+            }
+            if (canDeleteUser) {
+                actions += '<button class="btn-ucard-action udanger" title="Delete" onclick="deleteUser(\'' + row.id + '\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>';
+            }
+
+            var card = '<div class="user-grid-card" data-id="' + row.id + '">' +
+                '<div class="user-card-banner" style="background:' + pal.bg + ';">' +
+                '<div class="user-card-avatar" style="color:' + pal.clr + ';">' + avatarChar + '</div>' +
+                statusBadge +
+                '</div>' +
+                '<div class="user-card-body">' +
+                '<p class="user-card-name" title="' + name + '">' + name + '</p>' +
+                '<p class="user-card-username">@@' + _uEsc(row.userName || '') + '</p>' +
+                '<p class="user-card-email">' + _uEsc(row.email || '') + '</p>' +
+                '<div class="ucard-divider"></div>' +
+                '<div class="user-card-meta-row"><span class="user-card-meta-label">Tenant</span><span class="badge badge-neutral">' + _uEsc(row.tenantName || 'Global') + '</span></div>' +
+                '<div class="user-card-meta-row" style="align-items:flex-start;"><span class="user-card-meta-label" style="margin-top:2px;">Roles</span><div style="text-align:right;">' + rolesHtml + '</div></div>' +
+                '<div class="user-card-meta-row" style="align-items:flex-start;"><span class="user-card-meta-label" style="margin-top:2px;">Apps</span><div style="text-align:right;">' + appsHtml + '</div></div>' +
+                '<div class="user-card-actions">' + actions + '</div>' +
+                '</div></div>';
+            $c.append(card);
+        });
+    }
+
+        /* applyViewMode override for userTable */
+        var _origUserRVM = window.applyViewMode;
+        window.applyViewMode = function (targetTableId, mode) {
+            if (targetTableId === 'userTable') {
+                var $grid = $('#userGridViewWrapper');
+                var $tbl  = $('#userTableViewWrapper');
+                var $foot = $panel.find('.if-table-footer-wrap');
+                var $btns = $panel.find('.view-toggle-btn[data-target="userTable"]');
+                if (mode === 'grid') {
+                    $tbl.removeClass('active'); $grid.addClass('active');
+                    if ($foot.length) $panel.append($foot);
+                    $btns.removeClass('active');
+                    $panel.find('.view-toggle-btn[data-target="userTable"][data-view="grid"]').addClass('active');
+                    localStorage.setItem('view-mode-userTable', 'grid');
+                } else {
+                    $grid.removeClass('active'); $tbl.addClass('active');
+                    var $dtw = $('#userTable_wrapper');
+                    if ($foot.length && $dtw.length) $dtw.append($foot);
+                    $btns.removeClass('active');
+                    $panel.find('.view-toggle-btn[data-target="userTable"][data-view="list"]').addClass('active');
+                    localStorage.setItem('view-mode-userTable', 'list');
+                }
+            } else if (typeof _origUserRVM === 'function') {
+                _origUserRVM(targetTableId, mode);
+            }
+        };
+
+        /* View toggle click → animate wrappers */
+        $(document).on('click', '.view-toggle-btn[data-target="userTable"]', function () {
+            var mode = $(this).data('view');
+            window.applyViewMode('userTable', mode);
+            if (mode === 'grid') {
+                $('#userTableViewWrapper').removeClass('active');
+                setTimeout(function () { $('#userGridViewWrapper').addClass('active'); }, 50);
+            } else {
+                $('#userGridViewWrapper').removeClass('active');
+                setTimeout(function () { $('#userTableViewWrapper').addClass('active'); }, 50);
+            }
+        });
+
+        /* Init from localStorage – no flicker */
+        (function initUserView() {
+            var saved = localStorage.getItem('view-mode-userTable') || 'list';
+            window.applyViewMode('userTable', saved);
+            if (saved === 'grid') {
+                $('#userTableViewWrapper').removeClass('active');
+                $('#userGridViewWrapper').addClass('active');
+            } else {
+                $('#userGridViewWrapper').removeClass('active');
+                $('#userTableViewWrapper').addClass('active');
+            }
+        })();
     });
+
+
+    function sendResetLink(email) {
+        Swal.fire({
+            title: 'Send Reset Link',
+            text: `Are you sure you want to send a password reset email to ${email}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Send Email',
+            cancelButtonText: 'Cancel',
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                const token = $('input[name="__RequestVerificationToken"]').val();
+                return $.post('/Login/ForgotPassword', { 
+                    Email: email, 
+                    __RequestVerificationToken: token 
+                }).catch(error => {
+                    Swal.showValidationMessage(`Request failed: ${error.statusText || error}`);
+                });
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire('Success', 'Password reset link has been dispatched successfully.', 'success');
+            }
+        });
+    }
+
+
+    function resetUserPassword(id) {
+        Swal.fire({
+            title: 'Change Password',
+            text: 'Enter the new password for this user:',
+            input: 'password',
+            inputAttributes: {
+                autocapitalize: 'off',
+                autocorrect: 'off',
+                placeholder: 'New password (min 8 chars)'
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Change Password',
+            cancelButtonText: 'Cancel',
+            showLoaderOnConfirm: true,
+            preConfirm: (newPassword) => {
+                if (!newPassword || newPassword.trim().length < 8) {
+                    Swal.showValidationMessage('Password must be at least 8 characters long');
+                    return false;
+                }
+                return $.ajax({
+                    url: '/Home/ResetPasswordAdmin',
+                    type: 'POST',
+                    data: {
+                        userId: id,
+                        newPassword: newPassword
+                    },
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    }
+                }).then(response => {
+                    if (!response.succeeded) {
+                        throw new Error(response.messages ? response.messages[0] : 'Failed to change password');
+                    }
+                    return response;
+                }).catch(error => {
+                    Swal.showValidationMessage(`Request failed: ${error.message || error}`);
+                });
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire('Success', 'The user password has been changed successfully.', 'success');
+            }
+        });
+    }
 
     function openUserModal(id = '') {
         const isEdit = id !== '';
@@ -175,8 +1105,6 @@
                   </svg>`,
             url: '/Home/CreateUser?Id=' + id,
             onSuccess: function(result) {
-                // This will be called if the generic modal form handler is used
-                // but our partial has its own handler for now.
                 window.dt.ajax.reload();
             }
         });

@@ -39,7 +39,13 @@ namespace SSO.Application.Features.Roles.Queries.GetById
                     Name = role.Name!,
                     Description = role.Description,
                     TenantId = role.TenantId,
-                    IsSystemRole = role.IsSystemRole
+                    IsSystemRole = role.IsSystemRole,
+                    CreatedBy = role.CreatedBy,
+                    CreatedOn = role.CreatedOn,
+                    LastModifiedBy = role.LastModifiedBy,
+                    LastModifiedOn = role.LastModifiedOn,
+                    IPAddress = role.IPAddress,
+                    IsDeleted = role.IsDeleted
                 };
                 return await Result<RoleResponse>.SuccessAsync(response);
             }

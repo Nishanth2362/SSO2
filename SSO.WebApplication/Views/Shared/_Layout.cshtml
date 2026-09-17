@@ -7,9 +7,41 @@
     
     var logo = !string.IsNullOrEmpty(rawLogo) ? "/" + rawLogo : "/pwa-icon-512.png";
     var favicon = !string.IsNullOrEmpty(rawFavicon) ? "/" + rawFavicon : "/favicon.ico";
-    var tenantName = tenant?.Name ?? "Auxinz Identity";
+    var tenantName = tenant?.Name ?? "SSO Server";
     var cspNonce = Context.Items["CSPNonce"]?.ToString();
     var environment = Context.RequestServices.GetRequiredService<IWebHostEnvironment>();
+
+    var canViewDashboard = (await AuthorizationService.AuthorizeAsync(User, Permissions.Dashboards.View)).Succeeded;
+    var canViewTenants = (await AuthorizationService.AuthorizeAsync(User, Permissions.Tenant.View)).Succeeded;
+    var canViewSubscriptions = (await AuthorizationService.AuthorizeAsync(User, Permissions.Subscription.View)).Succeeded;
+    var canViewInvoices = (await AuthorizationService.AuthorizeAsync(User, Permissions.Invoices.View)).Succeeded;
+    var canViewUsers = (await AuthorizationService.AuthorizeAsync(User, Permissions.Users.View)).Succeeded;
+    var canViewRoles = (await AuthorizationService.AuthorizeAsync(User, Permissions.Roles.View)).Succeeded;
+    var canViewClients = (await AuthorizationService.AuthorizeAsync(User, Permissions.Client.View)).Succeeded;
+    var canViewAuditLogs = (await AuthorizationService.AuthorizeAsync(User, Permissions.AuditTrails.View)).Succeeded;
+    var canViewTemplates = (await AuthorizationService.AuthorizeAsync(User, Permissions.Templates.View)).Succeeded;
+    var canViewEmailTemplates = (await AuthorizationService.AuthorizeAsync(User, Permissions.EmailTemplates.View)).Succeeded;
+    var canViewJobs = (await AuthorizationService.AuthorizeAsync(User, Permissions.Hangfire.View)).Succeeded;
+    var canViewRestrictedAccess = (await AuthorizationService.AuthorizeAsync(User, Permissions.RestrictedAccess.View)).Succeeded;
+    var canViewSecurity = true;
+
+    var canCreateTenant = (await AuthorizationService.AuthorizeAsync(User, Permissions.Tenant.Create)).Succeeded;
+    var canCreateUser = (await AuthorizationService.AuthorizeAsync(User, Permissions.Users.Create)).Succeeded;
+    var canCreateRole = (await AuthorizationService.AuthorizeAsync(User, Permissions.Roles.Create)).Succeeded;
+    var canCreateClient = (await AuthorizationService.AuthorizeAsync(User, Permissions.Client.Create)).Succeeded;
+    var canCreateTemplate = (await AuthorizationService.AuthorizeAsync(User, Permissions.Templates.Create)).Succeeded;
+    var canCreateSubscription = (await AuthorizationService.AuthorizeAsync(User, Permissions.Subscription.Create)).Succeeded;
+
+    // Resolve user roles dynamically
+    var userRoles = User.Claims.Where(c => c.Type == System.Security.Claims.ClaimTypes.Role || c.Type == "role" || c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role").Select(c => c.Value).ToList();
+    var displayRole = userRoles.Any() ? string.Join(", ", userRoles) : "User";
+
+    var ssoMode = ViewData["SSO_ViewContext"] as string;
+    var isMinimalMode = !string.IsNullOrEmpty(ssoMode);
+
+    var curAct = ViewContext.RouteData.Values["action"]?.ToString();
+    var curCtrl = ViewContext.RouteData.Values["controller"]?.ToString();
+    var isProfilePage = string.Equals(curCtrl, "Account", StringComparison.OrdinalIgnoreCase) && string.Equals(curAct, "Profile", StringComparison.OrdinalIgnoreCase);
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -20,6 +52,43 @@
     <meta name="csp-nonce" content="@cspNonce">
     <meta name="app-environment" content="@(environment.IsDevelopment() ? "Development" : "Production")">
     <title>@tenantName - @ViewData["Title"] </title>
+    <script nonce="@cspNonce">
+        (function () {
+            var savedTheme = localStorage.getItem('theme') || 'system';
+            var theme = savedTheme;
+            if (savedTheme === 'system') {
+                theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+            }
+            document.documentElement.setAttribute('data-theme', theme);
+            document.documentElement.setAttribute('data-theme-preference', savedTheme);
+            
+            // Standard sidebar layout always
+            document.documentElement.setAttribute('data-layout', 'sidebar');
+            
+            var savedColor = localStorage.getItem('theme-color') || 'blue';
+            document.documentElement.setAttribute('data-theme-color', savedColor);
+            
+            var savedDensity = localStorage.getItem('density') || 'standard';
+            document.documentElement.setAttribute('data-density', savedDensity);
+            
+            var savedCardStyle = localStorage.getItem('card-style') || 'bordered';
+            document.documentElement.setAttribute('data-card-style', savedCardStyle);
+            
+            var savedDashLayout = localStorage.getItem('dashboard-layout') || 'grid';
+            document.documentElement.setAttribute('data-dashboard-layout', savedDashLayout);
+
+            var savedFont = localStorage.getItem('font-family') || 'inter';
+            document.documentElement.setAttribute('data-font-family', savedFont);
+            
+            var savedFontSize = localStorage.getItem('font-size') || 'medium';
+            document.documentElement.setAttribute('data-font-size', savedFontSize);
+
+            var savedSidebarCollapsed = localStorage.getItem('sidebar-collapsed') !== 'false';
+            if (savedSidebarCollapsed) {
+                document.documentElement.classList.add('sidebar-collapsed');
+            }
+        })();
+    </script>
     <link rel="icon" type="image/x-icon" href="@favicon">
     <link rel="stylesheet" href="~/css/styles.css?v=@(DateTime.Now.Ticks)">
     <link rel="stylesheet" href="~/css/jquery.dataTables.min.css" />
@@ -39,15 +108,50 @@
     <meta name="apple-mobile-web-app-title" content="@tenantName">
     <link rel="apple-touch-icon" href="@logo">
     
+    @if (isProfilePage || (isMinimalMode && string.Equals(ssoMode, "minimal_profile", StringComparison.OrdinalIgnoreCase)))
+    {
+        <style nonce="@cspNonce">
+            .sidebar, .top-header, .top-brand-logo, .hamburger-menu {
+                display: none !important;
+            }
+            .app-layout {
+                display: block !important;
+                min-height: 100vh !important;
+                background: var(--bg-base) !important;
+            }
+            .main-wrapper {
+                margin: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-height: 100vh !important;
+            }
+            .content-area {
+                padding: 24px 10px 60px !important;
+                max-width: 1280px !important;
+                margin: 0 auto !important;
+                width: 100% !important;
+            }
+        </style>
+    }
 </head>
 
-<body>
+<body class="@(isProfilePage ? "is-profile-page" : (isMinimalMode ? "minimal-mode" : ""))">
+    <!-- Global Page Loader -->
+    <div id="global-page-loader" class="page-loader-overlay">
+        <div class="modern-spinner"></div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
     <div class="app-layout">
 
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <a asp-action="Index" asp-controller="Home" class="brand">
+        @if (!isProfilePage)
+        {
+            <!-- Sidebar -->
+            <aside class="sidebar">
+            <div class="sidebar-header" style="justify-content: space-between; gap: 8px;">
+                <a href="@(isMinimalMode ? "/Home/Users" : "/Home/Index")" class="brand">
                     @if (!string.IsNullOrEmpty(tenant?.LogoUrl))
                     {
                         <img src="@logo" alt="@tenantName" style="height: 24px; width: auto; border-radius: 4px; margin-right: 12px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));" />
@@ -61,166 +165,277 @@
                             </svg>
                         </div>
                     }
-                    @tenantName
+                    <span class="brand-text">@tenantName</span>
                 </a>
+                <button type="button" class="hamburger-menu" id="sidebar-toggle-btn" title="Toggle Sidebar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
             </div>
 
             <div class="sidebar-content">
-                <div class="nav-group">
-                    <div class="nav-group-title">Metrics</div>
-                    <a asp-action="" asp-controller="Home" class="nav-item active">
-                        <div class="nav-item-content">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="3" y="3" width="7" height="7"></rect>
-                                <rect x="14" y="3" width="7" height="7"></rect>
-                                <rect x="14" y="14" width="7" height="7"></rect>
-                                <rect x="3" y="14" width="7" height="7"></rect>
-                            </svg>
-                            Dashboard
-                        </div>
-                    </a>
-                </div>
-
-                <div class="nav-group">
-                    <div class="nav-group-title">Multi-Tenancy</div>
-                    <a asp-action="Tenants" asp-controller="Home" class="nav-item">
-                        <div class="nav-item-content">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                            </svg>
-                            Tenants & Licenses
-                        </div>
-                    </a>
-                    <a asp-action="Subscriptions" asp-controller="Home" class="nav-item">
-                        <div class="nav-item-content">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect>
-                                <line x1="2" y1="10" x2="22" y2="10"></line>
-                            </svg>
-                            Subscriptions
-                        </div>
-                    </a>
-                    <a asp-action="Invoices" asp-controller="Billing" class="nav-item">
-                        <div class="nav-item-content">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                                <line x1="8" y1="21" x2="16" y2="21"></line>
-                                <line x1="12" y1="17" x2="12" y2="21"></line>
-                            </svg>
-                            Billing & Invoices
-                        </div>
-                    </a>
-                </div>
-
-                <div class="nav-group">
-                    <div class="nav-group-title">Identity & Access</div>
-                    <a asp-action="Users" asp-controller="Home" class="nav-item">
-                        <div class="nav-item-content">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="9" cy="7" r="4"></circle>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                            </svg>
-                            Users
-                        </div>
-                    </a>
-                    <a asp-action="Roles" asp-controller="Home" class="nav-item">
-                        <div class="nav-item-content">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                                <polyline points="2 17 12 22 22 17"></polyline>
-                                <polyline points="2 12 12 17 22 12"></polyline>
-                            </svg>
-                            Roles & Permissions
-                        </div>
-                    </a>
-                </div>
-
-                <div class="nav-group">
-                    <div class="nav-group-title">OpenIddict SSO</div>
-                    <a asp-action="Clients" asp-controller="Home" class="nav-item">
-                        <div class="nav-item-content">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
-                                </path>
-                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                                <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                            </svg>
-                            Applications
-                        </div>
+                @if (canViewDashboard && !isMinimalMode)
+                {
+                    <div class="nav-group">
+                        <div class="nav-group-title">Metrics</div>
+                        <a asp-action="" asp-controller="Home" class="nav-item active">
+                            <div class="nav-item-content">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                     stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="3" width="7" height="7"></rect>
+                                    <rect x="14" y="3" width="7" height="7"></rect>
+                                    <rect x="14" y="14" width="7" height="7"></rect>
+                                    <rect x="3" y="14" width="7" height="7"></rect>
+                                </svg>
+                                <span class="nav-text">Dashboard</span>
+                            </div>
                         </a>
-                    <a asp-action="Tokens" asp-controller="Home" class="nav-item">
-                        <div class="nav-item-content">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
-                            Tokens
-                        </div>
-                    </a>
-                </div>
+                    </div>
+                }
 
-                <div class="nav-group">
-                    <div class="nav-group-title">Reporting</div>
-                    <a asp-action="AuditLogs" asp-controller="Reporting" class="nav-item">
-                        <div class="nav-item-content">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="18" y1="20" x2="18" y2="10"></line>
-                                <line x1="12" y1="20" x2="12" y2="4"></line>
-                                <line x1="6" y1="20" x2="6" y2="14"></line>
-                            </svg>
-                            Audit Logs
-                        </div>
-                    </a>
-                </div>
+                @if ((canViewTenants || canViewSubscriptions || canViewInvoices) && !isMinimalMode)
+                {
+                    <div class="nav-group">
+                        <div class="nav-group-title">Multi-Tenancy</div>
+                        @if (canViewTenants)
+                        {
+                            <a asp-action="Tenants" asp-controller="Home" class="nav-item">
+                                <div class="nav-item-content">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                         stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                                    </svg>
+                                    <span class="nav-text">Tenants & Licenses</span>
+                                </div>
+                            </a>
+                        }
+                        @if (canViewSubscriptions)
+                        {
+                            <a asp-action="Subscriptions" asp-controller="Home" class="nav-item">
+                                <div class="nav-item-content">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                         stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect>
+                                        <line x1="2" y1="10" x2="22" y2="10"></line>
+                                    </svg>
+                                    <span class="nav-text">Subscriptions</span>
+                                </div>
+                            </a>
+                        }
+                        @if (canViewInvoices)
+                        {
+                            <a asp-action="Invoices" asp-controller="Billing" class="nav-item">
+                                <div class="nav-item-content">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                         stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                                    </svg>
+                                    <span class="nav-text">Billing & Invoices</span>
+                                </div>
+                            </a>
+                        }
+                        @if (canViewTenants)
+                        {
+                            var curAct = ViewContext.RouteData.Values["action"]?.ToString();
+                            var curTenantId = Context.Request.Query["tenantId"].ToString();
+                            if (string.IsNullOrEmpty(curTenantId)) { curTenantId = Context.Request.Query["TenantId"].ToString(); }
+                            var isTenantScope = !string.IsNullOrEmpty(curTenantId);
+                            var isTacActive = curAct == "TenantUsers" || curAct == "ManageTenant" || curAct == "ManageApplicationUsers" || (curAct == "RolePermissions" && isTenantScope);
 
-                <div class="nav-group">
-                    <div class="nav-group-title">System Settings</div>
-                    <a asp-action="Templates" asp-controller="Home" class="nav-item">
-                        <div class="nav-item-content">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                                <line x1="16" y1="13" x2="8" y2="13"></line>
-                                <line x1="16" y1="17" x2="8" y2="17"></line>
-                                <polyline points="10 9 9 9 8 9"></polyline>
-                            </svg>
-                            Templates
-                        </div>
-                    </a>
-                    <a asp-action="EmailTemplates" asp-controller="Home" class="nav-item">
-                        <div class="nav-item-content">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                                <polyline points="22,6 12,13 2,6"></polyline>
-                            </svg>
-                            Email Templates
-                        </div>
-                    </a>
-                    <a asp-action="Index" asp-controller="Jobs" class="nav-item">
-                        <div class="nav-item-content">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="12 6 12 12 16 14"></polyline>
-                            </svg>
-                            Background Jobs
-                        </div>
-                    </a>
-                </div>
+                            <a asp-action="TenantUsers" asp-controller="Home" class="nav-item @(isTacActive ? "active" : "")">
+                                <div class="nav-item-content">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                         stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="9" cy="7" r="4"></circle>
+                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                    </svg>
+                                    <span class="nav-text">Tenant Access Control</span>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                }
+
+                @if (canViewUsers || canViewRoles)
+                {
+                    <div class="nav-group">
+                        <div class="nav-group-title">Identity & Access</div>
+                        @if (canViewUsers)
+                        {
+                            <a asp-action="Users" asp-controller="Home" class="nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Users" ? "active" : "")">
+                                <div class="nav-item-content">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                         stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="9" cy="7" r="4"></circle>
+                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                    </svg>
+                                    <span class="nav-text">Users</span>
+                                </div>
+                            </a>
+                        }
+                        @if (canViewRoles)
+                        {
+                            var curAct = ViewContext.RouteData.Values["action"]?.ToString();
+                            var curTenantId = Context.Request.Query["tenantId"].ToString();
+                            if (string.IsNullOrEmpty(curTenantId)) { curTenantId = Context.Request.Query["TenantId"].ToString(); }
+                            var isTenantScope = !string.IsNullOrEmpty(curTenantId);
+                            var isRolesActive = curAct == "Roles" || (curAct == "RolePermissions" && !isTenantScope);
+
+                            <a asp-action="Roles" asp-controller="Home" class="nav-item @(isRolesActive ? "active" : "")">
+                                <div class="nav-item-content">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                         stroke-linecap="round" stroke-linejoin="round">
+                                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                                        <polyline points="2 17 12 22 22 17"></polyline>
+                                        <polyline points="2 12 12 17 22 12"></polyline>
+                                    </svg>
+                                    <span class="nav-text">Roles & Permissions</span>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                }
+
+                @if ((canViewClients || canViewUsers) && !isMinimalMode)
+                {
+                    <div class="nav-group">
+                        <div class="nav-group-title">OpenIddict SSO</div>
+                        @if (canViewClients)
+                        {
+                            <a asp-action="Clients" asp-controller="Home" class="nav-item">
+                                <div class="nav-item-content">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                         stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+                                        </path>
+                                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                                    </svg>
+                                    <span class="nav-text">Applications</span>
+                                </div>
+                            </a>
+                        }
+                        @if (canViewUsers)
+                        {
+                            <a asp-action="Tokens" asp-controller="Home" class="nav-item">
+                                <div class="nav-item-content">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                         stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                    <span class="nav-text">Tokens</span>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                }
+
+                @if ((canViewAuditLogs || canViewSecurity) && !isMinimalMode)
+                {
+                    <div class="nav-group">
+                        <div class="nav-group-title">Reporting & Security</div>
+                        @if (canViewAuditLogs)
+                        {
+                            <a asp-action="AuditLogs" asp-controller="Reporting" class="nav-item">
+                                <div class="nav-item-content">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                         stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                                    </svg>
+                                    <span class="nav-text">Audit Logs</span>
+                                </div>
+                            </a>
+                        }
+                        @if (canViewSecurity)
+                        {
+                            <a asp-action="Index" asp-controller="Security" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Security" ? "active" : "")">
+                                <div class="nav-item-content">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                         stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    </svg>
+                                    <span class="nav-text">Security Events</span>
+                                </div>
+                            </a>
+                        }
+                        @if (canViewRestrictedAccess)
+                        {
+                            <a asp-action="Index" asp-controller="RestrictedAccess" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "RestrictedAccess" ? "active" : "")">
+                                <div class="nav-item-content">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                         stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                    <span class="nav-text">Restricted Access Sessions</span>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                }
+
+                @if ((canViewTemplates || canViewEmailTemplates || canViewJobs) && !isMinimalMode)
+                {
+                    <div class="nav-group">
+                        <div class="nav-group-title">System Settings</div>
+                        @if (canViewTemplates)
+                        {
+                            <a asp-action="Templates" asp-controller="Home" class="nav-item">
+                                <div class="nav-item-content">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                         stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <polyline points="14 2 14 8 20 8"></polyline>
+                                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                                        <polyline points="10 9 9 9 8 9"></polyline>
+                                    </svg>
+                                    <span class="nav-text">Templates</span>
+                                </div>
+                            </a>
+                        }
+                        @if (canViewEmailTemplates)
+                        {
+                            <a asp-action="EmailTemplates" asp-controller="Home" class="nav-item">
+                                <div class="nav-item-content">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                         stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                        <polyline points="22,6 12,13 2,6"></polyline>
+                                    </svg>
+                                    <span class="nav-text">Email Templates</span>
+                                </div>
+                            </a>
+                        }
+                        @if (canViewJobs)
+                        {
+                            <a asp-action="Index" asp-controller="Jobs" class="nav-item">
+                                <div class="nav-item-content">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                         stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    <span class="nav-text">Background Jobs</span>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                }
             </div>
 
             <div class="sidebar-footer">
@@ -228,7 +443,7 @@
                     <div class="tenant-switcher" id="tenantMenuToggle">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <span style="width: 8px; height: 8px; background: var(--status-success); border-radius: 50%;"></span>
-                            Active Session
+                            <span class="active-session-text">Active Session</span>
                         </div>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="opacity: 0.5;">
                             <polyline points="6 9 12 15 18 9"></polyline>
@@ -241,83 +456,238 @@
                             <div class="item-icon profile-icon" style="background: rgba(var(--status-success-rgb), 0.1); color: var(--status-success);">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                             </div>
-                            <span>Identity Master</span>
+                            <span class="active-session-text">Identity Master</span>
                         </div>
                     </div>
                 </div>
             </div>
         </aside>
+        }
 
         <!-- Main Workspace -->
         <main class="main-wrapper">
-            <!-- Global Header -->
-            <header class="top-header">
-                <div class="header-left">
-                    <button class="hamburger-menu" id="mobile-menu-btn" title="Toggle Menu">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="3" y1="12" x2="21" y2="12"></line>
-                            <line x1="3" y1="6" x2="21" y2="6"></line>
-                            <line x1="3" y1="18" x2="21" y2="18"></line>
-                        </svg>
-                    </button>
-                    <div class="global-search">
-                       @*  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                             stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
-                        <input type="text" placeholder="Search resources, users, or clients...">
-                        <span class="shortcut">Ctrl+K</span> *@
-                    </div>
-                </div>
-
-                <div class="header-right">
-                    <button class="icon-btn" title="Notifications">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                        </svg>
-                    </button>
-
-                    <div class="user-menu-container">
-                        <div class="user-avatar-group" id="userMenuToggle">
-                            <div class="user-avatar">
-                                @(User.Identity?.Name?.Length >= 2 ? User.Identity.Name.Substring(0, 2).ToUpper() : "U")
-                                <span class="status-dot"></span>
-                            </div>
-                            <div class="user-info-text">
-                                <span class="user-name">@User.Identity?.Name</span>
-                                <span class="user-role">Administrator</span>
-                            </div>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-left: 4px; opacity: 0.5;">
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                        </div>
-                        <div class="dropdown-menu glass-dropdown" id="userDropdown">
-                            <div class="dropdown-header">Account Management</div>
-                            <div class="dropdown-divider"></div>
-                            <a asp-action="Profile" asp-controller="Account" class="dropdown-item">
-                                <div class="item-icon profile-icon">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                                </div>
-                                <span>My Profile</span>
-                            </a>
-                            <div class="dropdown-divider"></div>
-                            <form asp-action="Logout" asp-controller="Login" method="post">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="dropdown-item logout-link">
-                                    <div class="item-icon logout-icon">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            @if (!isProfilePage)
+            {
+                <!-- Global Header -->
+                <header class="top-header">
+                    <div class="header-top-row">
+                        <div class="top-brand-logo">
+                            <a asp-action="Index" asp-controller="Home" class="brand">
+                                @if (!string.IsNullOrEmpty(tenant?.LogoUrl))
+                                {
+                                    <img src="@logo" alt="@tenantName" style="height: 24px; width: auto; border-radius: 4px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));" />
+                                }
+                                else
+                                {
+                                    <div class="brand-icon">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                        </svg>
                                     </div>
-                                    <span>Sign Out</span>
+                                }
+                                <span class="brand-text">@tenantName</span>
+                            </a>
+                        </div>
+                        
+                        @if (!isMinimalMode)
+                        {
+                            <div class="header-left">
+                            </div>
+                        }
+
+                        <div class="header-right">
+                            @if (!isMinimalMode)
+                            {
+                                <div class="global-search">
+                                    <div class="global-search-wrapper" id="globalSearchWrapper">
+                                        <div class="global-search-icon" id="globalSearchIcon" title="Search (Click to expand)">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="11" cy="11" r="8"></circle>
+                                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                            </svg>
+                                        </div>
+                                        <div class="global-search-content">
+                                            <div class="global-search-dropdown">
+                                                <button type="button" class="global-search-dropdown-trigger" id="globalSearchDropdownTrigger">
+                                                    <span class="category-label" id="globalSearchSelectedCategory">Users</span>
+                                                    <svg class="chevron-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                                </button>
+                                                <div class="global-search-dropdown-menu" id="globalSearchDropdownMenu">
+                                                    <div class="global-search-dropdown-label">Search in Module</div>
+                                                    <button type="button" class="global-search-category-item" data-value="Users" data-url="/Home/Users"><span class="cat-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg></span>Users</button>
+                                                    <button type="button" class="global-search-category-item" data-value="Tenants" data-url="/Home/Tenants"><span class="cat-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></span>Tenants &amp; Licenses</button>
+                                                    <button type="button" class="global-search-category-item" data-value="Subscriptions" data-url="/Home/Subscriptions"><span class="cat-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg></span>Subscriptions</button>
+                                                    <button type="button" class="global-search-category-item" data-value="Invoices" data-url="/Billing/Invoices"><span class="cat-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg></span>Billing &amp; Invoices</button>
+                                                    <button type="button" class="global-search-category-item" data-value="Roles" data-url="/Home/Roles"><span class="cat-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline></svg></span>Roles &amp; Permissions</button>
+                                                    <button type="button" class="global-search-category-item" data-value="Clients" data-url="/Home/Clients"><span class="cat-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>Applications</button>
+                                                    <button type="button" class="global-search-category-item" data-value="Tokens" data-url="/Home/Tokens"><span class="cat-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg></span>Tokens</button>
+                                                    <button type="button" class="global-search-category-item" data-value="AuditLogs" data-url="/Reporting/AuditLogs"><span class="cat-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>Audit Logs</button>
+                                                    <button type="button" class="global-search-category-item" data-value="Templates" data-url="/Home/Templates"><span class="cat-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span>Templates</button>
+                                                    <button type="button" class="global-search-category-item" data-value="EmailTemplates" data-url="/Home/EmailTemplates"><span class="cat-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg></span>Email Templates</button>
+                                                    <button type="button" class="global-search-category-item" data-value="Jobs" data-url="/Jobs"><span class="cat-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span>Background Jobs</button>
+                                                </div>
+                                            </div>
+                                            <div class="global-search-input-wrap">
+                                                <input type="text" id="globalSearchInput" placeholder="Search users..." autocomplete="off" />
+                                            </div>
+                                            <button type="button" class="global-search-close" id="globalSearchClose" title="Close search">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div class="global-search-results-panel" id="globalSearchResultsPanel" style="display: none;"></div>
+                                    </div>
+                                </div>
+                            }
+                            <button class="icon-btn" title="Notifications">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                                </svg>
+                            </button>
+
+                            <button class="icon-btn" id="settings-drawer-btn" title="Theme Settings">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                                </svg>
+                            </button>
+
+                            <div class="quick-actions-container">
+                                <button class="icon-btn" id="quickActionsToggle" title="Quick Actions">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
                                 </button>
-                            </form>
+                                <div class="dropdown-menu glass-dropdown" id="quickActionsDropdown" style="right: 0; left: auto; width: 220px;">
+                                    <div class="dropdown-header">Quick Actions</div>
+                                    <div class="dropdown-divider"></div>
+                                    @if (canCreateTenant && !isMinimalMode)
+                                    {
+                                        <a href="/Home/CreateTenant" class="dropdown-item" data-quick-action="tenant">
+                                            <div class="item-icon bg-soft-blue" style="color: var(--brand-primary); padding: 4px; border-radius: 4px; display: flex;">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                                </svg>
+                                            </div>
+                                            <span>Add Tenant</span>
+                                        </a>
+                                        <a href="/Home/Tenants?openAdd=true" class="dropdown-item" data-quick-action="license">
+                                            <div class="item-icon bg-soft-emerald" style="color: var(--status-success); padding: 4px; border-radius: 4px; display: flex;">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                                </svg>
+                                            </div>
+                                            <span>Add License</span>
+                                        </a>
+                                    }
+                                    @if (canCreateUser)
+                                    {
+                                        <a href="/Home/CreateUser" class="dropdown-item" data-quick-action="user">
+                                            <div class="item-icon bg-soft-indigo" style="color: var(--brand-accent); padding: 4px; border-radius: 4px; display: flex;">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                                    <circle cx="9" cy="7" r="4"></circle>
+                                                </svg>
+                                            </div>
+                                            <span>Add User</span>
+                                        </a>
+                                    }
+                                    @if (canCreateRole)
+                                    {
+                                        <a href="/Home/CreateRole" class="dropdown-item" data-quick-action="role">
+                                            <div class="item-icon bg-soft-violet" style="color: #8b5cf6; padding: 4px; border-radius: 4px; display: flex;">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                                                    <polyline points="2 17 12 22 22 17"></polyline>
+                                                </svg>
+                                            </div>
+                                            <span>Add Role</span>
+                                        </a>
+                                    }
+                                    @if (canCreateClient && !isMinimalMode)
+                                    {
+                                        <a href="/Home/CreateClient" class="dropdown-item" data-quick-action="application">
+                                            <div class="item-icon bg-soft-teal" style="color: #14b8a6; padding: 4px; border-radius: 4px; display: flex;">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                                    <line x1="3" y1="9" x2="21" y2="9"></line>
+                                                </svg>
+                                            </div>
+                                            <span>Add Application</span>
+                                        </a>
+                                    }
+                                    @if (canCreateTemplate && !isMinimalMode)
+                                    {
+                                        <a href="/Home/CreateTemplate" class="dropdown-item" data-quick-action="service">
+                                            <div class="item-icon bg-soft-cyan" style="color: #06b6d4; padding: 4px; border-radius: 4px; display: flex;">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                                </svg>
+                                            </div>
+                                            <span>Add Service</span>
+                                        </a>
+                                    }
+                                    @if (canCreateSubscription && !isMinimalMode)
+                                    {
+                                        <a href="/Home/CreateSubscription" class="dropdown-item" data-quick-action="subscription">
+                                            <div class="item-icon bg-soft-amber" style="color: var(--status-warning); padding: 4px; border-radius: 4px; display: flex;">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect>
+                                                    <line x1="2" y1="10" x2="22" y2="10"></line>
+                                                </svg>
+                                            </div>
+                                            <span>Add Subscription</span>
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="user-menu-container" style="display: flex; align-items: center; gap: 8px;">
+                                @if (isMinimalMode && ViewData["SSO_ReturnUrl"] != null && !string.IsNullOrEmpty(ViewData["SSO_ReturnUrl"].ToString()))
+                                {
+                                    <button type="button" id="btnBackToTenant" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-weight: 600; font-size: 0.825rem; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-surface-hover); color: var(--text-main); cursor: pointer; transition: all 0.2s;" data-url="@ViewData["SSO_ReturnUrl"]">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle;">
+                                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                                            <polyline points="12 19 5 12 12 5"></polyline>
+                                        </svg>
+                                        Back to @(ViewData["SSO_TenantName"] ?? "Application")
+                                    </button>
+                                }
+                                <a asp-action="DashboardProfile" asp-controller="Account" class="user-avatar-group" title="My Profile" style="text-decoration: none;">
+                                    <div class="user-avatar">
+                                        @(User.Identity?.Name?.Length >= 2 ? User.Identity.Name.Substring(0, 2).ToUpper() : "U")
+                                        <span class="status-dot"></span>
+                                    </div>
+                                    <div class="user-info-text">
+                                        <span class="user-name">@User.Identity?.Name</span>
+                                        <span class="user-role">@displayRole</span>
+                                    </div>
+                                </a>
+                                <form asp-action="Logout" asp-controller="Login" method="post" style="margin: 0; display: inline-flex;" id="logoutForm">
+                                    @Html.AntiForgeryToken()
+                                    <button type="button" class="logout-btn" title="Sign Out" id="btnLogoutTrigger">
+                                        <svg class="logout-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path class="logout-door" d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                            <polyline class="logout-arrow" points="16 17 21 12 16 7"></polyline>
+                                            <line class="logout-line" x1="21" y1="12" x2="9" y2="12"></line>
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </header>
+                </header>
+            }
 
             <!-- Page Content -->
             <div class="content-area">
@@ -351,6 +721,312 @@
             </div>
         </div>
     </div>
+    <!-- Settings Panel Drawer -->
+    <div class="settings-drawer" id="settingsDrawer">
+        <div class="settings-drawer-header">
+            <h3>Theme Settings</h3>
+            <button class="close-drawer-btn" id="closeSettingsDrawerBtn">&times;</button>
+        </div>
+        <div class="settings-drawer-body">
+            <!-- Color Mode -->
+                <div class="settings-group">
+                <span class="settings-label">Color mode</span>
+                <div class="settings-options">
+                    <label class="settings-radio-label">
+                        <input type="radio" name="color-mode" value="light" id="theme-mode-light" />
+                        <span class="theme-mode-option-label">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-mode-icon">
+                                <circle cx="12" cy="12" r="5"></circle>
+                                <line x1="12" y1="1" x2="12" y2="3"></line>
+                                <line x1="12" y1="21" x2="12" y2="23"></line>
+                                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                                <line x1="1" y1="12" x2="3" y2="12"></line>
+                                <line x1="21" y1="12" x2="23" y2="12"></line>
+                                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                            </svg>
+                            Light
+                        </span>
+                    </label>
+                    <label class="settings-radio-label">
+                        <input type="radio" name="color-mode" value="dark" id="theme-mode-dark" />
+                        <span class="theme-mode-option-label">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-mode-icon">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                            </svg>
+                            Dark
+                        </span>
+                    </label>
+                    <label class="settings-radio-label">
+                        <input type="radio" name="color-mode" value="system" id="theme-mode-system" />
+                        <span class="theme-mode-option-label">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-mode-icon">
+                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                <line x1="8" y1="21" x2="16" y2="21"></line>
+                                <line x1="12" y1="17" x2="12" y2="21"></line>
+                            </svg>
+                            System
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Font Family -->
+            <div class="settings-group">
+                <span class="settings-label">Typography</span>
+                <div class="settings-options" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                    <label class="settings-radio-label">
+                        <input type="radio" name="font-family" value="inter" id="font-family-inter" />
+                        <span>Inter</span>
+                    </label>
+                    <label class="settings-radio-label">
+                        <input type="radio" name="font-family" value="outfit" id="font-family-outfit" />
+                        <span>Outfit</span>
+                    </label>
+                    <label class="settings-radio-label">
+                        <input type="radio" name="font-family" value="poppins" id="font-family-poppins" />
+                        <span>Poppins</span>
+                    </label>
+                    <label class="settings-radio-label">
+                        <input type="radio" name="font-family" value="lora" id="font-family-lora" />
+                        <span>Lora</span>
+                    </label>
+                    <label class="settings-radio-label" style="grid-column: span 2;">
+                        <input type="radio" name="font-family" value="fira-code" id="font-family-fira" />
+                        <span>Fira Code</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Font Size -->
+            <div class="settings-group">
+                <span class="settings-label">Text scale</span>
+                <div class="settings-options">
+                    <label class="settings-radio-label">
+                        <input type="radio" name="font-size" value="small" id="font-size-small" />
+                        <span>Small</span>
+                    </label>
+                    <label class="settings-radio-label">
+                        <input type="radio" name="font-size" value="medium" id="font-size-medium" />
+                        <span>Medium</span>
+                    </label>
+                    <label class="settings-radio-label">
+                        <input type="radio" name="font-size" value="large" id="font-size-large" />
+                        <span>Large</span>
+                    </label>
+                    <label class="settings-radio-label">
+                        <input type="radio" name="font-size" value="xlarge" id="font-size-xlarge" />
+                        <span>XL</span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Theme Color Scheme -->
+            <div class="settings-group">
+                <span class="settings-label">Theme color scheme</span>
+                <div class="color-palette" id="themeColorPalette">
+                    <button class="color-dot" data-color="blue" style="background-color: #2563eb;" title="Blue"></button>
+                    <button class="color-dot" data-color="indigo" style="background-color: #6366f1;" title="Indigo"></button>
+                    <button class="color-dot" data-color="emerald" style="background-color: #10b981;" title="Emerald"></button>
+                    <button class="color-dot" data-color="amber" style="background-color: #f59e0b;" title="Amber"></button>
+                    <button class="color-dot" data-color="rose" style="background-color: #f43f5e;" title="Rose"></button>
+                    <button class="color-dot" data-color="violet" style="background-color: #8b5cf6;" title="Violet"></button>
+                    <button class="color-dot" data-color="teal" style="background-color: #0d9488;" title="Teal"></button>
+                    <button class="color-dot" data-color="orange" style="background-color: #ea580c;" title="Orange"></button>
+                    <button class="color-dot" data-color="charcoal" style="background-color: #374151;" title="Charcoal"></button>
+                    <button class="color-dot" data-color="crimson" style="background-color: #be123c;" title="Crimson"></button>
+                </div>
+            </div>
+
+            <!-- UI Density -->
+            <div class="settings-group">
+                <span class="settings-label">Layout density</span>
+                <div class="settings-options">
+                    <label class="settings-radio-label">
+                        <input type="radio" name="ui-density" value="compact" id="density-compact" />
+                        <span>Compact</span>
+                    </label>
+                    <label class="settings-radio-label">
+                        <input type="radio" name="ui-density" value="standard" id="density-standard" />
+                        <span>Comfortable</span>
+                    </label>
+                    <label class="settings-radio-label">
+                        <input type="radio" name="ui-density" value="spacious" id="density-spacious" />
+                        <span>Spacious</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Card Style Preferences -->
+            <div class="settings-group">
+                <span class="settings-label">Card style</span>
+                <div class="settings-options" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                    <label class="settings-radio-label">
+                        <input type="radio" name="card-style" value="flat" id="card-style-flat" />
+                        <span>Flat</span>
+                    </label>
+                    <label class="settings-radio-label">
+                        <input type="radio" name="card-style" value="bordered" id="card-style-bordered" />
+                        <span>Bordered</span>
+                    </label>
+                    <label class="settings-radio-label">
+                        <input type="radio" name="card-style" value="elevated" id="card-style-elevated" />
+                        <span>Elevated</span>
+                    </label>
+                    <label class="settings-radio-label">
+                        <input type="radio" name="card-style" value="glass" id="card-style-glass" />
+                        <span>Glassy</span>
+                    </label>
+                </div>
+            </div>
+
+
+        </div>
+    </div>
+    
+    <!-- Details View Drawer -->
+    <div class="data-view-drawer" id="dataViewDrawer">
+        <div class="data-view-drawer-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="data-view-drawer-icon" id="dataViewDrawerIcon">
+                    <!-- Icon injected here -->
+                </div>
+                <div>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <h3 class="data-view-drawer-title" id="dataViewDrawerTitle">Record Details</h3>
+                        <div id="dataViewDrawerStatusBadge"></div>
+                    </div>
+                    <p class="data-view-drawer-subtitle" id="dataViewDrawerSubtitle">View detailed attributes</p>
+                </div>
+            </div>
+            <button class="close-drawer-btn" id="closeDataViewDrawerBtn">&times;</button>
+        </div>
+        <div class="data-view-drawer-body" id="dataViewDrawerBody">
+            <!-- Dynamic Key-Value list here -->
+        </div>
+        <div class="data-view-drawer-footer" id="dataViewDrawerFooter">
+            <button class="btn btn-ghost" id="dataViewDrawerCloseBtn">Close</button>
+            <button class="btn btn-primary" id="dataViewDrawerActionBtn">Modify</button>
+        </div>
+    </div>
+    
+    <div class="settings-drawer-backdrop" id="settingsDrawerBackdrop"></div>
+    <div class="data-view-drawer-backdrop" id="dataViewDrawerBackdrop"></div>
+
+    <!-- Filter Drawer -->
+    <div class="filter-drawer" id="filterDrawer" style="position: fixed; top: 0; right: -360px; width: 360px; height: 100%; background: var(--bg-surface); z-index: 2000; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; transition: right 0.25s ease;">
+        <div class="filter-drawer-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid var(--border-subtle);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="filter-drawer-icon" style="width: 32px; height: 32px; border-radius: var(--radius-md); background: var(--brand-bg-subtle); color: var(--brand-primary); display: flex; align-items: center; justify-content: center;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="filter-drawer-title" style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin: 0;">Filters</h3>
+                    <p class="filter-drawer-subtitle" style="font-size: 0.78rem; color: var(--text-muted); margin: 2px 0 0 0;">Refine table data by choosing criteria</p>
+                </div>
+            </div>
+            <button class="close-drawer-btn" id="closeFilterDrawerBtn">&times;</button>
+        </div>
+        <div class="filter-drawer-body" id="filterDrawerBody" style="flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+            <!-- Dynamic Form Elements here -->
+        </div>
+        <div class="filter-drawer-footer" style="padding: 16px 24px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; gap: 12px; background: var(--bg-base);">
+            <button class="btn btn-secondary" id="filterDrawerResetBtn">Reset</button>
+            <button class="btn btn-primary" id="filterDrawerApplyBtn">Apply Filters</button>
+        </div>
+    </div>
+    <div class="filter-drawer-backdrop" id="filterDrawerBackdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); z-index: 1999; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; backdrop-filter: blur(2px);"></div>
+
+    <script nonce="@cspNonce">
+        document.addEventListener('DOMContentLoaded', () => {
+            // Trigger TempData notifications
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <text>
+                if (window.appToast) {
+                    window.appToast.show('success', 'Success', '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(TempData["SuccessMessage"].ToString()))');
+                }
+                </text>
+            }
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <text>
+                if (window.appToast) {
+                    window.appToast.show('error', 'Error', '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(TempData["ErrorMessage"].ToString()))');
+                }
+                </text>
+            }
+            @if (TempData["WarningMessage"] != null)
+            {
+                <text>
+                if (window.appToast) {
+                    window.appToast.show('warning', 'Warning', '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(TempData["WarningMessage"].ToString()))');
+                }
+                </text>
+            }
+            @if (TempData["InfoMessage"] != null)
+            {
+                <text>
+                if (window.appToast) {
+                    window.appToast.show('info', 'Information', '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(TempData["InfoMessage"].ToString()))');
+                }
+                </text>
+            }
+
+            // Confirm Back to Tenant Redirect
+            const btnBackToTenant = document.getElementById("btnBackToTenant");
+            if (btnBackToTenant) {
+                btnBackToTenant.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    const url = this.getAttribute("data-url");
+                    const tenantName = '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(ViewData["SSO_TenantName"]?.ToString() ?? "Application"))';
+                    
+                    Swal.fire({
+                        title: 'Return to ' + tenantName + '?',
+                        text: 'Any unsaved changes on this page will be lost.',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: 'var(--brand-primary)',
+                        cancelButtonColor: 'var(--bg-base)',
+                        confirmButtonText: 'Yes, return',
+                        cancelButtonText: 'Cancel',
+                        customClass: { popup: 'glass-modal border-glass' }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = url;
+                        }
+                    });
+                });
+            }
+
+            // Confirm Logout Action
+            const btnLogoutTrigger = document.getElementById("btnLogoutTrigger");
+            const logoutForm = document.getElementById("logoutForm");
+            if (btnLogoutTrigger && logoutForm) {
+                btnLogoutTrigger.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    Swal.fire({
+                        title: 'Sign Out?',
+                        text: 'Are you sure you want to sign out of your account?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: 'var(--status-danger, #ef4444)',
+                        cancelButtonColor: 'var(--bg-base)',
+                        confirmButtonText: 'Yes, sign out',
+                        cancelButtonText: 'Cancel',
+                        customClass: { popup: 'glass-modal border-glass' }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            logoutForm.submit();
+                        }
+                    });
+                });
+            }
+        });
+    </script>
 </body>
 
 </html>

@@ -3,233 +3,1109 @@
     Layout = null;
     var tenants = ViewBag.Tenants as List<TenantResponse> ?? new List<TenantResponse>();
     var clients = ViewBag.Clients as List<SSO.Domain.Entities.ApplicationClient> ?? new List<SSO.Domain.Entities.ApplicationClient>();
+
+    var requestingUserTenantId = ViewBag.RequestingUserTenantId as Guid?;
+    var isMasterTenant = ViewBag.IsMasterTenant as bool? ?? false;
+
+    var autoSelectTenantId = ViewBag.AutoSelectTenantId as Guid?;
+    var isTenantDisabled = autoSelectTenantId.HasValue && autoSelectTenantId.Value != Guid.Empty;
 }
 @model SSO.Application.Features.Users.Commands.AddEdit.AddEditUserCommand
 
-<form id="createUserForm" novalidate>
+<style>
+    /* Theme color variables tailored for Users module (Purple/Lavender Theme) */
+    #createUserForm {
+        --ct-primary: #8b5cf6;
+        --ct-primary-dark: #7c5cfc;
+        --ct-gradient: linear-gradient(135deg, #8b5cf6 0%, #7c5cfc 100%);
+        --ct-shadow: 0 4px 12px rgba(139, 92, 246, 0.35);
+        --ct-focus-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+        --ct-light-bg: rgba(139, 92, 246, 0.04);
+        --ct-icon-bg: rgba(139, 92, 246, 0.1);
+        --ct-banner-bg: #F5F3FF;
+    }
+
+    /* Fixed Dialog Sizing matching Add Tenant dialog */
+    #appModal .modal-dialog {
+        max-width: 1100px !important;
+        width: 92vw !important;
+        max-height: calc(100vh - 32px) !important;
+        height: auto !important;
+        border-radius: 20px !important;
+        background: #ffffff !important;
+        box-shadow: 0 25px 70px rgba(15, 23, 42, 0.18) !important;
+        border: 1px solid #E5E7EB !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+        margin: auto !important;
+    }
+
+    html[data-theme="dark"] #appModal .modal-dialog {
+        background: #11141f !important;
+        border-color: #1e2436 !important;
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    #appModal #modalContent {
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+    }
+
+    #createUserForm {
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        height: 100% !important;
+        margin: 0 !important;
+    }
+
+    /* Fixed Header at Top */
+    #appModal .modal-header {
+        flex-shrink: 0 !important;
+        padding: 16px 24px 12px 24px !important;
+        border-bottom: 1px solid #F1F5F9 !important;
+        background: #ffffff !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+    }
+
+    html[data-theme="dark"] #appModal .modal-header {
+        background: #11141f !important;
+        border-color: #1e2436 !important;
+    }
+
+    #appModal .modal-title {
+        font-size: 1.55rem !important;
+        font-weight: 800 !important;
+        color: #0F172A !important;
+        letter-spacing: -0.02em !important;
+        margin: 0 !important;
+    }
+
+    html[data-theme="dark"] #appModal .modal-title {
+        color: #F8FAFC !important;
+    }
+
+    #appModal .modal-subtitle {
+        font-size: 0.82rem !important;
+        color: #64748B !important;
+        margin-top: 2px !important;
+        font-weight: 400 !important;
+    }
+
+    #appModal .modal-icon {
+        display: none !important;
+    }
+
+    #appModal .modal-close-btn {
+        width: 34px !important;
+        height: 34px !important;
+        border-radius: 10px !important;
+        background: #F8FAFC !important;
+        border: 1px solid #E5E7EB !important;
+        color: #64748B !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+    }
+
+    #appModal .modal-close-btn:hover {
+        background: #F1F5F9 !important;
+        color: #0F172A !important;
+    }
+
+    /* Scrollable modal wrapper */
+    .ct-modal-wrapper {
+        flex: 1 1 auto !important;
+        padding: 16px 24px !important;
+        overflow-y: auto !important;
+        min-height: 0 !important;
+    }
+
+    /* Wizard Layout Grid */
+    .ct-wizard-layout {
+        display: flex;
+        gap: 24px;
+        align-items: flex-start;
+    }
+
+    .ct-form-section {
+        flex: 1 1 660px;
+        min-width: 0;
+    }
+
+    .ct-summary-section {
+        width: 290px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 0;
+    }
+
+    /* Stepper Bar Header */
+    .wizard-steps-header {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        position: relative !important;
+        margin-bottom: 16px !important;
+        padding: 0 4px !important;
+    }
+
+    .wizard-steps-header::before {
+        content: "" !important;
+        position: absolute !important;
+        top: 14px !important;
+        left: 35px !important;
+        right: 35px !important;
+        height: 2px !important;
+        background: #E2E8F0 !important;
+        z-index: 0 !important;
+    }
+
+    html[data-theme="dark"] .wizard-steps-header::before {
+        background: #1e2436 !important;
+    }
+
+    .wizard-step-indicator {
+        position: relative !important;
+        z-index: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        cursor: default !important;
+    }
+
+    .wizard-step-indicator .step-number {
+        width: 28px !important;
+        height: 28px !important;
+        border-radius: 50% !important;
+        background: #F1F5F9 !important;
+        border: 2px solid #E2E8F0 !important;
+        color: #64748B !important;
+        font-weight: 700 !important;
+        font-size: 12px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.25s ease !important;
+    }
+
+    html[data-theme="dark"] .wizard-step-indicator .step-number {
+        background: #181c2b !important;
+        border-color: #262d42 !important;
+        color: #94A3B8 !important;
+    }
+
+    .wizard-step-indicator.active .step-number {
+        background: var(--ct-primary) !important;
+        border-color: var(--ct-primary) !important;
+        color: #ffffff !important;
+        box-shadow: var(--ct-shadow) !important;
+    }
+
+    .wizard-step-indicator.completed .step-number {
+        background: #22C55E !important;
+        border-color: #22C55E !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3) !important;
+        font-size: 0 !important;
+    }
+
+    .wizard-step-indicator.completed .step-number::after {
+        content: "✓" !important;
+        font-size: 13px !important;
+        font-weight: 800 !important;
+    }
+
+    .wizard-step-indicator .step-label {
+        font-size: 0.72rem !important;
+        font-weight: 600 !important;
+        color: #94A3B8 !important;
+        margin-top: 5px !important;
+        white-space: nowrap !important;
+        transition: color 0.2s ease !important;
+    }
+
+    .wizard-step-indicator.active .step-label {
+        color: var(--ct-primary) !important;
+        font-weight: 700 !important;
+    }
+
+    .wizard-step-indicator.completed .step-label {
+        color: #22C55E !important;
+        font-weight: 600 !important;
+    }
+
+    /* Cards and Form Inputs */
+    .ct-card-section {
+        background: #ffffff;
+        border: 1px solid #E5E7EB;
+        border-radius: 14px;
+        padding: 14px 18px;
+        margin-bottom: 14px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+    }
+
+    html[data-theme="dark"] .ct-card-section {
+        background: #181c2b;
+        border-color: #262d42;
+    }
+
+    .ct-card-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #F1F5F9;
+    }
+
+    html[data-theme="dark"] .ct-card-header {
+        border-color: #262d42;
+    }
+
+    .ct-card-icon {
+        color: var(--ct-primary);
+        display: flex;
+        align-items: center;
+    }
+
+    .ct-card-title {
+        font-size: 0.98rem;
+        font-weight: 700;
+        color: #0F172A;
+        margin: 0;
+    }
+
+    html[data-theme="dark"] .ct-card-title {
+        color: #F8FAFC;
+    }
+
+    .ct-grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    @@media (max-width: 640px) {
+        .ct-grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .modal-field {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 10px;
+    }
+
+    .modal-label {
+        font-size: 0.78rem !important;
+        font-weight: 600 !important;
+        color: #334155 !important;
+        margin-bottom: 3px !important;
+    }
+
+    html[data-theme="dark"] .modal-label {
+        color: #CBD5E1 !important;
+    }
+
+    .required-star {
+        color: #EF4444;
+        margin-left: 2px;
+    }
+
+    .modal-input, .modal-select {
+        height: 40px !important;
+        padding: 0 12px !important;
+        border-radius: 10px !important;
+        border: 1px solid #E5E7EB !important;
+        background: #ffffff !important;
+        color: #0F172A !important;
+        font-size: 0.84rem !important;
+        font-weight: 500 !important;
+        outline: none !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+        transition: all 0.2s ease !important;
+        box-sizing: border-box !important;
+        width: 100% !important;
+    }
+
+    html[data-theme="dark"] .modal-input, html[data-theme="dark"] .modal-select {
+        background: #11141f !important;
+        border-color: #262d42 !important;
+        color: #F8FAFC !important;
+    }
+
+    .modal-input:hover, .modal-select:hover {
+        border-color: #CBD5E1;
+    }
+
+    .modal-input:focus, .modal-select:focus {
+        border-color: var(--ct-primary) !important;
+        box-shadow: var(--ct-focus-shadow) !important;
+    }
+
+    .field-hint {
+        font-size: 0.72rem !important;
+        color: #64748B !important;
+        margin-top: 3px !important;
+        line-height: 1.3 !important;
+    }
+
+    /* Toggle Switch Cards */
+    .ct-toggle-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        background: #F8FAFC;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: border-color 0.2s ease;
+    }
+
+    html[data-theme="dark"] .ct-toggle-card {
+        background: #11141f;
+        border-color: #262d42;
+    }
+
+    .ct-toggle-card:hover {
+        border-color: #CBD5E1;
+    }
+
+    .ct-toggle-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .ct-toggle-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: var(--ct-icon-bg);
+        color: var(--ct-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .ct-toggle-label {
+        font-weight: 700;
+        font-size: 0.84rem;
+        color: #0F172A;
+    }
+
+    html[data-theme="dark"] .ct-toggle-label {
+        color: #F8FAFC;
+    }
+
+    .ct-toggle-desc {
+        font-size: 0.72rem;
+        color: #64748B;
+        margin-top: 1px;
+    }
+
+    /* Toggle Switch Component */
+    .toggle-switch {
+        position: relative;
+        width: 42px;
+        height: 22px;
+        flex-shrink: 0;
+    }
+
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-track {
+        position: absolute;
+        inset: 0;
+        background-color: #CBD5E1;
+        border-radius: 22px;
+        cursor: pointer;
+        transition: background-color 0.25s ease;
+    }
+
+    .toggle-thumb {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 18px;
+        height: 18px;
+        background-color: #ffffff;
+        border-radius: 50%;
+        transition: transform 0.25s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .toggle-switch input:checked + .toggle-track {
+        background-color: var(--ct-primary);
+    }
+
+    .toggle-switch input:checked + .toggle-track .toggle-thumb {
+        transform: translateX(20px);
+    }
+
+    /* Summary Card Sidebar styling */
+    .ct-summary-card {
+        background: #ffffff;
+        border: 1px solid #E5E7EB;
+        border-radius: 16px;
+        padding: 14px;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+    }
+
+    html[data-theme="dark"] .ct-summary-card {
+        background: #181c2b;
+        border-color: #262d42;
+    }
+
+    .ct-summary-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 700;
+        font-size: 0.88rem;
+        color: var(--ct-primary);
+        margin-bottom: 10px;
+    }
+
+    .ct-summary-banner-box {
+        width: 100%;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 10px;
+        background: var(--ct-banner-bg);
+    }
+
+    .ct-summary-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .ct-summary-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.76rem;
+    }
+
+    .ct-summary-key {
+        color: #64748B;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .ct-summary-key svg {
+        color: #94A3B8;
+    }
+
+    .ct-summary-val {
+        font-weight: 700;
+        color: #0F172A;
+        text-align: right;
+    }
+
+    html[data-theme="dark"] .ct-summary-val {
+        color: #F8FAFC;
+    }
+
+    .summary-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.70rem;
+        font-weight: 700;
+    }
+
+    .badge-green { background: rgba(34, 197, 94, 0.1); color: #22C55E; }
+    .badge-red { background: rgba(239, 68, 68, 0.1); color: #EF4444; }
+
+    /* Footer Buttons styles */
+    .wizard-footer {
+        flex-shrink: 0 !important;
+        padding: 12px 24px !important;
+        border-top: 1px solid #F1F5F9 !important;
+        background: #ffffff !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        margin-top: auto !important;
+    }
+
+    html[data-theme="dark"] .wizard-footer {
+        background: #11141f !important;
+        border-color: #1e2436 !important;
+    }
+
+    .wizard-footer-left, .wizard-footer-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .btn-primary.wizard-btn-next, .btn-primary.wizard-btn-save {
+        background: var(--ct-gradient) !important;
+        border: none !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        height: 40px !important;
+        padding: 0 20px !important;
+        border-radius: 10px !important;
+        font-size: 0.84rem !important;
+        box-shadow: var(--ct-shadow) !important;
+        transition: all 0.25s ease !important;
+        display: inline-flex;
+        align-items: center !important;
+        gap: 6px !important;
+        cursor: pointer !important;
+    }
+
+    .wizard-footer button[style*="display: none"],
+    .wizard-footer button[style*="display:none"] {
+        display: none !important;
+    }
+
+    .btn-primary.wizard-btn-next:hover, .btn-primary.wizard-btn-save:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 6px 18px rgba(139, 92, 246, 0.45) !important;
+    }
+
+    .btn-secondary.wizard-btn-back, .btn-secondary.wizard-btn-prev {
+        background: #ffffff !important;
+        border: 1px solid #E5E7EB !important;
+        color: #475569 !important;
+        font-weight: 600 !important;
+        height: 40px !important;
+        padding: 0 18px !important;
+        border-radius: 10px !important;
+        font-size: 0.84rem !important;
+        transition: all 0.2s ease !important;
+        cursor: pointer !important;
+    }
+
+    html[data-theme="dark"] .btn-secondary.wizard-btn-back, html[data-theme="dark"] .btn-secondary.wizard-btn-prev {
+        background: #181c2b !important;
+        border-color: #262d42 !important;
+        color: #CBD5E1 !important;
+    }
+
+    .btn-secondary.wizard-btn-back:hover, .btn-secondary.wizard-btn-prev:hover {
+        background: #F8FAFC !important;
+        border-color: #CBD5E1 !important;
+        color: #0F172A !important;
+    }
+
+    .wizard-step {
+        display: none;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+    }
+
+    .wizard-step.active {
+        display: block;
+        opacity: 1;
+    }
+</style>
+
+<form id="createUserForm" class="wizard-container" novalidate>
     <input type="hidden" asp-for="Id" />
-    <div class="modal-body">
 
-        <!-- Section: Personal Info -->
-        <div class="modal-section-label">User Information</div>
-        <div class="modal-form-grid">
-            <div class="modal-field">
-                <label class="modal-label" for="userName">
-                    Full Name <span class="required-star">*</span>
-                </label>
-                <input id="userNameField" asp-for="Name" type="text" class="modal-input"
-                       placeholder="e.g. John Doe" required autocomplete="off">
-            </div>
-            <div class="modal-field">
-                <label class="modal-label" for="userEmail">
-                    Email Address <span class="required-star">*</span>
-                </label>
-                <input id="userEmailField" asp-for="Email" type="email" class="modal-input"
-                       placeholder="e.g. john@example.com" required autocomplete="off">
-            </div>
-        </div>
+    <div class="modal-body ct-modal-wrapper">
+        <div class="ct-wizard-layout">
 
-        <div class="modal-form-grid">
-            <div class="modal-field">
-                <label class="modal-label" for="userUsername">
-                    Username <span class="required-star">*</span>
-                </label>
-                <input id="userUsernameField" asp-for="UserName" type="text" class="modal-input"
-                       placeholder="e.g. johndoe" required autocomplete="off">
-            </div>
-            <div class="modal-field">
-                <label class="modal-label" for="userPhone">
-                    Phone Number
-                </label>
-                <input id="userPhoneField" asp-for="PhoneNumber" type="text" class="modal-input"
-                       placeholder="e.g. +1234567890" autocomplete="off">
-            </div>
-        </div>
+            <!-- LEFT SECTION: FORM & STEPPER (~70%) -->
+            <div class="ct-form-section">
 
-        @if (Model.Id == null || Model.Id == Guid.Empty)
-        {
-            <div class="modal-form-grid">
-                <div class="modal-field">
-                    <label class="modal-label" for="userPassword">
-                        Password <span class="required-star">*</span>
-                    </label>
-                    <input id="userPasswordField" asp-for="Password" type="password" class="modal-input"
-                           required autocomplete="new-password">
+                <!-- Step 1: User Profile -->
+                <div class="wizard-step active" data-title="User Profile">
+                    <div class="ct-card-section">
+                        <div class="ct-card-header">
+                            <span class="ct-card-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                            </span>
+                            <h4 class="ct-card-title">User Information</h4>
+                        </div>
+                        
+                        <div class="ct-grid-2">
+                            <div class="modal-field">
+                                <label class="modal-label" for="userNameField">
+                                    Full Name <span class="required-star">*</span>
+                                </label>
+                                <input id="userNameField" asp-for="Name" type="text" class="modal-input"
+                                       placeholder="e.g. John Doe" required autocomplete="off">
+                            </div>
+                            <div class="modal-field">
+                                <label class="modal-label" for="userEmailField">
+                                    Email Address <span class="required-star">*</span>
+                                </label>
+                                <input id="userEmailField" asp-for="Email" type="email" class="modal-input"
+                                       placeholder="e.g. john@example.com" required autocomplete="off">
+                            </div>
+                        </div>
+
+                        <div class="ct-grid-2">
+                            <div class="modal-field">
+                                <label class="modal-label" for="userUsernameField">
+                                    Username <span class="required-star">*</span>
+                                </label>
+                                <input id="userUsernameField" asp-for="UserName" type="text" class="modal-input"
+                                       placeholder="e.g. johndoe" required autocomplete="off">
+                            </div>
+                            <div class="modal-field">
+                                <label class="modal-label" for="userPhoneField">
+                                    Phone Number
+                                </label>
+                                <input id="userPhoneField" asp-for="PhoneNumber" type="text" class="modal-input"
+                                       placeholder="e.g. +1234567890" autocomplete="off">
+                            </div>
+                        </div>
+
+                        @if (Model.Id == null || Model.Id == Guid.Empty)
+                        {
+                            <div class="modal-field">
+                                <label class="modal-label" for="userPasswordField">
+                                    Password <span class="required-star">*</span>
+                                </label>
+                                <input id="userPasswordField" asp-for="Password" type="password" class="modal-input"
+                                       required autocomplete="new-password">
+                            </div>
+                        }
+                    </div>
                 </div>
-            </div>
-        }
 
-        <!-- Section: Assignment -->
-        <div class="modal-section-label">Organization & Access</div>
-        <div class="modal-form-grid">
-            <div class="modal-field">
-                <label class="modal-label" for="userTenant">
-                    Tenant Organization <span class="required-star">*</span>
-                </label>
-                <select id="userTenantField" asp-for="TenantId" class="modal-select" required>
-                    <option value="" selected>Select tenant...</option>
-                    @foreach (var tenant in tenants)
-                    {
-                        <option value="@tenant.Id">@tenant.Name</option>
-                    }
-                </select>
-            </div>
-            <div class="modal-field">
-                <label class="modal-label">Role Assignment</label>
-                <div id="rolesListContainer" class="checkbox-list-container" style="max-height: 120px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; background: rgba(0,0,0,0.15);">
-                    @{
-                        var availableRoles = ViewBag.Roles as List<RoleResponse> ?? new List<RoleResponse>();
-                    }
-                    @foreach (var role in availableRoles)
-                    {
-                        <div class="form-check" style="margin-bottom: 6px;">
-                            <input class="form-check-input" type="checkbox" name="RoleNames" value="@role.Name" id="role_@role.Id" @(Model.RoleNames != null && Model.RoleNames.Contains(role.Name) ? "checked" : "")>
-                            <label class="form-check-label" for="role_@role.Id" style="color: #ccc; font-size: 0.85rem; cursor: pointer;">
-                                @role.Name
+                <!-- Step 2: Access & Assignment -->
+                <div class="wizard-step" data-title="Access &amp; Assignment">
+                    
+                    <!-- Section: Organization & Access -->
+                    <div class="ct-card-section">
+                        <div class="ct-card-header">
+                            <span class="ct-card-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                            </span>
+                            <h4 class="ct-card-title">Organization &amp; Access</h4>
+                        </div>
+
+                        <div class="ct-grid-2">
+                            @if (isMasterTenant)
+                            {
+                                <div class="modal-field">
+                                    <label class="modal-label" for="userTenantField">
+                                        Tenant Organization <span class="required-star">*</span>
+                                    </label>
+                                    @if (isTenantDisabled)
+                                    {
+                                        <select id="userTenantField" asp-for="TenantId" class="modal-select" required disabled="disabled">
+                                            <option value="">Select tenant...</option>
+                                            @foreach (var tenant in tenants)
+                                            {
+                                                <option value="@tenant.Id">@tenant.Name</option>
+                                            }
+                                        </select>
+                                        <input type="hidden" name="TenantId" value="@Model.TenantId" />
+                                    }
+                                    else
+                                    {
+                                        <select id="userTenantField" asp-for="TenantId" class="modal-select" required>
+                                            <option value="">Select tenant...</option>
+                                            @foreach (var tenant in tenants)
+                                            {
+                                                <option value="@tenant.Id">@tenant.Name</option>
+                                            }
+                                        </select>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <input type="hidden" id="userTenantField" asp-for="TenantId" value="@(Model.TenantId == Guid.Empty ? requestingUserTenantId : Model.TenantId)" />
+                            }
+
+                            <div class="modal-field">
+                                <label class="modal-label" for="userRoleNames">Role Assignment</label>
+                                <select id="userRoleNames" name="RoleNames" class="ct-multi-select" multiple="multiple" style="width: 100%;" placeholder="Select roles...">
+                                    @{
+                                        var availableRoles = ViewBag.Roles as List<RoleResponse> ?? new List<RoleResponse>();
+                                    }
+                                    @foreach (var role in availableRoles)
+                                    {
+                                        <option value="@role.Name" selected="@(Model.RoleNames != null && Model.RoleNames.Contains(role.Name) ? "selected" : null)">@role.Name</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="modal-field" style="margin-top: 12px;">
+                            <label class="modal-label" for="userClientIds">Application Consents</label>
+                            <select id="userClientIds" name="ClientIds" class="ct-multi-select" multiple="multiple" style="width: 100%;" placeholder="Select applications...">
+                                @foreach (var client in clients)
+                                {
+                                    <option value="@client.Id" selected="@(Model.ClientIds != null && Model.ClientIds.Contains(client.Id) ? "selected" : null)">@client.DisplayName (@client.ClientId)</option>
+                                }
+                            </select>
+                            <span class="field-hint">Select all apps this user can access.</span>
+                        </div>
+                    </div>
+
+                    <!-- Section: Account Settings -->
+                    <div class="ct-card-section">
+                        <div class="ct-card-header">
+                            <span class="ct-card-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                                </svg>
+                            </span>
+                            <h4 class="ct-card-title">Account Settings</h4>
+                        </div>
+
+                        <div class="ct-grid-2">
+                            <label class="ct-toggle-card" for="userIsActive">
+                                <div class="ct-toggle-left">
+                                    <div class="ct-toggle-icon">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="ct-toggle-label">Activate Account</div>
+                                        <div class="ct-toggle-desc">Allow user to log in immediately.</div>
+                                    </div>
+                                </div>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="userIsActive" asp-for="ActivateUser">
+                                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                                </div>
+                            </label>
+
+                            <label class="ct-toggle-card" for="userConfirmEmail">
+                                <div class="ct-toggle-left">
+                                    <div class="ct-toggle-icon">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                            <polyline points="22,6 12,13 2,6"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="ct-toggle-label">Auto-Confirm Email</div>
+                                        <div class="ct-toggle-desc">Skip email verification process.</div>
+                                    </div>
+                                </div>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="userConfirmEmail" asp-for="AutoConfirmEmail">
+                                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                                </div>
                             </label>
                         </div>
-                    }
-                    @if (!availableRoles.Any())
-                    {
-                        <span class="text-muted" style="font-size:0.75rem;">(Select tenant to see roles)</span>
-                    }
-                </div>
-            </div>
-        </div>
+                    </div>
 
-        <div class="modal-form-grid">
-            <div class="modal-field" style="grid-column: span 2;">
-                <label class="modal-label">Application Consents</label>
-                <div class="checkbox-list-container" style="max-height: 120px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; background: rgba(0,0,0,0.15);">
-                    @foreach (var client in clients)
-                    {
-                        <div class="form-check" style="margin-bottom: 6px;">
-                            <input class="form-check-input" type="checkbox" name="ClientIds" value="@client.Id" id="client_@client.Id" @(Model.ClientIds != null && Model.ClientIds.Contains(client.Id) ? "checked" : "")>
-                            <label class="form-check-label" for="client_@client.Id" style="color: #ccc; font-size: 0.85rem; cursor: pointer;">
-                                @client.DisplayName (@client.ClientId)
-                            </label>
+                </div>
+            </div><!-- /ct-form-section -->
+
+            <!-- RIGHT SECTION: USER SUMMARY SIDEBAR (~30%) -->
+            <div class="ct-summary-section">
+                <div class="ct-summary-card">
+                    <div class="ct-summary-header">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        User Summary
+                    </div>
+
+                    <!-- Modern User Management SVG Illustration (Purple Palette) -->
+                    <div class="ct-summary-banner-box">
+                        <svg width="100%" height="95" viewBox="0 0 240 95" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="240" height="95" rx="12" fill="url(#summary_lavender)"/>
+                            <defs>
+                                <linearGradient id="summary_lavender" x1="0" y1="0" x2="240" y2="95" gradientUnits="userSpaceOnUse">
+                                    <stop stop-color="#F5F3FF"/>
+                                    <stop offset="1" stop-color="#EDE9FE"/>
+                                </linearGradient>
+                            </defs>
+                            <!-- Grid background -->
+                            <line x1="20" y1="15" x2="220" y2="15" stroke="#8b5cf6" stroke-width="0.5" opacity="0.06"/>
+                            <line x1="20" y1="35" x2="220" y2="35" stroke="#8b5cf6" stroke-width="0.5" opacity="0.06"/>
+                            <line x1="20" y1="55" x2="220" y2="55" stroke="#8b5cf6" stroke-width="0.5" opacity="0.06"/>
+                            <line x1="20" y1="75" x2="220" y2="75" stroke="#8b5cf6" stroke-width="0.5" opacity="0.06"/>
+
+                            <!-- Central User Badge -->
+                            <circle cx="120" cy="42" r="23" fill="#8b5cf6" opacity="0.10"/>
+                            <circle cx="120" cy="42" r="17" fill="#8b5cf6" opacity="0.15"/>
+                            <circle cx="120" cy="35" r="7" fill="#8b5cf6"/>
+                            <path d="M109 51 C109 46.2 113.8 45 120 45 C126.2 45 131 46.2 131 51 Z" fill="#8b5cf6"/>
+
+                            <!-- Secure Badge (Shield check) -->
+                            <path d="M142 22 L148 19 L154 22 V28 C154 33 148 36 148 36 C148 36 142 33 142 28 Z" fill="#10B981" opacity="0.95"/>
+                            <polyline points="145,27 147,29 151,24" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+                            <!-- Left User Avatar -->
+                            <circle cx="65" cy="46" r="13" fill="#7c5cfc" opacity="0.12"/>
+                            <circle cx="65" cy="41" r="5" fill="#7c5cfc"/>
+                            <path d="M58 52 C58 48.8 62 48.2 65 48.2 C68 48.2 72 48.8 72 52 Z" fill="#7c5cfc"/>
+
+                            <!-- Right User Avatar -->
+                            <circle cx="175" cy="46" r="13" fill="#a78bfa" opacity="0.15"/>
+                            <circle cx="175" cy="41" r="5" fill="#a78bfa"/>
+                            <path d="M168 52 C168 48.8 172 48.2 175 48.2 C178 48.2 182 48.8 182 52 Z" fill="#a78bfa"/>
+
+                            <!-- Connecting lines -->
+                            <path d="M82 46 L98 44" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.4"/>
+                            <path d="M142 44 L158 46" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.4"/>
+                        </svg>
+                    </div>
+
+                    <div class="ct-summary-list">
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                                Full Name
+                            </span>
+                            <span class="ct-summary-val" id="summaryFullName">-</span>
                         </div>
-                    }
+
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                    <polyline points="22,6 12,13 2,6"></polyline>
+                                </svg>
+                                Email
+                            </span>
+                            <span class="ct-summary-val" id="summaryEmail" style="word-break: break-all;">-</span>
+                        </div>
+
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M12 8v4l3 3"></path>
+                                </svg>
+                                Username
+                            </span>
+                            <span class="ct-summary-val" id="summaryUsername">-</span>
+                        </div>
+
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                </svg>
+                                Organization
+                            </span>
+                            <span class="ct-summary-val" id="summaryTenant">Select tenant...</span>
+                        </div>
+
+                        <div class="ct-summary-row">
+                            <span class="ct-summary-key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                Account Status
+                            </span>
+                            <span class="summary-badge badge-green" id="summaryStatus">Active</span>
+                        </div>
+                    </div>
                 </div>
-                <span class="field-hint" style="margin-top:4px;">Check all apps this user can access.</span>
-            </div>
-        </div>
+            </div><!-- /ct-summary-section -->
 
-        <!-- Section: Status -->
-        <div class="modal-section-label">Account Settings</div>
-        <div class="modal-form-grid">
-            <div class="modal-field">
-                <label class="modal-toggle-row" for="userIsActive">
-                    <div>
-                        <div class="modal-label" style="margin-bottom:2px;">Activate Account</div>
-                        <span class="field-hint" style="margin-top:0;">Allow user to log in immediately.</span>
-                    </div>
-                    <div class="toggle-switch">
-                        <input type="checkbox" id="userIsActive" asp-for="ActivateUser">
-                        <span class="toggle-track">
-                            <span class="toggle-thumb"></span>
-                        </span>
-                    </div>
-                </label>
-            </div>
-            <div class="modal-field">
-                <label class="modal-toggle-row" for="userConfirmEmail">
-                    <div>
-                        <div class="modal-label" style="margin-bottom:2px;">Auto-Confirm Email</div>
-                        <span class="field-hint" style="margin-top:0;">Skip email verification process.</span>
-                    </div>
-                    <div class="toggle-switch">
-                        <input type="checkbox" id="userConfirmEmail" asp-for="AutoConfirmEmail">
-                        <span class="toggle-track">
-                            <span class="toggle-thumb"></span>
-                        </span>
-                    </div>
-                </label>
-            </div>
         </div>
-
     </div><!-- /modal-body -->
-    <!-- Modal Footer -->
-    <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" onclick="window.closeModal()">Cancel</button>
-        <button type="submit" class="btn btn-primary" id="submitUserForm">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2.5">
-                <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
+
+    <!-- REMARKS FIELD (Edit mode only) -->
+    @await Html.PartialAsync("_EditRemarksPartial", Model.Id != null && Model.Id != Guid.Empty)
+
+    <!-- FOOTER BUTTONS -->
+    <div class="modal-footer wizard-footer">
+        <button type="submit" class="btn btn-primary" id="submitUserForm" style="display:none;">
             @(Model.Id == null || Model.Id == Guid.Empty ? "Create User" : "Update User")
         </button>
     </div>
 </form>
 
 <script>
-    $('#userTenantField').on('change', function() {
-        const tenantId = $(this).val();
-        const $container = $('#rolesListContainer');
-        
-        if (!tenantId) {
-            $container.html('<span class="text-muted" style="font-size:0.75rem;">(Select tenant to see roles)</span>');
-            return;
-        }
+    $(function() {
+        // Initialize the Wizard
+        const wizard = window.initWizardForm('#createUserForm', {
+            onFinished: function() {
+                const $btn = $('#submitUserForm');
 
-        $container.html('<span class="text-muted" style="font-size:0.75rem;">Loading roles...</span>');
+                // Validate remarks before submission (edit mode only)
+                if (typeof validateRemarks === 'function' && !validateRemarks()) return;
 
-        $.get('/Home/GetRolesByTenant', { tenantId: tenantId }, function(result) {
-            if (result.succeeded && result.data) {
-                let html = '';
-                result.data.forEach(role => {
-                    html += `
-                        <div class="form-check" style="margin-bottom: 6px;">
-                            <input class="form-check-input" type="checkbox" name="RoleNames" value="${role.name}" id="role_${role.id}">
-                            <label class="form-check-label" for="role_${role.id}" style="color: #ccc; font-size: 0.85rem; cursor: pointer;">
-                                ${role.name}
-                            </label>
-                        </div>`;
+                $btn.prop('disabled', true).html('Processing...');
+
+                // Temporarily enable disabled inputs (like TenantId) so serialize includes them
+                const $disabled = $('#createUserForm').find(':disabled');
+                $disabled.prop('disabled', false);
+                const formData = $('#createUserForm').serialize();
+                $disabled.prop('disabled', true);
+
+                $.post('/Home/CreateUser', formData, function(result) {
+                    if (result.succeeded) {
+                        window.closeModal();
+                        if (window.appToast) {
+                            window.appToast.show('success', 'User Saved', result.messages ? result.messages[0] : 'User has been saved successfully.');
+                        }
+                        if (window.onModalSuccess) {
+                            window.onModalSuccess();
+                        } else if (window.dt) {
+                            window.dt.ajax.reload();
+                        } else if ($('#userTable').length) {
+                            $('#userTable').DataTable().ajax.reload();
+                        } else {
+                            location.reload();
+                        }
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error Saving User',
+                            text: window.getPrimaryResultMessage ? window.getPrimaryResultMessage(result, 'Unknown error') : (result.messages ? result.messages.join('\n') : 'Unknown error')
+                        });
+                        $btn.prop('disabled', false).html('@(Model.Id == null || Model.Id == Guid.Empty ? "Create User" : "Update User")');
+                    }
+                }).fail(function(xhr) {
+                    if (window.showRequestError) {
+                        window.showRequestError({
+                            title: 'Unable to Save User',
+                            xhr: xhr,
+                            fallbackMessage: 'We could not save the user right now. Please try again.'
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Unable to Save User',
+                            text: 'We could not save the user right now. Please try again.'
+                        });
+                    }
+                    $btn.prop('disabled', false).html('@(Model.Id == null || Model.Id == Guid.Empty ? "Create User" : "Update User")');
                 });
-                if (!result.data.length) {
-                    html = '<span class="text-muted" style="font-size:0.75rem;">No roles found for this tenant.</span>';
-                }
-                $container.html(html);
-            } else {
-                $container.html('<span class="text-error" style="font-size:0.75rem;">Error loading roles.</span>');
             }
         });
-    });
 
-    $('#createUserForm').off('submit').on('submit', function(e) {
-        e.preventDefault();
-        if (!window.validateAjaxForm(this)) {
-            return;
+        // Dynamic Live Summary Updater
+        function syncSummary() {
+            const name = $('#userNameField').val() || '-';
+            const email = $('#userEmailField').val() || '-';
+            const username = $('#userUsernameField').val() || '-';
+            
+            let tenantText = 'Master Tenant';
+            if ($('#userTenantField').is('select')) {
+                tenantText = $('#userTenantField option:selected').text() || 'Select tenant...';
+            } else if ($('#userTenantField').val()) {
+                tenantText = 'Assigned Tenant';
+            }
+            
+            const isActive = $('#userIsActive').is(':checked');
+
+            $('#summaryFullName').text(name);
+            $('#summaryEmail').text(email);
+            $('#summaryUsername').text(username);
+            $('#summaryTenant').text(tenantText);
+            
+            if (isActive) {
+                $('#summaryStatus').removeClass('badge-red').addClass('badge-green').text('Active');
+            } else {
+                $('#summaryStatus').removeClass('badge-green').addClass('badge-red').text('Inactive');
+            }
         }
 
-        const $btn = $('#submitUserForm');
-        $btn.prop('disabled', true).html('Processing...');
+        // Trigger sync on input/change
+        $('#createUserForm').on('input change', 'input, select', function() {
+            syncSummary();
+        });
 
-        const formData = $(this).serialize();
+        // Initialize sync values
+        syncSummary();
 
-        $.post('/Home/CreateUser', formData, function(result) {
-            if (result.succeeded) {
-                window.closeModal();
-                if(window.dt) {
-                    window.dt.ajax.reload();
-                } else {
-                    location.reload();
-                }
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error Saving User',
-                    text: window.getPrimaryResultMessage(result, 'Unknown error')
-                });
-                $btn.prop('disabled', false).html('@(Model.Id == null || Model.Id == Guid.Empty ? "Create User" : "Update User")');
+        // Helper to rebuild dropdown multiselects dynamically
+        function rebuildMultiSelect($select, options) {
+            const $wrapper = $select.closest('.custom-multiselect-wrapper');
+            if ($wrapper.length) {
+                $wrapper.before($select);
+                $wrapper.remove();
             }
-        }).fail(function(xhr) {
-            window.showRequestError({
-                title: 'Unable to Save User',
-                xhr: xhr,
-                fallbackMessage: 'We could not save the user right now. Please try again.'
+            $select.removeAttr('data-multiselect-initialized');
+            $select.css('display', '');
+            
+            $select.empty();
+            options.forEach(opt => {
+                $select.append(`<option value="${opt.value}" ${opt.selected ? 'selected' : ''}>${opt.text}</option>`);
             });
-            $btn.prop('disabled', false).html('@(Model.Id == null || Model.Id == Guid.Empty ? "Create User" : "Update User")');
+            
+            if (window.initMultiSelects) {
+                window.initMultiSelects();
+            }
+        }
+
+        // Live Role & Application Consents fetch when Tenant changes
+        $('#userTenantField').on('change', function() {
+            const tenantId = $(this).val();
+            
+            if (!tenantId) {
+                rebuildMultiSelect($('#userRoleNames'), []);
+                rebuildMultiSelect($('#userClientIds'), []);
+                return;
+            }
+
+            // Load Roles
+            $.get('/Home/GetRolesByTenant', { tenantId: tenantId }, function(result) {
+                if (result.succeeded && result.data) {
+                    const options = result.data.map(role => ({
+                        value: role.name,
+                        text: role.name,
+                        selected: false
+                    }));
+                    rebuildMultiSelect($('#userRoleNames'), options);
+                } else {
+                    rebuildMultiSelect($('#userRoleNames'), []);
+                }
+            });
+
+            // Load Clients
+            $.get('/Home/GetClientsByTenant', { tenantId: tenantId }, function(result) {
+                if (result.succeeded && result.data) {
+                    const options = result.data.map(client => ({
+                        value: client.id,
+                        text: `${client.displayName} (${client.clientId})`,
+                        selected: false
+                    }));
+                    rebuildMultiSelect($('#userClientIds'), options);
+                } else {
+                    rebuildMultiSelect($('#userClientIds'), []);
+                }
+            });
         });
     });
 </script>

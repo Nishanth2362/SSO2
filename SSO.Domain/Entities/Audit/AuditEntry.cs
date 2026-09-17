@@ -1,4 +1,4 @@
-﻿
+
 
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Newtonsoft.Json;
@@ -23,6 +23,8 @@ namespace SSO.Domain.Models.Audit
         public AuditType AuditType { get; set; }
         public List<string> ChangedColumns { get; } = new();
         public bool HasTemporaryProperties => TemporaryProperties.Any();
+        /// <summary>Free-text change description provided by the user performing the edit.</summary>
+        public string? Remarks { get; set; }
 
         public Audit ToAudit()
         {
@@ -35,7 +37,8 @@ namespace SSO.Domain.Models.Audit
                 PrimaryKey = JsonConvert.SerializeObject(KeyValues),
                 OldValues = OldValues.Count == 0 ? null : JsonConvert.SerializeObject(OldValues),
                 NewValues = NewValues.Count == 0 ? null : JsonConvert.SerializeObject(NewValues),
-                AffectedColumns = ChangedColumns.Count == 0 ? null : JsonConvert.SerializeObject(ChangedColumns)
+                AffectedColumns = ChangedColumns.Count == 0 ? null : JsonConvert.SerializeObject(ChangedColumns),
+                Remarks = Remarks
             };
             return audit;
         }

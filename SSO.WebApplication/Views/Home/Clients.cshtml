@@ -1,103 +1,728 @@
 
 @{
     ViewData["Title"] = "Clients";
+    var canCreateClient = (await AuthorizationService.AuthorizeAsync(User, Permissions.Client.Create)).Succeeded;
+    var canExportClient = (await AuthorizationService.AuthorizeAsync(User, Permissions.Client.Export)).Succeeded || (await AuthorizationService.AuthorizeAsync(User, Permissions.Client.View)).Succeeded;
+    var canEditClient = (await AuthorizationService.AuthorizeAsync(User, Permissions.Client.Edit)).Succeeded;
+    var canDeleteClient = (await AuthorizationService.AuthorizeAsync(User, Permissions.Client.Delete)).Succeeded;
+    var canImportScopes = (await AuthorizationService.AuthorizeAsync(User, Permissions.Scope.Import)).Succeeded;
 }
+
+<style>
+    /* Full-page background for seamless integration - Emerald Theme */
+    body {
+        background: linear-gradient(150deg,
+                        rgba(16, 185, 129, 0.08) 0%,
+                        rgba(5, 150, 105, 0.03) 25%,
+                        rgba(209, 250, 229, 0.3) 60%,
+                        rgba(255, 255, 255, 0.95) 100%) !important;
+        background-attachment: fixed !important;
+        background-repeat: no-repeat !important;
+        background-size: cover !important;
+    }
+
+    html[data-theme="dark"] body {
+        background: linear-gradient(150deg,
+                        rgba(16, 185, 129, 0.16) 0%,
+                        rgba(5, 150, 105, 0.06) 25%,
+                        rgba(6, 78, 59, 0.45) 60%,
+                        rgba(9, 12, 20, 0.96) 100%) !important;
+        background-attachment: fixed !important;
+        background-repeat: no-repeat !important;
+        background-size: cover !important;
+    }
+
+    .page-wrapper, .content-wrapper, .container-xl, main, #content, .page-body {
+        background: transparent !important;
+    }
+
+    .th-page-card {
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        overflow: visible;
+        margin-bottom: 8px;
+    }
+
+    .clients-hero {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        flex-wrap: wrap;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        padding: 12px 4px 6px;
+        margin-bottom: 0;
+        overflow: hidden;
+    }
+
+    /* Scattered Background Pattern (8-12% opacity outline SVGs) - Emerald Theme */
+    .clients-hero-bg-pattern {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 0;
+    }
+
+    .hero-bg-icon {
+        position: absolute;
+        stroke: #10b981;
+        stroke-width: 1.5;
+        fill: none;
+        opacity: 0.10;
+        transition: opacity 0.3s ease;
+    }
+
+    html[data-theme="dark"] .hero-bg-icon {
+        stroke: #34d399;
+        opacity: 0.12;
+    }
+
+    .hero-bg-icon.icon-appgrid-1  { top: 8%; left: 1%; width: 32px; height: 32px; transform: rotate(-12deg); }
+    .hero-bg-icon.icon-window-1   { top: 14%; left: 36%; width: 26px; height: 26px; transform: rotate(10deg); }
+    .hero-bg-icon.icon-plug-1     { bottom: 10%; left: 18%; width: 30px; height: 30px; transform: rotate(-8deg); }
+    .hero-bg-icon.icon-cpu-1      { top: 58%; left: 3%; width: 28px; height: 28px; transform: rotate(6deg); }
+    .hero-bg-icon.icon-code-1     { top: 10%; left: 22%; width: 28px; height: 28px; transform: rotate(-10deg); }
+    .hero-bg-icon.icon-box-1      { top: 62%; left: 44%; width: 26px; height: 26px; transform: rotate(-14deg); }
+    .hero-bg-icon.icon-server-1   { top: 12%; right: 44%; width: 28px; height: 28px; transform: rotate(18deg); }
+    .hero-bg-icon.icon-monitor-1  { bottom: 8%; right: 36%; width: 32px; height: 32px; transform: rotate(-10deg); }
+    .hero-bg-icon.icon-layers-1   { top: 10%; right: 26%; width: 26px; height: 26px; transform: rotate(8deg); }
+
+    .th-hero-left { 
+        position: relative; 
+        display: flex; 
+        align-items: center; 
+        gap: 18px; 
+        min-width: 260px; 
+        flex: 1 1 320px; 
+        z-index: 1; 
+    }
+    .th-hero-icon {
+        width: 52px; 
+        height: 52px; 
+        flex-shrink: 0; 
+        border-radius: 14px;
+        background: linear-gradient(135deg, #10b981, #059669);
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        color: #fff;
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.25);
+    }
+    .th-hero-title {
+        font-size: 1.7rem !important;
+        font-weight: 800 !important;
+        color: var(--text-main);
+        letter-spacing: -0.02em;
+        margin: 0 0 6px;
+        line-height: 1.2;
+    }
+    .th-hero-subtitle {
+        font-size: 0.86rem;
+        color: var(--text-muted);
+        margin: 0;
+        max-width: 480px;
+        line-height: 1.5;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       COMPACT KPI CARDS (Emerald Theme)
+       ═══════════════════════════════════════════════════════════ */
+    .sub-kpi-container {
+        position: relative;
+        display: flex;
+        gap: 14px;
+        align-items: stretch;
+        z-index: 1;
+        flex-wrap: wrap;
+        margin-left: 0;
+        margin-right: 0;
+    }
+    .sub-kpi-card {
+        cursor: pointer;
+        user-select: none;
+        width: 178px;
+        flex-shrink: 0;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        padding: 10px 14px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 6px 16px -8px rgba(15,23,42,0.08);
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+    .sub-kpi-card:hover { 
+        transform: translateY(-2px); 
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05), 0 10px 24px -8px rgba(15,23,42,0.14); 
+    }
+    .sub-kpi-card.active {
+        border-color: #10b981 !important;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.18), var(--shadow-sm) !important;
+    }
+
+    .sub-kpi-card .tabler-stat-header { 
+        display: flex; 
+        align-items: center; 
+        gap: 10px; 
+        margin-bottom: 8px; 
+    }
+    .sub-kpi-card .tabler-stat-title { 
+        font-size: 0.66rem; 
+        font-weight: 700; 
+        letter-spacing: 0.04em; 
+        text-transform: uppercase; 
+        color: #64748b; 
+        line-height: 1.3; 
+    }
+    html[data-theme="dark"] .sub-kpi-card .tabler-stat-title { 
+        color: #94a3b8; 
+    }
+    .sub-kpi-card .tabler-stat-value { 
+        font-size: 1.6rem; 
+        font-weight: 800; 
+        color: var(--text-main); 
+        line-height: 1; 
+    }
+    .tabler-stat-icon {
+        width: 38px; 
+        height: 38px; 
+        border-radius: 10px; 
+        flex-shrink: 0;
+        display: flex; 
+        align-items: center; 
+        justify-content: center;
+        transition: transform 0.2s ease;
+    }
+    .sub-kpi-card:hover .tabler-stat-icon { 
+        transform: scale(1.08); 
+    }
+    .tabler-stat-icon.total-icon { 
+        background: rgba(16, 185, 129, 0.14) !important; 
+        color: #10b981 !important; 
+    }
+    .tabler-stat-icon.active-icon { 
+        background: rgba(59, 130, 246, 0.14) !important; 
+        color: #3b82f6 !important; 
+    }
+    .tabler-stat-icon.inactive-icon { 
+        background: rgba(239, 68, 68, 0.14) !important; 
+        color: #ef4444 !important; 
+    }
+
+    .kpi-mini-visual {
+        position: absolute;
+        right: 10px;
+        bottom: 6px;
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+    /* Page specific button overrides for Emerald theme */
+    #openCreateClientModal, .btn-primary-clients {
+        background: linear-gradient(135deg, #10b981, #059669) !important;
+        border-color: #059669 !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25) !important;
+    }
+    #openCreateClientModal:hover, .btn-primary-clients:hover {
+        background: linear-gradient(135deg, #059669, #047857) !important;
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35) !important;
+    }
+
+    @@media (max-width: 1024px) {
+        .sub-kpi-container {
+            margin-left: 0;
+            margin-right: 0;
+            width: 100%;
+            justify-content: flex-start;
+        }
+    }
+    @@media (max-width: 768px) {
+        .sub-kpi-container {
+            flex-direction: column;
+            align-items: stretch;
+            width: 100%;
+        }
+        .sub-kpi-card {
+            width: 100% !important;
+        }
+    }
+
+    /* ──────────────────────────────────────────────────────────
+       VIEW SWITCHER & WRAPPERS
+       ────────────────────────────────────────────────────────── */
+    .view-toggle-wrapper {
+        display: flex; background: #f8fafc; border: 1px solid #e2e8f0;
+        border-radius: 8px; padding: 3px; gap: 2px; align-items: center; flex-shrink: 0;
+    }
+    html[data-theme="dark"] .view-toggle-wrapper { background: #18181b; border-color: #27272a; }
+    .view-toggle-wrapper .view-toggle-btn {
+        display: flex; align-items: center; justify-content: center;
+        width: 28px; height: 28px; border: 1px solid transparent; background: transparent;
+        border-radius: 6px; color: #94a3b8; cursor: pointer; transition: all 0.2s ease;
+        padding: 0; outline: none; box-shadow: none;
+    }
+    .view-toggle-wrapper .view-toggle-btn:hover { color: var(--text-main); background: rgba(0,0,0,0.05); }
+    html[data-theme="dark"] .view-toggle-wrapper .view-toggle-btn:hover { background: rgba(255,255,255,0.05); }
+    .view-toggle-wrapper .view-toggle-btn.active {
+        background: #ffffff; border-color: #e2e8f0; color: #3b82f6; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    html[data-theme="dark"] .view-toggle-wrapper .view-toggle-btn.active {
+        background: #27272a; border-color: #3f3f46; color: #3b82f6;
+    }
+    .view-wrapper {
+        opacity: 0; transform: translateY(10px);
+        transition: opacity 0.25s cubic-bezier(0.4,0,0.2,1), transform 0.25s cubic-bezier(0.4,0,0.2,1);
+    }
+    .view-wrapper.active  { opacity: 1; transform: translateY(0); }
+    .view-wrapper:not(.active) { display: none !important; }
+
+    /* ──────────────────────────────────────────────────────────
+       CLIENT GRID LAYOUT
+       ────────────────────────────────────────────────────────── */
+    #clientGridViewWrapper.grid-cards-container {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 20px !important;
+        padding: 16px 20px 28px 20px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    @@media (max-width: 1024px) { #clientGridViewWrapper.grid-cards-container { grid-template-columns: repeat(2, 1fr) !important; padding: 14px 16px 24px 16px !important; } }
+    @@media (max-width: 767px)  { #clientGridViewWrapper.grid-cards-container { grid-template-columns: 1fr !important; padding: 12px 12px 20px 12px !important; } }
+
+    /* ──────────────────────────────────────────────────────────
+       PREMIUM CLIENT CARD STYLES
+       ────────────────────────────────────────────────────────── */
+    .client-grid-card {
+        background: #ffffff;
+        background-image: linear-gradient(150deg, rgba(236, 253, 245, 0.7) 0%, #ffffff 45%);
+        border: 1.5px solid #d4eddf;
+        border-radius: 16px;
+        display: flex; flex-direction: column; position: relative; overflow: hidden;
+        box-shadow:
+            0 1px 3px rgba(0, 0, 0, 0.04),
+            0 4px 14px -3px rgba(5, 150, 105, 0.08);
+        transition:
+            transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            box-shadow 0.25s ease,
+            border-color 0.25s ease;
+        height: 100%; box-sizing: border-box;
+    }
+    html[data-theme="dark"] .client-grid-card {
+        background: #131f1c;
+        background-image: linear-gradient(150deg, rgba(10, 40, 30, 0.7) 0%, #131f1c 45%);
+        border-color: #1e3028;
+        box-shadow:
+            0 1px 3px rgba(0, 0, 0, 0.35),
+            0 4px 14px -3px rgba(0, 0, 0, 0.45);
+    }
+    .client-grid-card:hover {
+        transform: translateY(-6px);
+        border-color: rgba(16, 185, 129, 0.45);
+        box-shadow:
+            0 2px 4px rgba(0, 0, 0, 0.04),
+            0 16px 32px -8px rgba(16, 185, 129, 0.2),
+            0 0 0 1px rgba(16, 185, 129, 0.2);
+    }
+    html[data-theme="dark"] .client-grid-card:hover {
+        border-color: rgba(52, 211, 153, 0.4);
+        box-shadow:
+            0 2px 4px rgba(0, 0, 0, 0.3),
+            0 16px 32px -8px rgba(0, 0, 0, 0.6),
+            0 0 0 1px rgba(52, 211, 153, 0.3);
+    }
+    .client-grid-card.cselected {
+        border-color: #10b981;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.18), 0 4px 12px -2px rgba(16, 185, 129, 0.12);
+        background: #f0fdf8;
+        background-image: linear-gradient(150deg, rgba(187, 247, 208, 0.5) 0%, #f0fdf8 45%);
+    }
+    html[data-theme="dark"] .client-grid-card.cselected { background: #0d2318; background-image: none; border-color: #34d399; }
+    .client-grid-card.cinactive { opacity: 0.82; border-style: dashed; border-color: #cbd5e1; }
+    html[data-theme="dark"] .client-grid-card.cinactive { border-color: #475569; }
+
+    /* Hover avatar animation */
+    .client-card-avatar {
+        width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center;
+        justify-content: center; flex-shrink: 0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18), 0 1px 4px rgba(0, 0, 0, 0.10);
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
+    }
+    .client-grid-card:hover .client-card-avatar {
+        transform: scale(1.08) rotate(-2deg);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.12);
+    }
+
+    .client-card-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px 0; min-height: 28px; }
+    .client-card-checkbox { width: 15px; height: 15px; cursor: pointer; accent-color: #10b981; margin: 0; flex-shrink: 0; }
+    .ccard-s-active  { background: rgba(16,185,129,0.1); color: #059669; font-size:0.71rem; font-weight:600; padding:3px 9px; border-radius:999px; display:inline-flex; align-items:center; gap:5px; border:1px solid rgba(16,185,129,0.22); white-space:nowrap; }
+    html[data-theme="dark"] .ccard-s-active  { background:rgba(16,185,129,0.15); color:#34d399; border-color:rgba(16,185,129,0.25); }
+    .ccard-s-inactive { background: rgba(100,116,139,0.1); color:#475569; font-size:0.71rem; font-weight:600; padding:3px 9px; border-radius:999px; display:inline-flex; align-items:center; gap:5px; border:1px solid rgba(100,116,139,0.18); white-space:nowrap; }
+    html[data-theme="dark"] .ccard-s-inactive { background:rgba(100,116,139,0.15); color:#94a3b8; border-color:rgba(100,116,139,0.2); }
+    .ccard-sdot { width:6px; height:6px; border-radius:50%; display:inline-block; flex-shrink:0; }
+
+    .client-card-app-section { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+    .client-card-name-group { display: flex; flex-direction: column; min-width: 0; }
+    .client-card-name { font-size: 0.92rem; font-weight: 700; color: #064e3b; margin: 0; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    html[data-theme="dark"] .client-card-name { color: #d1fae5; }
+    .client-card-id { font-size: 0.68rem; color: #64748b; font-family: 'SFMono-Regular','Consolas',monospace; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    html[data-theme="dark"] .client-card-id { color: #94a3b8; }
+
+    .ccard-divider { height: 1px; background: linear-gradient(90deg, #d4eddf, #c6e8d4 50%, transparent); margin: 0 16px; }
+    html[data-theme="dark"] .ccard-divider { background: linear-gradient(90deg, #1a3028, #1e3028 50%, transparent); }
+
+    .client-card-fields { display: flex; flex-direction: column; gap: 8px; padding: 10px 16px; flex: 1; }
+    .client-card-field  { display: flex; align-items: flex-start; gap: 8px; }
+    .clf-label { font-size: 0.63rem; font-weight: 700; color: #64748b; letter-spacing: 0.07em; text-transform: uppercase; min-width: 72px; flex-shrink: 0; padding-top: 1px; }
+    html[data-theme="dark"] .clf-label { color: #64748b; }
+    .clf-value { font-size: 0.76rem; color: #0f3827; font-weight: 500; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.4; }
+    html[data-theme="dark"] .clf-value { color: #a7f3d0; }
+
+    /* Action Buttons */
+    .client-card-actions { display: flex; gap: 6px; padding: 10px 16px 14px; margin-top: auto; }
+    .btn-ccard-view {
+        flex: 1; display: inline-flex; align-items: center; justify-content: center;
+        gap: 5px; font-size: 0.79rem; font-weight: 600; height: 34px; padding: 0 10px;
+        border-radius: 9px; border: 1.5px solid #d4eddf; background: rgba(236, 253, 245, 0.9);
+        color: #065f46; cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
+    }
+    html[data-theme="dark"] .btn-ccard-view { border-color: #1e3028; background: rgba(15, 35, 28, 0.9); color: #6ee7b7; }
+    .btn-ccard-view:hover { background: #10b981; border-color: #10b981; color: #fff; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+    html[data-theme="dark"] .btn-ccard-view:hover { background: #059669; border-color: #059669; color: #fff; }
+    .btn-ccard-action {
+        width: 34px; height: 34px; border-radius: 9px; border: 1.5px solid #d4eddf;
+        background: rgba(236, 253, 245, 0.9); color: #065f46; display: inline-flex; align-items: center;
+        justify-content: center; cursor: pointer; transition: all 0.2s ease; padding: 0; flex-shrink: 0;
+    }
+    html[data-theme="dark"] .btn-ccard-action { border-color: #1e3028; background: rgba(15, 35, 28, 0.9); color: #6ee7b7; }
+    .btn-ccard-action:hover { background: var(--bg-surface-hover); border-color: #10b981; color: #047857; transform: scale(1.05); }
+    html[data-theme="dark"] .btn-ccard-action:hover { background: #1e3028; border-color: #059669; color: #a7f3d0; }
+    .btn-ccard-action.cdanger { color: #ef4444; border-color: rgba(239,68,68,0.2); }
+    html[data-theme="dark"] .btn-ccard-action.cdanger { color: #f87171; border-color: rgba(239,68,68,0.2); }
+    .btn-ccard-action.cdanger:hover { background: #fef2f2; border-color: #fca5a5; color: #dc2626; transform: scale(1.05); }
+    html[data-theme="dark"] .btn-ccard-action.cdanger:hover { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.4); color: #f87171; }
+
+</style>
 
 
 <div class="breadcrumbs">
-    <span>Auxinz Identity</span>
+    <span>Auxinz SSO Server</span>
     <a href="#">OpenIddict</a>
     <span class="current">Applications</span>
 </div>
 
-<div class="page-header">
-    <div>
-        <h1>Applications & Clients</h1>
-        <p style="color: var(--text-muted); margin-top: 4px;">
-            Manage OIDC clients, configure callbacks,
-            secrets, and allowed grants.
-        </p>
-    </div>
-    <div style="display: flex; gap: 12px;">
-        <button class="btn btn-primary" id="openCreateClientModal">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            Create Application
-        </button>
-        <a href="/Home/ExportClients" class="btn btn-secondary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            Export Excel
-        </a>
+<div class="th-page-card">
+    <div class="clients-hero">
+        <!-- Scattered background outline icons -->
+        <div class="clients-hero-bg-pattern">
+            <!-- App Grid -->
+            <svg class="hero-bg-icon icon-appgrid-1" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            <!-- Browser Window -->
+            <svg class="hero-bg-icon icon-window-1" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="2" y1="8" x2="22" y2="8"></line><circle cx="5" cy="5.5" r="0.7" fill="#10b981"></circle><circle cx="7.5" cy="5.5" r="0.7" fill="#10b981"></circle><circle cx="10" cy="5.5" r="0.7" fill="#10b981"></circle></svg>
+            <!-- Plug Connector -->
+            <svg class="hero-bg-icon icon-plug-1" viewBox="0 0 24 24"><path d="M12 22v-5"></path><path d="M9 8V2"></path><path d="M15 8V2"></path><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8z"></path></svg>
+            <!-- CPU Chip -->
+            <svg class="hero-bg-icon icon-cpu-1" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line></svg>
+            <!-- Code Brackets -->
+            <svg class="hero-bg-icon icon-code-1" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+            <!-- App Box -->
+            <svg class="hero-bg-icon icon-box-1" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+            <!-- Server -->
+            <svg class="hero-bg-icon icon-server-1" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+            <!-- Monitor -->
+            <svg class="hero-bg-icon icon-monitor-1" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+            <!-- Layers -->
+            <svg class="hero-bg-icon icon-layers-1" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+            <!-- Sparkles & Geometry -->
+            <svg class="hero-bg-icon" style="top:18%; left:48%; width:16px; height:16px;" viewBox="0 0 24 24"><path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5Z" fill="#10b981" opacity="0.16"></path></svg>
+            <svg class="hero-bg-icon" style="top:62%; right:22%; width:14px; height:14px;" viewBox="0 0 24 24"><path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5Z" fill="#059669" opacity="0.18"></path></svg>
+            <svg class="hero-bg-icon" style="top:25%; right:14%; width:10px; height:10px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#10b981" opacity="0.25"></circle></svg>
+        </div>
+
+        <div class="th-hero-left">
+            <div class="th-hero-icon" style="background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 6px 16px rgba(16, 185, 129, 0.25);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="th-hero-title">Applications &amp; Clients</h1>
+                <p class="th-hero-subtitle">Manage OIDC clients, configure callbacks, secrets, and allowed grants.</p>
+            </div>
+        </div>
+
+        <!-- Compact KPI cards -->
+        <div class="sub-kpi-container">
+            <!-- Card 1: Total Applications -->
+            <div class="tabler-card tabler-stat-card sub-kpi-card" id="kpiTotalClients" data-value="all">
+                <div class="tabler-card-body">
+                    <div class="tabler-stat-header">
+                        <div class="tabler-stat-icon total-icon">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                            </svg>
+                        </div>
+                        <span class="tabler-stat-title">Total Applications</span>
+                    </div>
+                    <div class="tabler-stat-main">
+                        <div class="tabler-stat-value" id="totalClientsCountKpi">—</div>
+                    </div>
+                    <svg class="kpi-mini-visual" width="52" height="40" viewBox="0 0 52 40" fill="none">
+                        <rect x="4" y="18" width="12" height="20" rx="1.5" fill="#10b981" opacity="0.16" />
+                        <rect x="18" y="8" width="14" height="30" rx="1.5" fill="#10b981" opacity="0.22" />
+                        <rect x="34" y="14" width="12" height="24" rx="1.5" fill="#10b981" opacity="0.16" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Card 2: Active Applications -->
+            <div class="tabler-card tabler-stat-card sub-kpi-card" id="kpiActiveClients" data-value="true">
+                <div class="tabler-card-body">
+                    <div class="tabler-stat-header">
+                        <div class="tabler-stat-icon active-icon">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>
+                        <span class="tabler-stat-title">Active</span>
+                    </div>
+                    <div class="tabler-stat-main">
+                        <div class="tabler-stat-value" id="activeClientsCountKpi">—</div>
+                    </div>
+                    <svg class="kpi-mini-visual" width="52" height="30" viewBox="0 0 52 30" fill="none">
+                        <path d="M2,26 8,17 15,21 23,9 31,14 40,4 50,10 50,30 2,30 Z" fill="#3b82f6" opacity="0.16" />
+                        <polyline points="2,26 8,17 15,21 23,9 31,14 40,4 50,10" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Card 3: Inactive Applications -->
+            <div class="tabler-card tabler-stat-card sub-kpi-card" id="kpiInactiveClients" data-value="false">
+                <div class="tabler-card-body">
+                    <div class="tabler-stat-header">
+                        <div class="tabler-stat-icon inactive-icon">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </div>
+                        <span class="tabler-stat-title">Inactive</span>
+                    </div>
+                    <div class="tabler-stat-main">
+                        <div class="tabler-stat-value" id="inactiveClientsCountKpi">—</div>
+                    </div>
+                    <svg class="kpi-mini-visual" width="42" height="34" viewBox="0 0 42 34" fill="none">
+                        <circle cx="30" cy="17" r="5" fill="#ef4444" opacity="0.5" />
+                        <circle cx="16" cy="10" r="2.6" fill="#ef4444" opacity="0.35" />
+                        <circle cx="22" cy="22" r="2" fill="#ef4444" opacity="0.35" />
+                    </svg>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
-<!-- Applications View -->
-<div style="margin-top:24px;"></div>
+<div class="grid-stats" id="clientStatsGrid" style="margin-top: 16px; display: none;">
+    <div class="stat-box tabler-stat-card">
+        <div class="stat-header">
+            <span>Total Applications</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+        </div>
+        <div class="stat-value" id="totalClientsCount">-</div>
+        <div class="stat-trend text-primary">Registered OIDC clients</div>
+    </div>
+    <div class="stat-box tabler-stat-card">
+        <div class="stat-header">
+            <span>Active Clients</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        </div>
+        <div class="stat-value" id="activeClientsCount">-</div>
+        <div class="stat-trend up" style="color: var(--status-success);">Authorized and operational</div>
+    </div>
+    <div class="stat-box tabler-stat-card">
+        <div class="stat-header">
+            <span>Client Types</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        </div>
+        <div class="stat-value" id="clientTypesCount">-</div>
+        <div class="stat-trend text-warning">Web / SPA / Machine</div>
+    </div>
+</div>
 
 <div class="panel">
-    <div class="table-toolbar">
-        <div class="table-filters">
+    <div class="table-toolbar" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div class="table-filters" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
             <div style="position: relative;">
-                <svg style="position: absolute; left: 10px; top: 10px; color: var(--text-muted);"
+                <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"
                      width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                      stroke-width="2">
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
                 <input type="text" class="form-input" placeholder="Filter Application Name..."
-                       style="padding-left: 32px; width: 250px;">
+                       style="padding-left: 32px; width: 250px; height: 38px;">
+            </div>
+            <div class="client-type-filter-group" style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                <button type="button" class="btn btn-sm btn-outline-secondary client-type-btn" data-type="Web" onclick="setClientTypeFilter('Web')">Web</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary client-type-btn" data-type="Spa" onclick="setClientTypeFilter('Spa')">SPA</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary client-type-btn" data-type="Machine" onclick="setClientTypeFilter('Machine')">Machine</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary client-type-btn" data-type="Native" onclick="setClientTypeFilter('Native')">Native</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary client-type-btn" data-type="Device" onclick="setClientTypeFilter('Device')">Device</button>
+            </div>
+        </div>
+
+        <!-- Right: Export + Create + View Switcher -->
+        <div style="display: flex; gap: 10px; align-items: center; flex-shrink: 0;">
+            @if (canExportClient)
+            {
+                <div class="smart-export-dropdown-wrapper">
+                    <button type="button" class="btn btn-secondary smart-export-dropdown-btn smart-export-btn btn-toolbar" id="exportClientsBtn" title="More Options">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="1.5"></circle>
+                            <circle cx="12" cy="5" r="1.5"></circle>
+                            <circle cx="12" cy="19" r="1.5"></circle>
+                        </svg>
+                    </button>
+                    <span class="smart-export-badge" id="clientSelectionBadge"></span>
+                    <div class="smart-export-menu glass-dropdown">
+                        <button type="button" class="dropdown-item smart-import-option" onclick="window.openImportModal('Applications')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            Import
+                        </button>
+                        <button type="button" class="dropdown-item smart-export-option" onclick="window.smartExport('clientTable','/Home/ExportClients')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Export
+                        </button>
+                    </div>
+                </div>
+            }
+            @if (canCreateClient)
+            {
+                <button class="btn btn-primary btn-toolbar" id="openCreateClientModal">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Create Application
+                </button>
+            }
+
+            <!-- View Switcher -->
+            <div class="view-toggle-wrapper">
+                <button class="view-toggle-btn active" id="btnClientListView" data-view="list" data-target="clientTable" title="List View">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="4" y1="6" x2="20" y2="6"></line>
+                        <line x1="4" y1="12" x2="20" y2="12"></line>
+                        <line x1="4" y1="18" x2="20" y2="18"></line>
+                    </svg>
+                </button>
+                <button class="view-toggle-btn" id="btnClientGridView" data-view="grid" data-target="clientTable" title="Grid View">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+                        <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+                        <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+                        <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
+    <div class="table-filters-data" style="display:none;">
+        <div class="filter-group">
+            <label class="form-label">Application Type</label>
+            <select class="form-select filter-AppClientType" name="filter-AppClientType" id="filter-AppClientType">
+                <option value="">All Types</option>
+                <option value="Web">Web</option>
+                <option value="Spa">SPA</option>
+                <option value="Machine">Machine</option>
+                <option value="Native">Native</option>
+                <option value="Device">Device</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label class="form-label">Status</label>
+            <select class="form-select filter-IsActive" name="filter-IsActive" id="filter-IsActive">
+                <option value="">All Statuses</option>
+                <option value="true">Active</option>
+                <option value="false">Disabled</option>
+            </select>
+        </div>
+    </div>
 
-    <div class="table-responsive">
+    <!-- Table View -->
+    <div class="table-responsive view-wrapper active" id="clientTableViewWrapper">
         <table id="clientTable" class="data-table table-hoverable manual-init">
             <thead>
                 <tr>
-                    <th style="width: 48px;"><input type="checkbox" class="custom-checkbox"></th>
-                    <th class="sorted">
+                    <th class="text-center" style="width: 48px;"><input type="checkbox" class="master-select-cb" data-table="clientTable"></th>
+                    <th class="text-left">
                         Client Application
                         <svg class="sort-icon" width="12" height="12" viewBox="0 0 24 24" fill="none"
                              stroke="currentColor" stroke-width="2">
                             <path d="M12 5v14M5 12l7-7 7 7" />
                         </svg>
                     </th>
-                    <th>Type</th>
-                    <th>Permissions / Flow</th>
-                    <th>
-                        Resource Usage
-                        <svg class="sort-icon" width="12" height="12" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="2">
-                            <path d="M11 5h10M11 9h7M11 13h4M3 17l4 4 4-4M7 21V3" />
-                        </svg>
-                    </th>
-                    <th>Status</th>
-                    <th style="text-align: right;">Actions</th>
+                    <th class="text-center">Type</th>
+                    <th class="text-left">Permissions / Flow</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-left">Client ID</th>
+                    <th class="text-center">Client Type</th>
+                    <th class="text-left">Audience</th>
+                    <th class="text-center">Require 2FA</th>
+                    <th class="text-center">Login Method</th>
+                    <th class="text-center">Allow Public Registration</th>
+                    <th class="text-left">Default Role</th>
+                    <th class="text-center">Actions</th>
                 </tr>
             </thead>
             <tbody>
             </tbody>
         </table>
     </div>
+
+    <!-- Grid View -->
+    <div class="grid-cards-container view-wrapper" id="clientGridViewWrapper">
+        <!-- Dynamically populated via drawCallback -->
+    </div>
+
+
 </div>
 
 
 <script type="text/javascript">
-    $(function () {
-        // Keep the custom UI toolbar/filter references and connect them to this specific table instances
-        const $panel = $('#clientTable').closest('.panel');
 
+
+    $(function () {
+        const $panel = $('#clientTable').closest('.panel');
         const $customSearch = $panel.find('.table-toolbar .form-input[placeholder*="Filter"], .table-toolbar .form-input[placeholder*="Search"]');
         const $customFilters = $panel.find('.table-toolbar .form-select');
+        const canEditClient = @canEditClient.ToString().ToLower();
+        const canDeleteClient = @canDeleteClient.ToString().ToLower();
+        const canImportScopes = @canImportScopes.ToString().ToLower();
 
-        // The `.data-table.manual-init` class applied to #clientTable ensures that `ui.js` doesn't double-initialize it,
-        // but `$.fn.dataTable.defaults` in `ui.js` ensures it naturally inherits the beautiful dark enterprise theme!
+        window.setClientTypeFilter = function (val) {
+            $('.client-type-btn').removeClass('active btn-secondary').addClass('btn-outline-secondary');
+            $(`.client-type-btn[data-type="${val}"]`).removeClass('btn-outline-secondary').addClass('active btn-secondary');
+            const activeFilters = $panel.data('active-filters') || {};
+            if (!val) {
+                delete activeFilters['AppClientType'];
+            } else {
+                activeFilters['AppClientType'] = val;
+            }
+            $panel.data('active-filters', activeFilters);
+            const $select = $panel.find('.table-filters-repo .filter-AppClientType');
+            if ($select.length) {
+                $select.val(val);
+            }
+            if (dt) dt.ajax.reload();
+        };
+
         const dt = $('#clientTable').DataTable({
             processing: true,
             serverSide: true,
@@ -105,108 +730,203 @@
                 url: '/Home/GetClients',
                 type: 'POST',
                 data: function (d) {
-                    // Forward custom filters to the server automatically
-                    $customFilters.each(function (index, el) {
-                        d['custom_filter_' + index] = $(el).val();
-                    });
-
-                    // Pass along custom search if present
-                    if ($customSearch.length > 0) {
-                        d.customSearchValue = $customSearch.val();
+                    const activeFilters = $panel.data('active-filters') || {};
+                    if (activeFilters['AppClientType']) {
+                        d.filter_AppClientType = activeFilters['AppClientType'];
+                    } else {
+                        const $typeFilter = $panel.find('.table-filters-repo [name="filter-AppClientType"], .table-filters-repo .filter-AppClientType');
+                        if ($typeFilter.length && $typeFilter.val()) {
+                            const val = $typeFilter.val();
+                            d.filter_AppClientType = Array.isArray(val) ? val.join(',') : val;
+                        }
                     }
-                },
-                error: function (xhr, error, thrown) {
-                    console.warn("Tenant AJAX failed. Waiting for real ASP.NET Core endpoint to be wired up.");
+                    if (activeFilters['IsActive']) {
+                        d.filter_IsActive = activeFilters['IsActive'];
+                    } else {
+                        const $statusFilter = $panel.find('.table-filters-repo [name="filter-IsActive"], .table-filters-repo .filter-IsActive');
+                        if ($statusFilter.length && $statusFilter.val()) {
+                            const val = $statusFilter.val();
+                            d.filter_IsActive = Array.isArray(val) ? val.join(',') : val;
+                        }
+                    }
+                    if ($customSearch.length > 0 && $customSearch.val()) {
+                        d.customSearchValue = $customSearch.val();
+                        d.search = d.search || {};
+                        d.search.value = $customSearch.val();
+                    }
                 }
             },
             language: {
                 search: "",
-                searchPlaceholder: "Search records...",
-                lengthMenu: ""
+                searchPlaceholder: "Search records..."
             },
-            responsive: true,
-            dom: '<"table-toolbar datatables-injected"<"table-filters"l>f>t<"pagination"ip>',
-            initComplete: function () {
-                $('.dataTables_filter input').addClass('form-input');
-                $('.dataTables_length select').addClass('form-select');
+            responsive: false,
+            dom: '<"table-toolbar datatables-injected"<"table-filters">f>t<"if-table-footer-wrap"<"footer-right"<"if-pill-pagination-mount">>>',
+            drawCallback: function(settings) {
+                const api = this.api();
+                const rows = api.rows({ page: 'current' }).data();
+                const json = api.ajax.json();
+
+                // Sync KPI highlights and counts
+                const activeFilters = $panel.data('active-filters') || {};
+                $('.sub-kpi-card').removeClass('active');
+                if (activeFilters.IsActive === 'true') {
+                    $('#kpiActiveClients').addClass('active');
+                } else if (activeFilters.IsActive === 'false') {
+                    $('#kpiInactiveClients').addClass('active');
+                } else {
+                    $('#kpiTotalClients').addClass('active');
+                }
+
+                if (json) {
+                    const total = json.recordsTotal || rows.length;
+                    
+                    // Self-correcting count logic
+                    if (typeof activeFilters.IsActive === 'undefined' || activeFilters.IsActive === '') {
+                        let activeCount = 0;
+                        rows.each(function(r) {
+                            if (r.isActive || r.IsActive) activeCount++;
+                        });
+                        
+                        if (rows.length === total) {
+                            $panel.data('total-clients-kpi', total);
+                            $panel.data('active-clients-kpi', activeCount);
+                            $panel.data('inactive-clients-kpi', total - activeCount);
+                        } else {
+                            const ratio = rows.length > 0 ? (activeCount / rows.length) : 0;
+                            const approxActive = Math.round(ratio * total) || 0;
+                            $panel.data('total-clients-kpi', total);
+                            $panel.data('active-clients-kpi', approxActive);
+                            $panel.data('inactive-clients-kpi', total - approxActive);
+                        }
+                    } else if (activeFilters.IsActive === 'true') {
+                        $panel.data('active-clients-kpi', json.recordsFiltered);
+                    } else if (activeFilters.IsActive === 'false') {
+                        $panel.data('inactive-clients-kpi', json.recordsFiltered);
+                    }
+
+                    const totalVal = $panel.data('total-clients-kpi') || total || 0;
+                    const activeVal = $panel.data('active-clients-kpi') || 0;
+                    const inactiveVal = $panel.data('inactive-clients-kpi') || 0;
+
+                    $('#totalClientsCount, #totalClientsCountKpi').text(totalVal);
+                    $('#activeClientsCount, #activeClientsCountKpi').text(activeVal);
+                    $('#inactiveClientsCountKpi').text(inactiveVal);
+                }
+
+                // Render standardized pill pagination
+                window.renderPillPagination(api, '.if-pill-pagination-mount', 'applications');
+
+                // Render grid view with current page data
+                renderClientGridView(rows.toArray());
+
+                // Sync footer when grid is active
+                var _sCView = localStorage.getItem('view-mode-clientTable') || 'list';
+                if (_sCView === 'grid') {
+                    var $cF = $panel.find('.if-table-footer-wrap');
+                    if ($cF.length) $panel.append($cF);
+                }
             },
-            // Map the 5 specific data properties you provided into the 7 visual columns of the UI design
             columns: [
                 {
                     data: null,
                     orderable: false,
                     searchable: false,
-                    render: function () { return '<input type="checkbox" class="custom-checkbox">'; }
+                    className: 'text-center align-middle',
+                    render: function (data, type, row) {
+                        return '<input type="checkbox" class="row-select-cb" data-row-id="' + (row.id || '') + '">';
+                    }
                 },
                 {
                     data: 'name',
+                    className: 'text-left align-middle',
                     render: function (data, type, row) {
-
                         return ` <div class="cell-flex">
-                                            <div class="cell-avatar primary">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                                    stroke-linejoin="round">
-                                                    <path
-                                                        d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
-                                                    </path>
-                                                </svg>
-                                            </div>
-                                            <div class="cell-text">
-                                                 <h5>${data || 'Unknown Tenant'}</h5>
-                                                <p>${row.clientId || 'No Code'}</p>
-                                            </div>
-                                        </div>`;
+                                    <div class="cell-avatar primary">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round">
+                                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="cell-text">
+                                         <h5>${data || 'Unknown Tenant'}</h5>
+                                        <p>${row.clientId || 'No Code'}</p>
+                                    </div>
+                                </div>`;
                     }
                 },
                 {
                     data: 'clientType',
+                    className: 'text-center align-middle',
                     render: function (data, type, row) {
                         return `<span class="badge badge-neutral">${row.appClientType} / ${data || 'Standard'} </span>`;
                     }
                 },
                 {
-                    data: 'scopes', // We bind data mapping array so things don't break, and just mock UI values temporarily
+                    data: 'scopes',
                     orderable: false,
+                    className: 'text-left align-middle',
                     render: function (data) {
                         return `<div class="cell-text"><h5 style="color: var(--brand-primary);">${data}</h5></div>`;
                     }
                 },
                 {
-                    data: 'id',
-                    orderable: false,
-                    render: function (data) {
-                        return `<div title="Usage">
-                                    <div class="progress-track">
-                                        <div class="progress-fill" style="width: 50%;"></div>
-                                    </div>
-                                    <span style="font-family: monospace; font-size: 0.75rem; color: var(--text-muted);">50%</span>
-                                </div>`;
-                    }
-                },
-                {
                     data: 'isActive',
+                    className: 'text-center align-middle',
                     render: function (data) {
-                        // Maps user's 'isActive' boolean/property into the UI pills
                         return data ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-error">Disabled</span>';
                     }
                 },
+                { data: 'clientId', visible: false, className: 'text-left align-middle', render: function(d){ return d || '—'; } },
+                { data: 'clientType', visible: false, className: 'text-center align-middle', render: function(d){ return d || 'Confidential'; } },
+                { data: 'audience', visible: false, className: 'text-left align-middle', render: function(d){ return d || '—'; } },
+                { 
+                    data: 'require2FA', 
+                    visible: false, 
+                    className: 'text-center align-middle',
+                    render: function(d){ 
+                        return d 
+                            ? '<span class="badge badge-warning">Required</span>' 
+                            : '<span class="badge badge-neutral">Off</span>'; 
+                    } 
+                },
+                { data: 'allowedLoginMethod', visible: false, className: 'text-center align-middle', render: function(d){ return d || 'CredentialsOnly'; } },
+                { 
+                    data: 'allowPublicRegistration', 
+                    visible: false, 
+                    className: 'text-center align-middle',
+                    render: function(d){ 
+                        return d 
+                            ? '<span class="badge badge-success">Allowed</span>' 
+                            : '<span class="badge badge-neutral">Off</span>'; 
+                    } 
+                },
+                { data: 'defaultRoleName', visible: false, className: 'text-left align-middle', render: function(d){ return d || 'End User'; } },
                 {
                     data: null,
                     orderable: false,
                     searchable: false,
+                    className: 'text-center align-middle',
                     render: function (data, type, row) {
-                        return `<div style="text-align: right;">
-                                    <button class="action-btn" title="Import Scopes/Permissions" onclick="openImportScopesModal('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></button>
-                                    <button class="action-btn" title="Edit Client" onclick="editClient('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
-                                    <button class="action-btn text-error" title="Delete Client" onclick="deleteClient('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
-                                </div>`;
+                        let html = `<div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                    <button class="action-btn action-btn-view" title="View Details" data-type="client" data-id="${row.id}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path></svg></button>`;
+                        if (canImportScopes) {
+                            html += `<button class="action-btn action-btn-import" title="Import Scopes/Permissions" onclick="openImportScopesModal('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></button>`;
+                        }
+                        if (canEditClient) {
+                            html += `<button class="action-btn action-btn-edit" title="Edit Client" onclick="editClient('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>`;
+                        }
+                        if (canDeleteClient) {
+                            html += `<button class="action-btn action-btn-delete" title="Delete Client" onclick="deleteClient('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>`;
+                        }
+                        html += `</div>`;
+                        return html;
                     }
                 }
             ]
         });
 
-        // Wire up the exact custom search filtering that we previously built
         if ($customSearch.length > 0) {
             let searchTimeout;
             $customSearch.on('keyup', function () {
@@ -220,14 +940,238 @@
 
         if ($customFilters.length > 0) {
             $customFilters.on('change', function () {
-                dt.ajax.reload(); // Tell the ASP.NET MVC backend to fetch data again
+                dt.ajax.reload();
             });
         }
 
         $('#openCreateClientModal').on('click', function() {
             openClientModal();
         });
+
+        // Initialize row selection for smart export
+        window.initRowSelection('clientTable', 'id');
+
+        /* ── KPI Cards Click Routing ── */
+        $('.sub-kpi-card').on('click', function () {
+            const id = $(this).attr('id');
+            const activeFilters = $panel.data('active-filters') || {};
+            
+            if (id === 'kpiTotalClients') {
+                delete activeFilters.IsActive;
+            } else if (id === 'kpiActiveClients') {
+                if (activeFilters.IsActive === 'true') {
+                    delete activeFilters.IsActive;
+                } else {
+                    activeFilters.IsActive = 'true';
+                }
+            } else if (id === 'kpiInactiveClients') {
+                if (activeFilters.IsActive === 'false') {
+                    delete activeFilters.IsActive;
+                } else {
+                    activeFilters.IsActive = 'false';
+                }
+            }
+            
+            $panel.data('active-filters', activeFilters);
+            const hasFilters = Object.keys(activeFilters).length > 0;
+            $panel.find('.filter-trigger-btn').toggleClass('active', hasFilters);
+            
+            // Sync values to select inputs in hidden repo
+            const $isActiveFilter = $panel.find('.table-filters-repo [name="filter-IsActive"], .table-filters-repo .filter-IsActive');
+            if ($isActiveFilter.length) {
+                $isActiveFilter.val(activeFilters.IsActive ? [activeFilters.IsActive] : []).trigger('change');
+            }
+            
+            dt.draw();
+        });
+
+        // Sync KPI highlights if filter changes from filter drawer select
+        $(document).on('change', '.table-filters-repo [name="filter-IsActive"], .table-filters-repo .filter-IsActive', function () {
+            const activeFilters = $panel.data('active-filters') || {};
+            $('.sub-kpi-card').removeClass('active');
+            if (activeFilters.IsActive === 'true') {
+                $('#kpiActiveClients').addClass('active');
+            } else if (activeFilters.IsActive === 'false') {
+                $('#kpiInactiveClients').addClass('active');
+            } else {
+                $('#kpiTotalClients').addClass('active');
+            }
+        });
+
+    /* ═══════════════════════════════════════════════════════════
+       CLIENT GRID VIEW
+       ═══════════════════════════════════════════════════════════ */
+    var _cAvatarPalette = ['#6366f1','#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#ec4899'];
+
+    function _cEsc(s) { return $('<div>').text(s || '').html(); }
+
+    function renderClientGridView(dataArray) {
+        var $c = $('#clientGridViewWrapper');
+        $c.empty();
+        if (!dataArray || dataArray.length === 0) {
+            $c.html('<div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 20px;color:var(--text-muted);text-align:center;background:var(--bg-surface);border:1px dashed var(--border-strong);border-radius:var(--radius-lg);margin:16px;">' +
+                '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:12px;opacity:0.7;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>' +
+                '<h5 style="margin:0 0 4px;font-weight:600;color:var(--text-main);">No Applications Found</h5>' +
+                '<p style="margin:0;font-size:0.75rem;">Try adjusting your search terms or filters.</p></div>');
+            return;
+        }
+        var sel       = (window.getSelectionSet ? window.getSelectionSet('clientTable') : new Set());
+        var colType   = dt.column(2).visible();
+        var colScopes = dt.column(3).visible();
+        var colStatus = dt.column(4).visible();
+
+        /* Application-themed avatar palette: deep, vivid colors */
+        var _cAvatarPaletteLocal = ['#4f46e5','#0d9488','#7c3aed','#0891b2','#b45309','#b91c1c','#0369a1','#0f766e'];
+
+        $.each(dataArray, function (idx, row) {
+            var color    = _cAvatarPaletteLocal[idx % _cAvatarPaletteLocal.length];
+            var isSel    = sel.has(String(row.id));
+            var inactive = !row.isActive;
+
+            /* Type badge with color per type */
+            var clientTypeFull = (row.appClientType || row.clientType || '').toLowerCase();
+            var typeBgClr = '';
+            if      (/web/.test(clientTypeFull))     typeBgClr = 'background:rgba(59,130,246,0.10);color:#1d4ed8;border:1px solid rgba(59,130,246,0.22);';
+            else if (/spa/.test(clientTypeFull))     typeBgClr = 'background:rgba(139,92,246,0.10);color:#6d28d9;border:1px solid rgba(139,92,246,0.22);';
+            else if (/machine/.test(clientTypeFull)) typeBgClr = 'background:rgba(245,158,11,0.10);color:#b45309;border:1px solid rgba(245,158,11,0.22);';
+            else                                     typeBgClr = 'background:rgba(100,116,139,0.10);color:#475569;border:1px solid rgba(100,116,139,0.2);';
+
+            var typeBadge = colType
+                ? '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.71rem;font-weight:700;padding:3px 9px;border-radius:999px;' + typeBgClr + '">' +
+                  _cEsc((row.appClientType || '') + (row.clientType ? ' / ' + row.clientType : '')) + '</span>'
+                : '';
+
+            var scopeArr  = (row.scopes || '').toString().split(/[,\s]+/).filter(Boolean);
+            var scopeText = scopeArr.slice(0, 4).join(', ') + (scopeArr.length > 4 ? '…' : '');
+            var scopeField = colScopes
+                ? '<div class="client-card-field"><span class="clf-label">Permissions</span><span class="clf-value" title="' + _cEsc(row.scopes) + '">' + _cEsc(scopeText || '—') + '</span></div>'
+                : '';
+
+            var statusBadge = colStatus
+                ? (row.isActive
+                    ? '<span class="ccard-s-active"><span class="ccard-sdot" style="background:#10b981;"></span>Active</span>'
+                    : '<span class="ccard-s-inactive"><span class="ccard-sdot" style="background:#94a3b8;"></span>Disabled</span>')
+                : '';
+
+            var actions = '<button class="btn-ccard-view action-btn-view" data-type="client" data-id="' + row.id + '" title="View Details">' +
+                '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path></svg>View</button>';
+            if (canImportScopes) {
+                actions += '<button class="btn-ccard-action" title="Import Scopes" onclick="openImportScopesModal(\'' + row.id + '\')">' +
+                    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></button>';
+            }
+            if (canEditClient) {
+                actions += '<button class="btn-ccard-action" title="Edit Client" onclick="editClient(\'' + row.id + '\')">' +
+                    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>';
+            }
+            if (canDeleteClient) {
+                actions += '<button class="btn-ccard-action cdanger" title="Delete Client" onclick="deleteClient(\'' + row.id + '\')">' +
+                    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>';
+            }
+
+            var card = '<div class="client-grid-card' + (inactive ? ' cinactive' : '') + (isSel ? ' cselected' : '') + '" data-id="' + row.id + '">' +
+                '<div class="client-card-header">' +
+                '<input type="checkbox" class="client-card-checkbox" data-id="' + row.id + '"' + (isSel ? ' checked' : '') + '>' +
+                statusBadge +
+                '</div>' +
+                '<div class="client-card-app-section">' +
+                '<div class="client-card-avatar" style="background:' + color + ';">' +
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>' +
+                '</div>' +
+                '<div class="client-card-name-group">' +
+                '<h4 class="client-card-name" title="' + _cEsc(row.name) + '">' + _cEsc(row.name || 'Unknown App') + '</h4>' +
+                '<div class="client-card-id">' + _cEsc(row.clientId || '—') + '</div>' +
+                '</div></div>' +
+                (typeBadge ? '<div class="ccard-divider"></div><div style="padding:6px 16px;">' + typeBadge + '</div>' : '') +
+                (scopeField ? '<div class="ccard-divider"></div><div class="client-card-fields">' + scopeField + '</div>' : '') +
+                '<div class="ccard-divider"></div>' +
+                '<div class="client-card-actions">' + actions + '</div>' +
+                '</div>';
+            $c.append(card);
+        });
+    }
+
+    /* Card checkbox → table row sync */
+    $('#clientGridViewWrapper').on('change', '.client-card-checkbox', function () {
+        var id = $(this).data('id'), chk = this.checked;
+        if (window.toggleSelection) window.toggleSelection('clientTable', id, chk);
+        $(this).closest('.client-grid-card').toggleClass('cselected', chk);
+        var $rc = $('#clientTable').find('input.row-select-cb[data-row-id="' + id + '"]');
+        if ($rc.length) { $rc.prop('checked', chk); $rc.closest('tr').toggleClass('selected-row', chk); }
+        var s = window.getSelectionSet ? window.getSelectionSet('clientTable') : new Set();
+        var vis = $('#clientTable').find('input.row-select-cb').map(function () { return String($(this).data('row-id')); }).get();
+        var $m = $('.master-select-cb[data-table="clientTable"]');
+        $m.prop('checked', vis.length > 0 && vis.every(function (i) { return s.has(i); }));
+        var cc = vis.filter(function (i) { return s.has(i); }).length;
+        $m.prop('indeterminate', cc > 0 && cc < vis.length);
     });
+
+    /* Global selection → card sync */
+    $(document).on('selection:changed', function (e, data) {
+        if (data && data.tableId === 'clientTable') {
+            $('.client-card-checkbox').each(function () {
+                var id = $(this).data('id'), chk = data.ids && data.ids.includes(String(id));
+                $(this).prop('checked', chk);
+                $(this).closest('.client-grid-card').toggleClass('cselected', chk);
+            });
+        }
+    });
+
+    /* applyViewMode override for clientTable */
+    var _origCVM = window.applyViewMode;
+    window.applyViewMode = function (targetTableId, mode) {
+        if (targetTableId === 'clientTable') {
+            var $grid = $('#clientGridViewWrapper');
+            var $tbl  = $('#clientTableViewWrapper');
+            var $foot = $panel.find('.if-table-footer-wrap');
+            var $btns = $panel.find('.view-toggle-btn[data-target="clientTable"]');
+            if (mode === 'grid') {
+                $tbl.removeClass('active'); $grid.addClass('active');
+                if ($foot.length) $panel.append($foot);
+                $btns.removeClass('active');
+                $panel.find('.view-toggle-btn[data-target="clientTable"][data-view="grid"]').addClass('active');
+                localStorage.setItem('view-mode-clientTable', 'grid');
+            } else {
+                $grid.removeClass('active'); $tbl.addClass('active');
+                var $dtw = $('#clientTable_wrapper');
+                if ($foot.length && $dtw.length) $dtw.append($foot);
+                $btns.removeClass('active');
+                $panel.find('.view-toggle-btn[data-target="clientTable"][data-view="list"]').addClass('active');
+                localStorage.setItem('view-mode-clientTable', 'list');
+            }
+        } else if (typeof _origCVM === 'function') {
+            _origCVM(targetTableId, mode);
+        }
+    };
+
+    /* View toggle click → animate wrappers */
+    $(document).on('click', '.view-toggle-btn[data-target="clientTable"]', function () {
+        var mode = $(this).data('view');
+        window.applyViewMode('clientTable', mode);
+        if (mode === 'grid') {
+            $('#clientTableViewWrapper').removeClass('active');
+            setTimeout(function () { $('#clientGridViewWrapper').addClass('active'); }, 50);
+        } else {
+            $('#clientGridViewWrapper').removeClass('active');
+            setTimeout(function () { $('#clientTableViewWrapper').addClass('active'); }, 50);
+        }
+    });
+
+    /* Init from localStorage – no flicker */
+    (function initClientView() {
+        var saved = localStorage.getItem('view-mode-clientTable') || 'list';
+        window.applyViewMode('clientTable', saved);
+        if (saved === 'grid') {
+            $('#clientTableViewWrapper').removeClass('active');
+            $('#clientGridViewWrapper').addClass('active');
+        } else {
+            $('#clientGridViewWrapper').removeClass('active');
+            $('#clientTableViewWrapper').addClass('active');
+        }
+    })();
+
+    });
+
+
 
     window.openImportScopesModal = function(clientId) {
         openModal({

@@ -24,9 +24,9 @@
 		<PackageReference Include="DocumentFormat.OpenXml.Features" Version="3.5.1" />
 		<PackageReference Include="DocumentFormat.OpenXml.Framework" Version="3.5.1" />
 		<PackageReference Include="DocumentFormat.OpenXml.Linq" Version="3.5.1" />
-		<PackageReference Include="Hangfire.Core" Version="1.8.23" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
-		<PackageReference Include="OpenIddict.Abstractions" Version="7.5.0" />
+		<PackageReference Include="Hangfire.Core" Version="1.8.24" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
+		<PackageReference Include="OpenIddict.Abstractions" Version="7.6.0" />
 	</ItemGroup>
 	<ItemGroup>
 	  <Folder Include="Features\RolePermissions\Commands\Delete\" />

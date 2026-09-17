@@ -4,6 +4,7 @@ using SSO.Application.Features.Users.Commands.AddEdit;
 using SSO.Application.Features.Users.Commands.Delete;
 using SSO.Application.Features.Users.Queries.GetAll;
 using SSO.Application.Features.Users.Queries.GetById;
+using SSO.Application.Features.Users.Queries.GetByTenantName;
 using SSO.Application.Features.Users.Queries.GetPaged;
 using SSO.Application.Requests.DataTable;
 using SSO.Common.Constants.Permission;
@@ -71,6 +72,26 @@ namespace SSO.WebApplication.Controllers.v1
                 return Ok(result);
             }
             return BadRequest(result);
+        }
+
+        /// <summary>
+        /// Returns all active users that belong to the given tenant.
+        /// The optional <paramref name="clientId"/> parameter validates that the caller's
+        /// client application is registered for that tenant before returning the list.
+        /// Route: GET /api/v1/User/GetByTenantName/{tenantName}/{clientId}
+        /// </summary>
+        [HttpGet("GetByTenantName/{tenantName}/{clientId?}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetByTenantName(string tenantName, string? clientId = null)
+        {
+            if (string.IsNullOrWhiteSpace(tenantName))
+                return BadRequest("tenantName is required.");
+
+            var result = await _mediator.Send(new GetUsersByTenantNameQuery(tenantName, clientId));
+            if (result.Succeeded)
+                return Ok(result);
+
+            return NotFound(result);
         }
     }
 }

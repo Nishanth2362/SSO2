@@ -6,6 +6,9 @@
   </Folder>
   <Folder Name="/Host/">
     <Project Path="SSO.AppHost/SSO.AppHost.csproj" />
+    <Project Path="SSO.InternalApi/SSO.InternalApi.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
     <Project Path="SSO.ServiceDefaults/SSO.ServiceDefaults.csproj" />
     <Project Path="SSO.WebApplication/SSO.WebApplication.csproj" />
   </Folder>

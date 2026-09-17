@@ -51,7 +51,13 @@ namespace SSO.Application.Features.Subscriptions.Queries.GetById
                     Price = subscription.Price,
                     Currency = subscription.Currency,
                     Description = subscription.Description,
-                    IsActive = subscription.IsActive
+                    IsActive = subscription.IsActive,
+                    CreatedBy = subscription.CreatedBy,
+                    CreatedOn = subscription.CreatedOn,
+                    LastModifiedBy = subscription.LastModifiedBy,
+                    LastModifiedOn = subscription.LastModifiedOn,
+                    IPAddress = subscription.IPAddress,
+                    IsDeleted = subscription.IsDeleted
                 };
 
                 return await Result<SubscriptionResponse>.SuccessAsync(response);

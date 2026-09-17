@@ -33,14 +33,15 @@ namespace SSO.Application.Features.Roles.Queries.GetAll
                 {
                     return await Result<List<RoleResponse>>.SuccessAsync(new List<RoleResponse>());
                 }
-                var roles = await _roleManager.Roles.Where(r => r.TenantId == request.TenantId)
-                   .Select(r => new RoleResponse()
-                   {
-                       Id = r.Id,
-                       Name = r.Name!,
-                       TenantId = r.TenantId,
-                       IsSystemRole = r.IsSystemRole
-                   }).ToListAsync();
+                 var roles = await _roleManager.Roles.Where(r => r.TenantId == request.TenantId)
+                    .Select(r => new RoleResponse()
+                    {
+                        Id = r.Id,
+                        Name = r.Name!,
+                        Description = r.Description,
+                        TenantId = r.TenantId,
+                        IsSystemRole = r.IsSystemRole
+                    }).ToListAsync(cancellationToken);
                 return await Result<List<RoleResponse>>.SuccessAsync(roles);
             }
             catch (Exception ex)

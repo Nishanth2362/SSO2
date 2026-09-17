@@ -6,92 +6,215 @@
 }
 
 <style>
-    .provision-modal-content {
-        padding: 8px 4px;
-    }
-    .input-with-icon {
-        position: relative;
-        display: flex;
-        align-items: center;
-    }
-    .input-with-icon svg {
-        position: absolute;
-        left: 12px;
-        color: var(--text-muted);
-        pointer-events: none;
-    }
-    .input-with-icon .form-input, 
-    .input-with-icon .form-select {
-        padding-left: 38px;
-    }
-    .date-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-        margin-top: 24px;
-    }
-    .plan-info-card {
-        background: rgba(255,255,255,0.03);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 24px;
-        display: flex;
-        align-items: flex-start;
-        gap: 16px;
-        transition: all 0.2s ease;
-    }
-    .plan-info-card:focus-within {
-        border-color: var(--brand-primary);
-        background: rgba(var(--brand-primary-rgb), 0.05);
-    }
-    .status-toggle-wrapper {
-        background: rgba(255,255,255,0.02);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 16px;
-        margin-top: 24px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .form-section-title {
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--text-muted);
-        margin-bottom: 12px;
-        display: block;
+    /* Popup Header Icon Purple Accent Match */
+    #appModal #modalIcon {
+        background: rgba(91, 76, 240, 0.1) !important;
+        color: #5B4CF0 !important;
+        border-radius: 10px !important;
     }
 
-    @@media (max-width: 576px) {
-        .date-grid {
-            grid-template-columns: 1fr;
-        }
+    /* Modal Form Field & Inputs matching Tenants theme */
+    .aets-container .modal-section-label {
+        font-size: 0.76rem !important;
+        font-weight: 700 !important;
+        color: #5B4CF0 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+        margin-bottom: 10px !important;
+        padding-bottom: 4px !important;
+        border-bottom: 1px solid #F1F5F9 !important;
+    }
+
+    html[data-theme="dark"] .aets-container .modal-section-label {
+        border-color: #262d42 !important;
+    }
+
+    .aets-container .modal-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .aets-container .modal-field {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 10px;
+    }
+
+    .aets-container .modal-label {
+        font-size: 0.78rem !important;
+        font-weight: 600 !important;
+        color: #334155 !important;
+        margin-bottom: 4px !important;
+    }
+
+    html[data-theme="dark"] .aets-container .modal-label {
+        color: #CBD5E1 !important;
+    }
+
+    .aets-container .required-star {
+        color: #EF4444;
+        margin-left: 2px;
+    }
+
+    .aets-container .modal-input,
+    .aets-container .modal-select {
+        height: 40px !important;
+        padding: 0 12px !important;
+        border-radius: 10px !important;
+        border: 1px solid #E5E7EB !important;
+        background: #ffffff !important;
+        color: #0F172A !important;
+        font-size: 0.84rem !important;
+        font-weight: 500 !important;
+        outline: none !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+        transition: all 0.2s ease !important;
+        box-sizing: border-box !important;
+        width: 100% !important;
+    }
+
+    html[data-theme="dark"] .aets-container .modal-input,
+    html[data-theme="dark"] .aets-container .modal-select {
+        background: #11141f !important;
+        border-color: #262d42 !important;
+        color: #F8FAFC !important;
+    }
+
+    .aets-container .modal-input:hover,
+    .aets-container .modal-select:hover {
+        border-color: #CBD5E1 !important;
+    }
+
+    .aets-container .modal-input:focus,
+    .aets-container .modal-select:focus {
+        border-color: #5B4CF0 !important;
+        box-shadow: 0 0 0 3px rgba(91, 76, 240, 0.15) !important;
+    }
+
+    .aets-container .field-hint {
+        font-size: 0.72rem !important;
+        color: #64748B !important;
+        margin-top: 3px !important;
+        line-height: 1.3 !important;
+    }
+
+    /* Toggle Switch Card */
+    .aets-container .modal-toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        background: #F8FAFC;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: border-color 0.2s ease;
+    }
+
+    html[data-theme="dark"] .aets-container .modal-toggle-row {
+        background: #11141f;
+        border-color: #262d42;
+    }
+
+    .aets-container .modal-toggle-row:hover {
+        border-color: #CBD5E1;
+    }
+
+    .toggle-switch {
+        position: relative;
+        width: 42px;
+        height: 22px;
+        flex-shrink: 0;
+    }
+
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-track {
+        position: absolute;
+        inset: 0;
+        background-color: #CBD5E1;
+        border-radius: 22px;
+        cursor: pointer;
+        transition: background-color 0.25s ease;
+    }
+
+    .toggle-thumb {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 18px;
+        height: 18px;
+        background-color: #ffffff;
+        border-radius: 50%;
+        transition: transform 0.25s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .toggle-switch input:checked + .toggle-track {
+        background-color: #5B4CF0;
+    }
+
+    .toggle-switch input:checked + .toggle-track .toggle-thumb {
+        transform: translateX(20px);
+    }
+
+    /* Footer Buttons in Modal */
+    .modal-footer .btn-primary.wizard-btn-save,
+    .modal-footer #AddTenantSubs {
+        background: linear-gradient(135deg, #5B4CF0 0%, #4C3DE0 100%) !important;
+        border: none !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        height: 40px !important;
+        padding: 0 20px !important;
+        border-radius: 10px !important;
+        font-size: 0.84rem !important;
+        box-shadow: 0 4px 12px rgba(91, 76, 240, 0.35) !important;
+        transition: all 0.25s ease !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        cursor: pointer !important;
+    }
+
+    .modal-footer .btn-secondary.wizard-btn-back,
+    .modal-footer .btn-secondary.wizard-btn-prev {
+        background: #ffffff !important;
+        border: 1px solid #E5E7EB !important;
+        color: #475569 !important;
+        font-weight: 600 !important;
+        height: 40px !important;
+        padding: 0 18px !important;
+        border-radius: 10px !important;
+        font-size: 0.84rem !important;
+        transition: all 0.2s ease !important;
+        cursor: pointer !important;
+    }
+
+    html[data-theme="dark"] .modal-footer .btn-secondary.wizard-btn-back,
+    html[data-theme="dark"] .modal-footer .btn-secondary.wizard-btn-prev {
+        background: #181c2b !important;
+        border-color: #262d42 !important;
+        color: #CBD5E1 !important;
     }
 </style>
 
-<div class="provision-modal-content">
-    <form id="addEditTenantSubscriptionForm" class="modal-form">
-        <input type="hidden" id="Id" asp-for="Id" />
-        <input type="hidden" id="TenantId" asp-for="TenantId" />
+<form id="addEditTenantSubscriptionForm" class="wizard-container" novalidate>
+    <input type="hidden" id="Id" asp-for="Id" />
+    <input type="hidden" id="TenantId" asp-for="TenantId" />
 
-        <span class="form-section-title">ENTITLEMENT TIER</span>
-        <div class="plan-info-card">
-            <div style="padding: 10px; background: rgba(var(--brand-primary-rgb), 0.1); border-radius: 10px; color: var(--brand-primary);">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-                </svg>
-            </div>
-            <div style="flex: 1;">
-                <label class="form-label" style="margin-bottom: 8px;">Select Subscription Plan</label>
-                <div class="input-with-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                    <select id="SubscriptionId" asp-for="SubscriptionId" class="form-select" required>
+    <div class="modal-body aets-container" style="padding: 16px 24px;">
+        <div class="wizard-step" data-title="Subscription Details">
+            <div class="modal-section-label">Entitlement Tier</div>
+            <div class="modal-form-grid">
+                <div class="modal-field" style="grid-column: span 2;">
+                    <label class="modal-label" for="SubscriptionId">Subscription Plan <span class="required-star">*</span></label>
+                    <select id="SubscriptionId" asp-for="SubscriptionId" class="modal-select" required>
                         <option value="">Choose a plan...</option>
                         @if (subscriptions != null)
                         {
@@ -101,57 +224,49 @@
                             }
                         }
                     </select>
-                </div>
-                <p class="form-hint" style="margin-top: 8px; margin-bottom: 0;">This defines the features and limits unlocked for the tenant.</p>
-            </div>
-        </div>
-
-        <span class="form-section-title">VALIDITY PERIOD</span>
-        <div class="date-grid">
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Activation Date</label>
-                <div class="input-with-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    <input type="date" id="StartDateUtc" asp-for="StartDateUtc" class="form-input" required />
+                    <span class="field-hint">This defines the features and limits unlocked for the tenant.</span>
                 </div>
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Expiration Date</label>
-                <div class="input-with-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                    </svg>
-                    <input type="date" id="EndDateUtc" asp-for="EndDateUtc" class="form-input" required />
+
+            <div class="modal-section-label" style="margin-top: 16px;">Validity Period</div>
+            <div class="modal-form-grid">
+                <div class="modal-field">
+                    <label class="modal-label" for="StartDateUtc">Activation Date <span class="required-star">*</span></label>
+                    <input type="date" id="StartDateUtc" asp-for="StartDateUtc" class="modal-input" required />
+                </div>
+                <div class="modal-field">
+                    <label class="modal-label" for="EndDateUtc">Expiration Date <span class="required-star">*</span></label>
+                    <input type="date" id="EndDateUtc" asp-for="EndDateUtc" class="modal-input" required />
+                </div>
+            </div>
+
+            <div class="modal-section-label" style="margin-top: 16px;">Settings</div>
+            <div class="modal-form-grid">
+                <div class="modal-field" style="grid-column: span 2;">
+                    <label class="modal-toggle-row" for="IsActiveProvision">
+                        <div>
+                            <div class="modal-label" style="margin-bottom:2px;">Set as Primary Plan</div>
+                            <span class="field-hint" style="margin-top:0;">Automatically deactivates any existing active plans for this tenant.</span>
+                        </div>
+                        <div class="toggle-switch">
+                            <input type="checkbox" asp-for="IsActive" id="IsActiveProvision" />
+                            <span class="toggle-track">
+                                <span class="toggle-thumb"></span>
+                            </span>
+                        </div>
+                    </label>
                 </div>
             </div>
         </div>
+    </div><!-- /modal-body -->
 
-        <div class="status-toggle-wrapper">
-            <div>
-                <label class="form-label" style="margin-bottom: 4px; display: block;">Set as Primary Plan</label>
-                <span class="form-hint">Automatically deactivates any existing active plans for this tenant.</span>
-            </div>
-            <div class="custom-checkbox-wrapper">
-                <input type="checkbox" asp-for="IsActive" class="custom-checkbox" id="IsActiveProvision" />
-            </div>
-        </div>
-
-        <div class="modal-actions" style="margin-top: 32px; display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid var(--border-color); padding-top: 24px;">
-            <button type="button" class="btn btn-secondary" onclick="window.closeModal()">Dismiss</button>
-            <button id="AddTenantSubs" type="submit" class="btn btn-primary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                Confirm Provisioning
-            </button>
-        </div>
-    </form>
-</div>
+    <!-- Modal Footer -->
+    <div class="modal-footer">
+        <button id="AddTenantSubs" type="submit" class="btn btn-primary">
+            Confirm Provisioning
+        </button>
+    </div>
+</form>
 
 <script>
     $(document).ready(function() {
@@ -166,61 +281,80 @@
             if (!$('#EndDateUtc').val()) $('#EndDateUtc').val(nextYearStr);
         }
 
-        $('#addEditTenantSubscriptionForm').off('submit').on('submit', function (e) {
-            e.preventDefault();
-            if (!window.validateAjaxForm(this)) {
-                return;
-            }
-
-            const $btn = $('#AddTenantSubs');
-            const originalHtml = $btn.html();
-            
-            // Validation
-            const start = new Date($('#StartDateUtc').val());
-            const end = new Date($('#EndDateUtc').val());
-            
-            if (end <= start) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Invalid Dates',
-                    text: 'Expiration date must be after the activation date.'
-                });
-                return;
-            }
-
-            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
-            
-            const formData = $(this).serialize();
-            $.post('/Home/AddEditTenantSubscription', formData, function(result) {
-                if (result.succeeded) {
-                    if (window.onModalSuccess) {
-                        window.onModalSuccess(result);
+        const wizard = window.initWizardForm('#addEditTenantSubscriptionForm', {
+            onStepChanging: function(currentIndex, newIndex) {
+                if (newIndex > currentIndex) {
+                    const startVal = $('#StartDateUtc').val();
+                    const endVal = $('#EndDateUtc').val();
+                    if (!startVal) {
+                        $('#StartDateUtc').addClass('ct-invalid');
+                        return false;
                     }
-                    window.closeModal();
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Provisioned!',
-                        text: 'Subscription plan updated successfully.',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Provisioning Failed',
-                        text: window.getPrimaryResultMessage(result, 'Check your inputs and try again.')
+                    if (!endVal) {
+                        $('#EndDateUtc').addClass('ct-invalid');
+                        return false;
+                    }
+                    const start = new Date(startVal);
+                    const end = new Date(endVal);
+                    if (end <= start) {
+                        $('#EndDateUtc').addClass('ct-invalid');
+                        if (window.appToast) {
+                            window.appToast.show('warning', 'Invalid Dates', 'Expiration date must be after the activation date.');
+                        }
+                        return false;
+                    }
+                }
+                return true;
+            },
+            onFinished: function() {
+                const $btn = $('#addEditTenantSubscriptionForm').find('.wizard-btn-save');
+                const originalHtml = $btn.html();
+                
+                // Final validation check just in case
+                const start = new Date($('#StartDateUtc').val());
+                const end = new Date($('#EndDateUtc').val());
+                if (end <= start) {
+                    $('#EndDateUtc').addClass('ct-invalid');
+                    if (window.appToast) {
+                        window.appToast.show('warning', 'Invalid Dates', 'Expiration date must be after the activation date.');
+                    }
+                    return;
+                }
+
+                $btn.prop('disabled', true).text('Processing...');
+                
+                const formData = $('#addEditTenantSubscriptionForm').serialize();
+                $.post('/Home/AddEditTenantSubscription', formData, function(result) {
+                    if (result.succeeded) {
+                        window.closeModal();
+                        if (window.appToast) {
+                            window.appToast.show('success', 'Subscription Saved', result.messages ? result.messages[0] : 'Tenant subscription has been updated successfully.');
+                        }
+                        if (window.onModalSuccess) {
+                            window.onModalSuccess(result);
+                        }
+                    } else {
+                        $btn.prop('disabled', false).html(originalHtml);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error Saving Subscription',
+                            text: result.messages?.join('\n') || 'Unknown error'
+                        });
+                    }
+                }).fail(function(xhr) {
+                    window.showRequestError({
+                        title: 'Unable to Update Subscription',
+                        xhr: xhr,
+                        fallbackMessage: 'We could not process the subscription update right now. Please try again.'
                     });
                     $btn.prop('disabled', false).html(originalHtml);
-                }
-            }).fail(function(xhr) {
-                window.showRequestError({
-                    title: 'Unable to Update Subscription',
-                    xhr: xhr,
-                    fallbackMessage: 'We could not process the subscription update right now. Please try again.'
                 });
-                $btn.prop('disabled', false).html(originalHtml);
-            });
+            }
+        });
+
+        // Clear invalid classes on input/change
+        $('#StartDateUtc, #EndDateUtc, #SubscriptionId').on('change input', function() {
+            $(this).removeClass('ct-invalid');
         });
     });
 </script>
-

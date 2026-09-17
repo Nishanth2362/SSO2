@@ -1,39 +1,35 @@
 /**
  * Jobs Management - Interactive Logic
  */
-$(document).ready(function() {
+$(document).ready(function () {
     // 1. Core DataTables Initialization
     const jobsTable = $('#jobsTable').DataTable({
-        responsive: true,
+        responsive: false,
         pageLength: 15,
         order: [[0, 'asc']],
-        dom: '<"top"f>rt<"bottom"lip><"clear">',
+        dom: '<"table-toolbar datatables-injected"<"table-filters">f>t<"if-table-footer-wrap"<"footer-right"<"if-pill-pagination-mount">>>',
         language: {
             search: "",
-            searchPlaceholder: "Search services...",
-            paginate: {
-                previous: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>',
-                next: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>'
-            }
+            searchPlaceholder: "Search services..."
         },
-        drawCallback: function() {
-            $('.dataTables_paginate').addClass('btn-group');
-            $('.dataTables_paginate .paginate_button').addClass('btn btn-ghost btn-sm');
+        drawCallback: function () {
+            const api = this.api();
+            window.renderPillPagination(api, '.if-pill-pagination-mount', 'jobs');
         }
     });
 
     // 2. Tab Switching Engine
-    $('.tab').on('click', function() {
+    $('.tab').on('click', function () {
         const tabId = $(this).data('tab');
-        
+
         // Update Tabs UI
         $('.tab').removeClass('active');
         $(this).addClass('active');
-        
+
         // Update Content
-        $('.tab-content').fadeOut(100, function() {
+        $('.tab-content').fadeOut(100, function () {
             $('.tab-content').removeClass('active');
-            $('#' + tabId).addClass('active').fadeIn(200, function() {
+            $('#' + tabId).addClass('active').fadeIn(200, function () {
                 // Ensure DataTable adjusts its columns after being shown
                 if (tabId === 'control') {
                     jobsTable.columns.adjust().responsive.recalc();
@@ -51,8 +47,38 @@ $(document).ready(function() {
     });
 
     // Handle window resize for fluid responsiveness
-    $(window).on('resize', function() {
+    $(window).on('resize', function () {
         jobsTable.columns.adjust().responsive.recalc();
+    });
+
+    // SignalR Real-time Progress Monitoring
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/signalRHub")
+        .build();
+
+    connection.on("ReceiveJobProgress", function (jobId, progress, message) {
+        const row = document.querySelector(`tr[data-job-row-id="${jobId}"]`);
+        if (row) {
+            const container = row.querySelector(".job-progress-container");
+            const fill = row.querySelector(".job-progress-fill");
+            const statusMsg = row.querySelector(".job-progress-message");
+
+            if (container && fill && statusMsg) {
+                container.style.display = "block";
+                fill.style.width = progress + "%";
+                statusMsg.textContent = message + ` (${progress}%)`;
+
+                if (progress >= 100) {
+                    setTimeout(() => {
+                        container.style.display = "none";
+                    }, 4000);
+                }
+            }
+        }
+    });
+
+    connection.start().catch(function (err) {
+        console.error("SignalR Connection Error: ", err.toString());
     });
 });
 
@@ -153,23 +179,23 @@ function showCreateJobForm() {
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            $.post('/Jobs/CreateCustom', { 
-                jobId: result.value.id, 
-                jobType: result.value.type, 
-                cron: result.value.cron 
+            $.post('/Jobs/CreateCustom', {
+                jobId: result.value.id,
+                jobType: result.value.type,
+                cron: result.value.cron
             }, function (res) {
                 if (res.succeeded) {
                     Swal.fire({
-                        icon: 'success', 
-                        title: 'Success', 
+                        icon: 'success',
+                        title: 'Success',
                         text: res.message,
                         background: 'rgba(18, 18, 21, 0.95)',
                         customClass: { popup: 'glass-modal border-glass' }
                     }).then(() => location.reload());
                 } else {
                     Swal.fire({
-                        icon: 'error', 
-                        title: 'Error', 
+                        icon: 'error',
+                        title: 'Error',
                         text: res.message,
                         background: 'rgba(18, 18, 21, 0.95)',
                         customClass: { popup: 'glass-modal border-glass' }
@@ -215,16 +241,16 @@ function toggleSchedule(jobId, active) {
                 $.post('/Jobs/Schedule', { jobId: jobId, cron: result.value }, function (res) {
                     if (res.succeeded) {
                         Swal.fire({
-                            icon: 'success', 
-                            title: 'Saved', 
+                            icon: 'success',
+                            title: 'Saved',
                             text: res.message,
                             background: 'rgba(18, 18, 21, 0.95)',
                             customClass: { popup: 'glass-modal border-glass' }
                         }).then(() => location.reload());
                     } else {
                         Swal.fire({
-                            icon: 'error', 
-                            title: 'Failed', 
+                            icon: 'error',
+                            title: 'Failed',
                             text: res.message,
                             background: 'rgba(18, 18, 21, 0.95)',
                             customClass: { popup: 'glass-modal border-glass' }
@@ -251,11 +277,11 @@ function toggleSchedule(jobId, active) {
             if (result.isConfirmed) {
                 $.post('/Jobs/Remove', { jobId: jobId }, function (res) {
                     if (res.succeeded) {
-                         location.reload();
+                        location.reload();
                     } else {
                         Swal.fire({
-                            icon: 'error', 
-                            title: 'Error', 
+                            icon: 'error',
+                            title: 'Error',
                             text: res.message,
                             background: 'rgba(18, 18, 21, 0.95)',
                             customClass: { popup: 'glass-modal border-glass' }

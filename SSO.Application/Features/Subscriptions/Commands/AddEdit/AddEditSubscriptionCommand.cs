@@ -18,6 +18,9 @@ namespace SSO.Application.Features.Subscriptions.Commands.AddEdit
         public Domain.Enums.SubscriptionBillingCycle BillingCycle { get; set; }
         public decimal Price { get; set; }
         public string Currency { get; set; } = "INR";
+
+        /// <summary>Mandatory change description when editing an existing subscription.</summary>
+        public string? Remarks { get; set; }
     }
 
     public class AddEditSubscriptionValidator : IRequestValidator<AddEditSubscriptionCommand>
@@ -53,6 +56,16 @@ namespace SSO.Application.Features.Subscriptions.Commands.AddEdit
             if (string.IsNullOrWhiteSpace(request.Currency) || !AllowedCurrencies.Contains(request.Currency))
                 errors.Add(new ValidationError { PropertyName = nameof(request.Currency), ErrorMessage = "A supported currency is required." });
 
+            if (request.Id != null && request.Id != Guid.Empty)
+            {
+                if (string.IsNullOrWhiteSpace(request.Remarks))
+                    errors.Add(new ValidationError { PropertyName = nameof(request.Remarks), ErrorMessage = "A change description (remarks) is required when editing." });
+                else if (request.Remarks.Trim().Length < 5)
+                    errors.Add(new ValidationError { PropertyName = nameof(request.Remarks), ErrorMessage = "Remarks must be at least 5 characters." });
+                else if (request.Remarks.Length > 500)
+                    errors.Add(new ValidationError { PropertyName = nameof(request.Remarks), ErrorMessage = "Remarks cannot exceed 500 characters." });
+            }
+
             return Task.FromResult(errors.AsEnumerable());
         }
     }
@@ -86,7 +99,7 @@ namespace SSO.Application.Features.Subscriptions.Commands.AddEdit
                     subscription.Currency = command.Currency;
 
                     await _unitOfWork.Repository<Domain.Entities.Subscriptions>().UpdateAsync(subscription);
-                    await _unitOfWork.Commit(cancellationToken);
+                    await _unitOfWork.Commit(cancellationToken, remarks: command.Remarks);
                     return await Result<Guid>.SuccessAsync(subscription.Id, "subscription updated successfully.");
                 }
                 else

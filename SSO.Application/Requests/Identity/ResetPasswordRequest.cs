@@ -5,7 +5,7 @@ namespace SSO.Application.Requests.Identity
     public class ResetPasswordRequest
     {
         [Required]
-        [EmailAddress]
+        [EmailAddress(ErrorMessage = "Invalid Email")]
         public string Email { get; set; }
 
         [Required]
