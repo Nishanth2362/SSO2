@@ -24,18 +24,9 @@ namespace SSO.Application.Responses.Features
         public string? BillingAddress { get; set; }
         public int GracePeriodDays { get; set; }
         public string Currency { get; set; }
-        public string? BackgroundText { get; set; }
+        public bool AllowPublicRegistration { get; set; }
         public string? SubscriptionName { get; set; }
         public DateTime? SubscriptionExpiry { get; set; }
         public List<Guid>? ClientIds { get; set; }
-        public int ApplicationsCount { get; set; }
-        public int UsersCount { get; set; }
-        public int RolesCount { get; set; }
-        public string? CreatedBy { get; set; }
-        public DateTime? CreatedOn { get; set; }
-        public string? LastModifiedBy { get; set; }
-        public DateTime? LastModifiedOn { get; set; }
-        public string? IPAddress { get; set; }
-        public bool IsDeleted { get; set; }
     }
 }

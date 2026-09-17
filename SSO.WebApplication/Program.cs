@@ -28,11 +28,10 @@ builder.Services.AddCurrentUserService();
 builder.Services.AddSecurityHardening();
 builder.Services.AddSerialization();
 builder.Services.AddDatabase(builder.Configuration);
-builder.Services.AddIdentity(builder.Configuration);
-builder.Services.AddServerStorage(); //TODO - should implement ServerStorageProvider to work correctly !
+builder.Services.AddIdentity();
+builder.Services.AddServerStorage(); //TODO - should implement ServerStorageProvider to work correctly!
 builder.Services.AddScoped<ServerPreferenceManager>();
 builder.Services.AddServerLocalization();
-builder.Services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransformation, SSO.WebApplication.Services.PermissionClaimsTransformation>();
 //builder.Services.AddIdentity();
 builder.Services.AddJwtAuthentication(builder.Services.GetApplicationSettings(builder.Configuration));
 builder.Services.AddSignalR();
@@ -42,20 +41,6 @@ builder.Services.AddRepositories();
 builder.Services.AddSharedInfrastructure(builder.Configuration);
 builder.Services.RegisterSwagger();
 builder.Services.AddInfrastructureExtentions(builder.Configuration);
-
-// ── GeoIP singleton (MaxMind GeoLite2 — graceful null if .mmdb absent) ────
-builder.Services.AddSingleton(sp =>
-{
-    var mmdbPath = Path.Combine(AppContext.BaseDirectory, "GeoLite2-City.mmdb");
-    if (!File.Exists(mmdbPath)) return (MaxMind.GeoIP2.DatabaseReader?)null;
-    try { return new MaxMind.GeoIP2.DatabaseReader(mmdbPath); }
-    catch { return (MaxMind.GeoIP2.DatabaseReader?)null; }
-});
-
-
-// Needed by SecurityEventService to read request IP / User-Agent
-builder.Services.AddHttpContextAccessor();
-
 #pragma warning disable CS0612 // Type or member is obsolete
 builder.Services.ConfigureHangefire(builder.Configuration);
 #pragma warning restore CS0612 // Type or member is obsolete
@@ -66,14 +51,9 @@ builder.Services.AddAntiforgery(options =>
     options.Cookie.Name = ".SSO.Antiforgery";
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.Cookie.HttpOnly = true;
-    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SameSite = SameSiteMode.Strict;
 });
 
-//builder.WebHost.ConfigureKestrel(options =>
-//{
-//    options.ListenAnyIP(5505); // HTTP
-//    options.ListenAnyIP(5055, listenOptions => listenOptions.UseHttps()); // HTTPS (use dev cert or real cert)
-//});
 
 //services.AddRazorPages();
 builder.Services.AddApiVersioning(config =>
@@ -83,10 +63,7 @@ builder.Services.AddApiVersioning(config =>
     config.ReportApiVersions = true;
 });
 builder.Services.AddLazyCache();
-builder.Services.AddControllersWithViews(options =>
-{
-    options.Filters.Add<SSO.WebApplication.Filters.SsoContextFilter>();
-}).AddJsonOptions(options =>
+builder.Services.AddControllersWithViews().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 });
@@ -124,9 +101,6 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
-// CORS must be first — before HTTPS redirect — so OPTIONS preflight is not redirected
-app.UseCors();
-
 app.UseForwarding(app.Configuration);
 app.UseExceptionHandling(app.Environment);
 
@@ -150,6 +124,7 @@ app.UseMiddleware<ErrorHandlerMiddleware>();
 app.UseRequestLocalizationByCulture();
 
 app.UseRouting();
+app.UseCors();
 app.UseRateLimiter();
 
 app.UseAuthentication();

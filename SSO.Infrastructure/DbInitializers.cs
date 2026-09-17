@@ -59,115 +59,11 @@ namespace SSO.Infrastructure
             {
                 await SeedDefaultSubscription(tenantId);
                 var clientId = await SeedDefaultClient(tenantId);
-                if (clientId == Guid.Empty)
-                {
-                    var existingClient = await _dbContext.Clients.FirstOrDefaultAsync(x => x.ClientId == _defaultSetting.ClientId);
-                    if (existingClient != null)
-                    {
-                        clientId = existingClient.Id;
-                    }
-                }
-
-                if (clientId != Guid.Empty)
-                {
-                    await SyncDefaultClientPermissions(clientId);
-                    await SeedDefaultRole(tenantId, clientId);
-                    await SeedDefaultSSOAdminViewerRole(tenantId, clientId);
-                    await SeedDefaultUser(tenantId);
-                }
-            }
-
-            // Seed default global Token Lifetime Settings
-            await SeedDefaultTokenSettings();
-        }
-        private async Task SyncDefaultClientPermissions(Guid clientId)
-        {
-            try
-            {
-                var scope = await _dbContext.Scopes.FirstOrDefaultAsync(x => x.Name == _defaultSetting.ScopesName);
-                if (scope == null) return;
-
-                var registeredPermissions = SSO.Common.Constants.Permission.Permissions.GetRegisteredPermissions();
-
-                foreach (var code in registeredPermissions)
-                {
-                    var permission = await _dbContext.Permissions
-                        .FirstOrDefaultAsync(p => p.Code == code && p.ClientApplicationId == clientId);
-
-                    if (permission == null)
-                    {
-                        permission = new Permission
-                        {
-                            Id = Guid.NewGuid(),
-                            Code = code,
-                            Description = code,
-                            ClientApplicationId = clientId
-                        };
-                        _dbContext.Permissions.Add(permission);
-                        await _dbContext.SaveChangesAsync();
-                    }
-
-                    var hasScopePermission = await _dbContext.ApplicationScopePermissions
-                        .AnyAsync(sp => sp.ScopeId == scope.Id && sp.PermissionId == permission.Id);
-
-                    if (!hasScopePermission)
-                    {
-                        _dbContext.ApplicationScopePermissions.Add(new ApplicationScopePermission
-                        {
-                            Id = Guid.NewGuid(),
-                            ScopeId = scope.Id,
-                            PermissionId = permission.Id
-                        });
-                        await _dbContext.SaveChangesAsync();
-                    }
-
-                    var adminRole = await _roleManager.FindByNameAsync(_defaultSetting.DefaultRole);
-                    if (adminRole != null)
-                    {
-                        var hasRolePermission = await _dbContext.RolePermissions
-                            .AnyAsync(rp => rp.RoleId == adminRole.Id && rp.PermissionId == permission.Id && rp.ApplicationClientId == clientId);
-
-                        if (!hasRolePermission)
-                        {
-                            _dbContext.RolePermissions.Add(new RolePermission
-                            {
-                                Id = Guid.NewGuid(),
-                                RoleId = adminRole.Id,
-                                PermissionId = permission.Id,
-                                ApplicationClientId = clientId
-                            });
-                            await _dbContext.SaveChangesAsync();
-                        }
-                    }
-
-                    const string viewerRoleName = "SSO Admin Viewer";
-                    var viewerRole = await _roleManager.FindByNameAsync(viewerRoleName);
-                    var viewerPermissionCodes = SSO.Common.Constants.Permission.Permissions.GetSSOAdminViewerPermissions();
-                    if (viewerRole != null && viewerPermissionCodes.Contains(code))
-                    {
-                        var hasRolePermission = await _dbContext.RolePermissions
-                            .AnyAsync(rp => rp.RoleId == viewerRole.Id && rp.PermissionId == permission.Id && rp.ApplicationClientId == clientId);
-
-                        if (!hasRolePermission)
-                        {
-                            _dbContext.RolePermissions.Add(new RolePermission
-                            {
-                                Id = Guid.NewGuid(),
-                                RoleId = viewerRole.Id,
-                                PermissionId = permission.Id,
-                                ApplicationClientId = clientId
-                            });
-                            await _dbContext.SaveChangesAsync();
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while synchronizing default client permissions.");
+                await SeedDefaultRole(tenantId, clientId);
+                await SeedDefaultSSOAdminViewerRole(tenantId, clientId);
+                await SeedDefaultUser(tenantId);
             }
         }
-
         private async Task<Guid> SeedDefaultTenant()
         {
             try
@@ -425,41 +321,6 @@ namespace SSO.Infrastructure
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while seeding the default subscription.");
-            }
-        }
-
-        private async Task SeedDefaultTokenSettings()
-        {
-            try
-            {
-                var existingSetting = await _dbContext.TokenLifetimeSettings.FirstOrDefaultAsync(x => x.TenantId == null);
-                if (existingSetting == null)
-                {
-                    var configSection = _configuration.GetSection("TokenSettings");
-                    var accessTokenLifetime = configSection.GetValue<int?>("AccessTokenLifetimeMinutes") ?? 60;
-                    var refreshTokenLifetime = configSection.GetValue<int?>("RefreshTokenLifetimeDays") ?? 14;
-                    var authCodeLifetime = configSection.GetValue<int?>("AuthorizationCodeLifetimeMinutes") ?? 5;
-
-                    var defaultSetting = new TokenLifetimeSetting
-                    {
-                        Id = Guid.NewGuid(),
-                        AccessTokenLifetimeMinutes = accessTokenLifetime,
-                        RefreshTokenLifetimeDays = refreshTokenLifetime,
-                        AuthorizationCodeLifetimeMinutes = authCodeLifetime,
-                        TenantId = null,
-                        CreatedOn = DateTime.UtcNow,
-                        CreatedBy = "System_AutoSeeder"
-                    };
-
-                    await _dbContext.TokenLifetimeSettings.AddAsync(defaultSetting);
-                    await _dbContext.SaveChangesAsync();
-                    _logger.LogInformation("Seeded default TokenLifetimeSettings successfully (Access Token: {AccessMins}m, Refresh Token: {RefreshDays}d, Auth Code: {CodeMins}m).",
-                        accessTokenLifetime, refreshTokenLifetime, authCodeLifetime);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred while seeding default TokenLifetimeSettings.");
             }
         }
     }

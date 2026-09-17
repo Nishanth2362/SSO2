@@ -30,20 +30,12 @@ namespace SSO.Application.Features.Roles.Commands.Delete
         private readonly ILogger<DeleteRoleCommandHandler> _logger;
         private readonly RoleManager<ApplicationRole> _roleManager;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SSO.Application.Interfaces.Services.ICurrentUserService _currentUserService;
-
-        public DeleteRoleCommandHandler(
-            ILogger<DeleteRoleCommandHandler> logger, 
-            RoleManager<ApplicationRole> roleManager, 
-            UserManager<ApplicationUser> userManager,
-            SSO.Application.Interfaces.Services.ICurrentUserService currentUserService)
+        public DeleteRoleCommandHandler(ILogger<DeleteRoleCommandHandler> logger, RoleManager<ApplicationRole> roleManager, UserManager<ApplicationUser> userManager)
         {
             _logger = logger;
             _roleManager = roleManager;
             _userManager = userManager;
-            _currentUserService = currentUserService;
         }
-
         public async Task<Result<Guid>> Handle(DeleteRoleCommand request, CancellationToken cancellationToken)
         {
             try
@@ -53,20 +45,6 @@ namespace SSO.Application.Features.Roles.Commands.Delete
                 {
                     return await Result<Guid>.FailAsync("Role not found.");
                 }
-
-                // Enforce tenant boundary and system role protection
-                if (!_currentUserService.IsMasterTenant)
-                {
-                    if (existingRole.TenantId != _currentUserService.TenantId)
-                    {
-                        return await Result<Guid>.FailAsync("Access denied: You cannot delete roles outside of your tenant.");
-                    }
-                    if (existingRole.IsSystemRole)
-                    {
-                        return await Result<Guid>.FailAsync("Access denied: System roles cannot be deleted by Tenant Administrators.");
-                    }
-                }
-
                 var userInRoles = await _userManager.GetUsersInRoleAsync(existingRole.Name!);
                 if (userInRoles != null && userInRoles.Count > 0)
                 {

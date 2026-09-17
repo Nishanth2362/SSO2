@@ -23,10 +23,6 @@ namespace SSO.Application.Features.Subscriptions.Queries.GetPaged
             this.Draw = request.Draw;
             this.SortColumn = request.SortColumn;
             this.SortDirection = request.SortDirection;
-            this.SearchColumn = request.SearchColumn;
-            this.Filters = request.Filters;
-            this.StartDate = request.StartDate;
-            this.EndDate = request.EndDate;
         }
     }
 
@@ -46,24 +42,6 @@ namespace SSO.Application.Features.Subscriptions.Queries.GetPaged
             try
             {
                 var query = _unitOfWork.Repository<Domain.Entities.Subscriptions>().Entities.AsNoTracking();
-
-                if (request.Filters != null && request.Filters.TryGetValue("TenantId", out var tenantIdStr) && !string.IsNullOrEmpty(tenantIdStr))
-                {
-                    var tenantIds = new List<Guid>();
-                    foreach (var val in tenantIdStr.Split(',', StringSplitOptions.RemoveEmptyEntries))
-                    {
-                        if (Guid.TryParse(val.Trim(), out var tId)) tenantIds.Add(tId);
-                    }
-                    if (tenantIds.Any())
-                    {
-                        var tenantSubIds = _unitOfWork.Repository<Domain.Entities.TenantSubscription>().Entities
-                            .Where(ts => tenantIds.Contains(ts.TenantId))
-                            .Select(ts => ts.SubscriptionId);
-
-                        query = query.Where(s => tenantSubIds.Contains(s.Id));
-                    }
-                }
-
                 return await _dataTableService.BuildAsync(
                             query,
                             request,
@@ -78,13 +56,7 @@ namespace SSO.Application.Features.Subscriptions.Queries.GetPaged
                                 BillingCycle = e.BillingCycle,
                                 Price = e.Price,
                                 Currency = e.Currency,
-                                IsActive = e.IsActive,
-                                CreatedBy = e.CreatedBy,
-                                CreatedOn = e.CreatedOn,
-                                LastModifiedBy = e.LastModifiedBy,
-                                LastModifiedOn = e.LastModifiedOn,
-                                IPAddress = e.IPAddress,
-                                IsDeleted = e.IsDeleted
+                                IsActive = e.IsActive
                             },
                             e => true,
                             new List<string>
@@ -92,13 +64,7 @@ namespace SSO.Application.Features.Subscriptions.Queries.GetPaged
                                 nameof(Domain.Entities.Subscriptions.Name),
                                 nameof(Domain.Entities.Subscriptions.Description),
                                 nameof(Domain.Entities.Subscriptions.MaxUsers),
-                                nameof(Domain.Entities.Subscriptions.MaxApps),
-                                nameof(Domain.Entities.Subscriptions.CreatedBy),
-                                nameof(Domain.Entities.Subscriptions.CreatedOn),
-                                nameof(Domain.Entities.Subscriptions.LastModifiedBy),
-                                nameof(Domain.Entities.Subscriptions.LastModifiedOn),
-                                nameof(Domain.Entities.Subscriptions.IPAddress),
-                                nameof(Domain.Entities.Subscriptions.IsDeleted)
+                                nameof(Domain.Entities.Subscriptions.MaxApps)
                             },
                             cancellationToken);
             }

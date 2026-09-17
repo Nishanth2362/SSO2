@@ -87,18 +87,6 @@ namespace SSO.WebApplication.Controllers
                 });
             }
 
-            if (!jobs.Any(x => x.Id == "client-health-check"))
-            {
-                jobs.Add(new JobViewModel
-                {
-                    Id = "client-health-check",
-                    Name = "Client Health Check",
-                    Description = "Periodically pings registered client applications to check their online/offline status.",
-                    CronExpression = "*/5 * * * *",
-                    IsRunning = IsJobActive("client-health-check")
-                });
-            }
-
             // High-level statistics
             ViewBag.EnqueuedCount = statistics.Enqueued;
             ViewBag.ProcessingCount = statistics.Processing;
@@ -139,9 +127,6 @@ namespace SSO.WebApplication.Controllers
                         break;
                     case BackgroundJobType.DataBackup:
                         _recurringJobManager.AddOrUpdate<ISystemMaintenanceJob>(jobId, x => x.PerformSystemBackupAsync(), cron);
-                        break;
-                    case BackgroundJobType.ClientHealthCheck:
-                        _recurringJobManager.AddOrUpdate<ISystemMaintenanceJob>(jobId, x => x.PerformClientHealthCheckAsync(), cron);
                         break;
                     default:
                         return Json(new { succeeded = false, message = "The selected job logic is not yet implemented." });
@@ -185,10 +170,6 @@ namespace SSO.WebApplication.Controllers
                 case "data-backup-default":
                     BackgroundJob.Enqueue<ISystemMaintenanceJob>(x => x.PerformSystemBackupAsync());
                     break;
-                case "client-health-check":
-                case "client-health-check-default":
-                    BackgroundJob.Enqueue<ISystemMaintenanceJob>(x => x.PerformClientHealthCheckAsync());
-                    break;
                 default:
                     return Json(new { succeeded = false, message = "Job not found in storage or defaults." });
             }
@@ -204,21 +185,6 @@ namespace SSO.WebApplication.Controllers
             if (jobId == "mark-overdue-invoices")
             {
                 _recurringJobManager.AddOrUpdate<IInvoiceJob>(jobId, x => x.MarkOverdueInvoicesAsync(), cron ?? Cron.Daily());
-                return Json(new { succeeded = true, message = "Job scheduled successfully." });
-            }
-            if (jobId == "system-cleanup")
-            {
-                _recurringJobManager.AddOrUpdate<ISystemMaintenanceJob>(jobId, x => x.CleanTemporaryFilesAsync(), cron ?? Cron.Daily());
-                return Json(new { succeeded = true, message = "Job scheduled successfully." });
-            }
-            if (jobId == "data-backup")
-            {
-                _recurringJobManager.AddOrUpdate<ISystemMaintenanceJob>(jobId, x => x.PerformSystemBackupAsync(), cron ?? Cron.Daily());
-                return Json(new { succeeded = true, message = "Job scheduled successfully." });
-            }
-            if (jobId == "client-health-check")
-            {
-                _recurringJobManager.AddOrUpdate<ISystemMaintenanceJob>(jobId, x => x.PerformClientHealthCheckAsync(), cron ?? "*/5 * * * *");
                 return Json(new { succeeded = true, message = "Job scheduled successfully." });
             }
 
@@ -258,8 +224,7 @@ namespace SSO.WebApplication.Controllers
     {
         InvoiceOverdue = 1,
         SystemCleanup = 2,
-        DataBackup = 3,
-        ClientHealthCheck = 4
+        DataBackup = 3
     }
 
     public class JobViewModel

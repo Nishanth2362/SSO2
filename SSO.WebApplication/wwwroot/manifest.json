@@ -1,6 +1,6 @@
 {
-  "name": "Planurix SSO Server",
-  "short_name": "Planurix SSO",
+  "name": "Auxinz Identity SSO",
+  "short_name": "Auxinz SSO",
   "description": "Enterprise Single Sign-On and Subscription Management Platform",
   "start_url": "/",
   "display": "standalone",

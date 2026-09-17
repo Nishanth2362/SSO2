@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -30,15 +30,15 @@ namespace SSO.Infrastructure.Contexts
 
         public DbSet<Audit> AuditTrails { get; set; }
 
-        public virtual async Task<int> SaveChangesAsync(string userId = null!, string? remarks = null, CancellationToken cancellationToken = new())
+        public virtual async Task<int> SaveChangesAsync(string userId = null!, CancellationToken cancellationToken = new())
         {
-            List<AuditEntry> auditEntries = OnBeforeSaveChanges(userId, remarks);
+            List<AuditEntry> auditEntries = OnBeforeSaveChanges(userId);
             int result = await base.SaveChangesAsync(cancellationToken);
             await OnAfterSaveChanges(auditEntries, cancellationToken);
             return result;
         }
 
-        private List<AuditEntry> OnBeforeSaveChanges(string userId, string? remarks = null)
+        private List<AuditEntry> OnBeforeSaveChanges(string userId)
         {
             ChangeTracker.DetectChanges();
             List<AuditEntry> auditEntries = new();
@@ -52,8 +52,7 @@ namespace SSO.Infrastructure.Contexts
                 AuditEntry auditEntry = new(entry)
                 {
                     TableName = entry.Entity.GetType().Name,
-                    UserId = string.IsNullOrWhiteSpace(userId) ? "System" : userId,
-                    Remarks = remarks
+                    UserId = string.IsNullOrWhiteSpace(userId) ? "System" : userId
                 };
                 auditEntries.Add(auditEntry);
                 foreach (PropertyEntry property in entry.Properties)

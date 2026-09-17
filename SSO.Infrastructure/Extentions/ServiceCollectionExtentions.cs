@@ -41,13 +41,7 @@ namespace SSO.Infrastructure.Extentions
                 .AddScoped<IScopeServices,ScopeServices>()
                 .AddScoped<IDataTableService, DataTableService>()
                 .AddScoped<IAccessControlService, AccessControlService>()
-                .AddScoped<ITwoFactorService, TwoFactorService>()
-                .AddScoped<IAntiBotSecurityService, AntiBotSecurityService>()
-                .AddScoped<ISecurityEventService, SecurityEventService>()
-                .AddSingleton<IRpapSettingsService, RpapSettingsService>()
-                .AddScoped<ITokenLifetimeSettingsService, TokenLifetimeSettingsService>()
                 .AddTransient(typeof(IDapperRepository), typeof(DapperRepository))
-                .AddHttpClient()
                 .AddScoped<DbInitializers>();
         }
         public static IServiceCollection AddServerStorage(this IServiceCollection services)
@@ -120,19 +114,10 @@ namespace SSO.Infrastructure.Extentions
                                .AllowTokenExchangeFlow();         // Delegation (On-Behalf-Of)
 
                         // =========================
-                        // TOKEN FORMATS & LIFETIMES
+                        // TOKEN FORMATS
                         // =========================
                         options.UseReferenceAccessTokens();       // enterprise revocation support
                         options.UseReferenceRefreshTokens();
-
-                        var tokenConfig = configuration.GetSection("TokenSettings");
-                        var accessTokenMins = tokenConfig.GetValue<int?>("AccessTokenLifetimeMinutes")?? 60;
-                        var refreshTokenDays = tokenConfig.GetValue<int?>("RefreshTokenLifetimeDays") ?? 14;
-                        var authCodeMins = tokenConfig.GetValue<int?>("AuthorizationCodeLifetimeMinutes") ?? 5;
-
-                        options.SetAccessTokenLifetime(TimeSpan.FromMinutes(accessTokenMins))
-                               .SetRefreshTokenLifetime(TimeSpan.FromDays(refreshTokenDays))
-                               .SetAuthorizationCodeLifetime(TimeSpan.FromMinutes(authCodeMins));
 
                         // =========================
                         // SECURITY HARDENING

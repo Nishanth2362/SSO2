@@ -55,18 +55,10 @@ namespace SSO.Application.Features.Users.Queries.GetById
                     Email = user.Email,
                     FirstName = user.Name,
                     LastName = string.Empty,
-                    PhoneNumber = user.PhoneNumber,
-                    IsEmailConfirmed = user.EmailConfirmed,
                     TenantId = user.TenantId,
                     CreatedAt = user.CreatedOn ?? DateTime.MinValue,
                     UpdatedAt = user.LastModifiedOn ?? DateTime.MinValue,
-                    IsActive = user.IsActive,
-                    CreatedBy = user.CreatedBy,
-                    CreatedOn = user.CreatedOn,
-                    LastModifiedBy = user.LastModifiedBy,
-                    LastModifiedOn = user.LastModifiedOn,
-                    IPAddress = user.IPAddress,
-                    IsDeleted = user.IsDeleted
+                    IsActive = user.IsActive
                 };
                 
                 var roles = await _userManager.GetRolesAsync(user);

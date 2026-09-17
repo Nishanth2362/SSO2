@@ -16,9 +16,6 @@ namespace SSO.Application.Features.EmailTemplates.Commands.AddEdit
         public EmailTriggerEvent TriggerEvent { get; set; } = EmailTriggerEvent.Registration;
         public string Body { get; set; } = default!;
         public bool IsActive { get; set; } = true;
-
-        /// <summary>Mandatory change description when editing an existing email template.</summary>
-        public string? Remarks { get; set; }
     }
 
     public class AddEditEmailTemplateValidator : IRequestValidator<AddEditEmailTemplateCommand>
@@ -45,16 +42,6 @@ namespace SSO.Application.Features.EmailTemplates.Commands.AddEdit
 
             if (!Enum.IsDefined(typeof(EmailTriggerEvent), request.TriggerEvent))
                 errors.Add(new ValidationError { PropertyName = nameof(request.TriggerEvent), ErrorMessage = "A valid trigger event is required." });
-
-            if (request.Id != Guid.Empty)
-            {
-                if (string.IsNullOrWhiteSpace(request.Remarks))
-                    errors.Add(new ValidationError { PropertyName = nameof(request.Remarks), ErrorMessage = "A change description (remarks) is required when editing." });
-                else if (request.Remarks.Trim().Length < 5)
-                    errors.Add(new ValidationError { PropertyName = nameof(request.Remarks), ErrorMessage = "Remarks must be at least 5 characters." });
-                else if (request.Remarks.Length > 500)
-                    errors.Add(new ValidationError { PropertyName = nameof(request.Remarks), ErrorMessage = "Remarks cannot exceed 500 characters." });
-            }
 
             return Task.FromResult(errors.AsEnumerable());
         }
@@ -89,7 +76,7 @@ namespace SSO.Application.Features.EmailTemplates.Commands.AddEdit
                     template.IsActive = command.IsActive;
 
                     await _unitOfWork.Repository<EmailTemplate>().UpdateAsync(template).ConfigureAwait(false);
-                    await _unitOfWork.Commit(ct, remarks: command.Remarks).ConfigureAwait(false);
+                    await _unitOfWork.Commit(ct).ConfigureAwait(false);
                     return await Result<Guid>.SuccessAsync(template.Id, "Email template updated successfully.").ConfigureAwait(false);
                 }
                 else

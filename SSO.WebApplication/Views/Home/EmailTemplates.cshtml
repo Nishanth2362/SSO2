@@ -1,74 +1,35 @@
 @{
     ViewData["Title"] = "Email Templates";
-    var canCreateTemplate = (await AuthorizationService.AuthorizeAsync(User, Permissions.EmailTemplates.Create)).Succeeded;
-    var canEditTemplate = (await AuthorizationService.AuthorizeAsync(User, Permissions.EmailTemplates.Edit)).Succeeded;
-    var canDeleteTemplate = (await AuthorizationService.AuthorizeAsync(User, Permissions.EmailTemplates.Delete)).Succeeded;
 }
 
 <style>
-    .et-container {
-        width: 100%;
-        max-width: 1200px;
-        margin: 0 auto;
-        padding-bottom: 40px;
-    }
-
     .et-page-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 36px;
+        margin-bottom: 28px;
         flex-wrap: wrap;
         gap: 16px;
     }
-
     .et-page-header h1 {
-        font-size: 1.75rem;
-        font-weight: 800;
-        color: var(--text-primary, #0f172a);
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--text-primary);
         margin: 0;
-        letter-spacing: -0.02em;
     }
-
     .et-page-header p {
-        color: var(--text-muted, #64748b);
-        margin: 6px 0 0;
-        font-size: 0.92rem;
+        color: var(--text-muted);
+        margin: 4px 0 0;
+        font-size: 0.875rem;
     }
-
-    .et-btn-create {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: #4f46e5;
-        color: #ffffff;
-        border: none;
-        border-radius: 10px;
-        padding: 10px 20px;
-        font-size: 0.88rem;
-        font-weight: 600;
-        cursor: pointer;
-        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.28);
-        transition: all 0.2s ease;
-    }
-
-    .et-btn-create:hover {
-        background: #4338ca;
-        box-shadow: 0 6px 18px rgba(79, 70, 229, 0.38);
-        transform: translateY(-1px);
-    }
-
-    /* Grid for when templates exist */
     .et-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
         gap: 20px;
     }
-
-    /* Standard template card styles */
     .et-card {
-        background: var(--surface-secondary, #ffffff);
-        border: 1px solid var(--border-color, #e2e8f0);
+        background: var(--surface-secondary, #1a1a2e);
+        border: 1px solid var(--border-color, rgba(255,255,255,0.08));
         border-radius: 14px;
         padding: 22px 24px;
         display: flex;
@@ -77,8 +38,8 @@
         transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
     .et-card:hover {
-        border-color: #7c3aed;
-        box-shadow: 0 4px 20px rgba(124,58,237,0.12);
+        border-color: var(--brand-primary, #7c3aed);
+        box-shadow: 0 4px 20px rgba(124,58,237,0.15);
     }
     .et-card-icon {
         width: 46px;
@@ -89,21 +50,21 @@
         justify-content: center;
         flex-shrink: 0;
     }
-    .et-card-icon.purple { background: rgba(124,58,237,0.12); color: #7c3aed; }
-    .et-card-icon.orange { background: rgba(245,158,11,0.12); color: #d97706; }
-    .et-card-icon.red    { background: rgba(239,68,68,0.12);  color: #dc2626; }
-    .et-card-icon.blue   { background: rgba(59,130,246,0.12); color: #2563eb; }
-    .et-card-icon.green  { background: rgba(16,185,129,0.12); color: #059669; }
+    .et-card-icon.purple { background: rgba(124,58,237,0.15); color: #a78bfa; }
+    .et-card-icon.orange { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .et-card-icon.red    { background: rgba(239,68,68,0.15);  color: #f87171; }
+    .et-card-icon.blue   { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .et-card-icon.green  { background: rgba(16,185,129,0.15); color: #34d399; }
     .et-card-body { flex: 1; min-width: 0; }
     .et-card-title {
         font-size: 0.95rem;
         font-weight: 600;
-        color: var(--text-primary, #0f172a);
+        color: var(--text-primary);
         margin: 0 0 4px;
     }
     .et-card-desc {
         font-size: 0.8rem;
-        color: var(--text-muted, #64748b);
+        color: var(--text-muted);
         margin: 0 0 10px;
         white-space: nowrap;
         overflow: hidden;
@@ -117,10 +78,10 @@
         border-radius: 20px;
         letter-spacing: 0.02em;
     }
-    .et-badge-active { background: rgba(16,185,129,0.12); color: #059669; }
-    .et-badge-inactive { background: rgba(239,68,68,0.12); color: #dc2626; }
-    .et-badge-html { background: rgba(59,130,246,0.12); color: #2563eb; }
-    .et-badge-plain { background: rgba(107,114,128,0.12); color: #4b5563; }
+    .et-badge-active { background: rgba(16,185,129,0.15); color: #34d399; }
+    .et-badge-inactive { background: rgba(239,68,68,0.12); color: #f87171; }
+    .et-badge-html { background: rgba(59,130,246,0.12); color: #60a5fa; }
+    .et-badge-plain { background: rgba(107,114,128,0.15); color: #9ca3af; }
     .et-card-actions {
         display: flex;
         gap: 4px;
@@ -138,13 +99,13 @@
         cursor: pointer;
         transition: background 0.15s ease;
         background: transparent;
-        color: var(--text-muted, #64748b);
+        color: var(--text-muted);
     }
-    .et-action-btn:hover { background: rgba(0,0,0,0.05); color: var(--text-primary, #0f172a); }
-    .et-action-btn.del:hover { background: #fee2e2; color: #dc2626; }
+    .et-action-btn:hover { background: rgba(255,255,255,0.07); color: var(--text-primary); }
+    .et-action-btn.del:hover { background: rgba(239,68,68,0.12); color: #f87171; }
     .et-add-card {
         background: transparent;
-        border: 2px dashed var(--border-color, #cbd5e1);
+        border: 2px dashed var(--border-color, rgba(255,255,255,0.08));
         border-radius: 14px;
         display: flex;
         align-items: center;
@@ -153,246 +114,57 @@
         gap: 8px;
         min-height: 120px;
         cursor: pointer;
-        transition: all 0.2s ease;
-        color: var(--text-muted, #64748b);
+        transition: border-color 0.2s ease;
+        color: var(--text-muted);
         text-decoration: none;
     }
     .et-add-card:hover {
-        border-color: #7c3aed;
-        color: #7c3aed;
-        background: rgba(124,58,237,0.03);
+        border-color: var(--brand-primary, #7c3aed);
+        color: var(--brand-primary, #7c3aed);
+        background: rgba(124,58,237,0.04);
     }
     .et-add-card span { font-size: 0.85rem; font-weight: 500; }
-
-    /* ═══════════════════════════════════════════════════════════
-       EMPTY STATE REDESIGN (Exact Reference Match)
-       ═══════════════════════════════════════════════════════════ */
-    .et-empty-view {
-        width: 100%;
-        max-width: 960px;
-        margin: 20px auto 0 auto;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-    }
-
-    /* Decorative Illustration Area */
-    .et-illustration-wrapper {
-        position: relative;
-        width: 560px;
-        height: 280px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 24px;
-    }
-
-    /* Soft blurred background blob behind illustration */
-    .et-illustration-blob {
-        position: absolute;
-        width: 440px;
-        height: 200px;
-        background: radial-gradient(circle at 50% 50%, rgba(233, 213, 255, 0.85) 0%, rgba(243, 232, 255, 0.5) 60%, rgba(255, 255, 255, 0) 100%);
-        border-radius: 50%;
-        filter: blur(30px);
-        z-index: 0;
-        pointer-events: none;
-    }
-
-    .et-illustration-svg {
-        position: relative;
-        z-index: 1;
-        width: 100%;
-        height: 100%;
-        overflow: visible;
-    }
-
-    /* Empty state text */
-    .et-empty-title {
-        font-size: 1.6rem;
-        font-weight: 800;
-        color: var(--text-primary, #0f172a);
-        margin: 12px 0 8px 0;
-        letter-spacing: -0.02em;
-    }
-
-    .et-empty-subtitle {
-        font-size: 0.92rem;
-        color: var(--text-muted, #64748b);
-        margin: 0 0 36px 0;
-        max-width: 580px;
-        line-height: 1.5;
-    }
-
-    /* Add New Template Dashed Card */
-    .et-empty-dashed-card {
-        width: 100%;
-        max-width: 620px;
-        border: 2px dashed #c084fc;
-        border-radius: 20px;
-        padding: 36px 24px;
-        background: rgba(255, 255, 255, 0.75);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        margin-bottom: 54px;
-    }
-
-    .et-empty-dashed-card:hover {
-        border-color: #8b5cf6;
-        background: #ffffff;
-        box-shadow: 0 8px 30px rgba(139, 92, 246, 0.12);
-        transform: translateY(-2px);
-    }
-
-    .et-empty-plus-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        background: #ede9fe;
-        color: #6d28d9;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 12px;
-        transition: transform 0.2s ease;
-    }
-
-    .et-empty-dashed-card:hover .et-empty-plus-icon {
-        transform: scale(1.08);
-        background: #ddd6fe;
-    }
-
-    .et-empty-card-title {
-        font-size: 1.05rem;
-        font-weight: 700;
-        color: var(--text-primary, #0f172a);
-        margin-bottom: 4px;
-    }
-
-    .et-empty-card-desc {
-        font-size: 0.86rem;
-        color: var(--text-muted, #64748b);
-    }
-
-    /* Bottom Feature Highlights Row */
-    .et-features-row {
-        width: 100%;
-        border-top: 1px solid var(--border-color, #e2e8f0);
-        padding-top: 40px;
-        margin-top: 10px;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 32px;
-        text-align: left;
-    }
-
-    .et-feature-col {
-        display: flex;
-        align-items: flex-start;
-        gap: 16px;
-    }
-
-    .et-feature-icon {
-        width: 42px;
-        height: 42px;
-        border-radius: 50%;
-        background: #f3e8ff;
-        color: #7c3aed;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-
-    .et-feature-content h4 {
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: var(--text-primary, #0f172a);
-        margin: 0 0 4px 0;
-    }
-
-    .et-feature-content p {
-        font-size: 0.84rem;
-        color: var(--text-muted, #64748b);
-        margin: 0;
-        line-height: 1.45;
-    }
-
-    .et-loading-state {
+    .et-empty {
+        grid-column: 1/-1;
         text-align: center;
         padding: 60px 20px;
-        color: var(--text-muted, #64748b);
+        color: var(--text-muted);
     }
-    .et-loading-state svg { opacity: 0.3; margin-bottom: 12px; }
+    .et-empty svg { opacity: 0.3; margin-bottom: 12px; }
+    .et-empty p { font-size: 0.9rem; }
 </style>
 
 <div class="breadcrumbs">
-    <span>Auxinz SSO Server</span>
+    <span>Auxinz Identity</span>
     <a href="#">System Settings</a>
     <span class="current">Email Templates</span>
 </div>
 
-<div class="et-container">
-    <div class="et-page-header">
-        <div>
-            <h1>Email Templates</h1>
-            <p>Manage notification and authentication email templates.</p>
-        </div>
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <div class="smart-export-dropdown-wrapper">
-                <button type="button" class="btn btn-secondary smart-export-dropdown-btn smart-export-btn btn-toolbar" id="exportEmailTemplatesBtn" title="More Options">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="1.5"></circle>
-                        <circle cx="12" cy="5" r="1.5"></circle>
-                        <circle cx="12" cy="19" r="1.5"></circle>
-                    </svg>
-                </button>
-                <span class="smart-export-badge" id="emailTemplateSelectionBadge"></span>
-                <div class="smart-export-menu glass-dropdown">
-                    <button type="button" class="dropdown-item smart-import-option" onclick="window.openImportModal('Email Templates')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        Import
-                    </button>
-                    <button type="button" class="dropdown-item smart-export-option" onclick="window.smartExport('emailTemplateTable','/Home/ExportTemplates')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        Export
-                    </button>
-                </div>
-            </div>
-            @if (canCreateTemplate)
-            {
-                <button class="et-btn-create" id="btnCreateEmailTemplate">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Create Template
-                </button>
-            }
-        </div>
+<div class="et-page-header">
+    <div>
+        <h1>Email Templates</h1>
+        <p>Manage notification and authentication email templates.</p>
     </div>
+    <button class="btn btn-primary" id="btnCreateEmailTemplate">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Create Template
+    </button>
+</div>
 
-    <div id="emailTemplateContainer">
-        <div class="et-loading-state" id="etLoadingState">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                <polyline points="22,6 12,13 2,6"></polyline>
-            </svg>
-            <p>Loading templates...</p>
-        </div>
+<div class="et-grid" id="emailTemplateGrid">
+    <div class="et-empty" id="etLoadingState">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+            <polyline points="22,6 12,13 2,6"></polyline>
+        </svg>
+        <p>Loading templates...</p>
     </div>
 </div>
 
 <script>
-    const canCreateTemplate = @canCreateTemplate.ToString().ToLower();
-    const canEditTemplate = @canEditTemplate.ToString().ToLower();
-    const canDeleteTemplate = @canDeleteTemplate.ToString().ToLower();
-
     function etTemplateTypeInt(val) {
         if (val === 0 || val === 'HTML')      return 0;
         if (val === 1 || val === 'PlainText') return 1;
@@ -438,32 +210,6 @@
             : '<span class="et-badge et-badge-inactive">Inactive</span>';
         const triggerLabel = TRIGGER_LABELS[tEvent] || 'Unknown';
 
-        let actionsHtml = `
-            <button class="et-action-btn action-btn-view" title="View Details" data-type="emailTemplate" data-id="${t.id}">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-            </button>`;
-        if (canEditTemplate) {
-            actionsHtml += `
-                <button class="et-action-btn" title="Edit" onclick="editEmailTemplate('${t.id}')">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
-                </button>`;
-        }
-        if (canDeleteTemplate) {
-            actionsHtml += `
-                <button class="et-action-btn del" title="Delete" onclick="deleteEmailTemplate('${t.id}', '${escapeHtml(t.name)}')">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"/>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                    </svg>
-                </button>`;
-        }
-
         return `
         <div class="et-card" id="et-card-${t.id}">
             <div class="et-card-icon ${icon.cls}">
@@ -477,11 +223,22 @@
                 <div class="et-badges">
                     ${statusBadge}
                     ${typeBadge}
-                    <span class="et-badge" style="background:rgba(0,0,0,0.05);color:var(--text-muted);">${triggerLabel}</span>
+                    <span class="et-badge" style="background:rgba(255,255,255,0.05);color:var(--text-muted);">${triggerLabel}</span>
                 </div>
             </div>
             <div class="et-card-actions">
-                ${actionsHtml}
+                <button class="et-action-btn" title="Edit" onclick="editEmailTemplate('${t.id}')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                </button>
+                <button class="et-action-btn del" title="Delete" onclick="deleteEmailTemplate('${t.id}', '${escapeHtml(t.name)}')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                </button>
             </div>
         </div>`;
     }
@@ -496,163 +253,6 @@
         </a>`;
     }
 
-    function buildEmptyState() {
-        return `
-        <div class="et-empty-view">
-            <!-- Decorative Illustration -->
-            <div class="et-illustration-wrapper">
-                <div class="et-illustration-blob"></div>
-                <svg class="et-illustration-svg" viewBox="0 0 560 280" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="envelopeBodyGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#a855f7"/>
-                            <stop offset="100%" stop-color="#8b5cf6"/>
-                        </linearGradient>
-                        <linearGradient id="envelopeBackGrad" x1="0" y1="0" x2="1" y2="1">
-                            <stop offset="0%" stop-color="#7c3aed"/>
-                            <stop offset="100%" stop-color="#6d28d9"/>
-                        </linearGradient>
-                        <linearGradient id="paperPlaneGrad" x1="0" y1="0" x2="1" y2="1">
-                            <stop offset="0%" stop-color="#a855f7"/>
-                            <stop offset="100%" stop-color="#7c3aed"/>
-                        </linearGradient>
-                        <linearGradient id="atBadgeGrad" x1="0" y1="0" x2="1" y2="1">
-                            <stop offset="0%" stop-color="#a855f7"/>
-                            <stop offset="100%" stop-color="#7c3aed"/>
-                        </linearGradient>
-                        <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-                            <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#7c3aed" flood-opacity="0.2"/>
-                        </filter>
-                    </defs>
-
-                    <!-- Symmetrical Leaf Backdrop (centered behind envelope) -->
-                    <g opacity="0.65">
-                        <!-- Left Fanning Leaves -->
-                        <path d="M 230 180 C 185 150, 160 120, 178 95 C 195 125, 212 155, 230 180 Z" fill="#d8b4fe"/>
-                        <path d="M 230 190 C 175 180, 145 155, 158 130 C 180 150, 205 170, 230 190 Z" fill="#e9d5ff"/>
-                        <path d="M 230 198 C 170 205, 145 190, 152 170 C 178 180, 205 190, 230 198 Z" fill="#c084fc"/>
-
-                        <!-- Right Fanning Leaves -->
-                        <path d="M 330 180 C 375 150, 400 120, 382 95 C 365 125, 348 155, 330 180 Z" fill="#d8b4fe"/>
-                        <path d="M 330 190 C 385 180, 415 155, 402 130 C 380 150, 355 170, 330 190 Z" fill="#e9d5ff"/>
-                        <path d="M 330 198 C 390 205, 415 190, 408 170 C 382 180, 355 190, 330 198 Z" fill="#c084fc"/>
-                    </g>
-
-                    <!-- Clean Dotted Circle Accent & Flight Path (Top-Left) -->
-                    <circle cx="125" cy="75" r="22" fill="none" stroke="#c084fc" stroke-width="2" stroke-dasharray="4 4" opacity="0.65"/>
-                    <path d="M 125 97 C 150 98, 175 85, 192 58" fill="none" stroke="#c084fc" stroke-width="2" stroke-dasharray="4 4" opacity="0.65"/>
-                    <g fill="#c084fc" opacity="0.5">
-                        <circle cx="108" cy="92" r="2.5"/>
-                        <circle cx="100" cy="82" r="2"/>
-                        <circle cx="98" cy="70" r="1.5"/>
-                    </g>
-
-                    <!-- Paper Plane (Unclipped Top-Left) -->
-                    <g transform="translate(185, 32) rotate(-18)" filter="url(#softShadow)">
-                        <path d="M 0 30 L 46 0 L 22 38 L 16 28 Z" fill="url(#paperPlaneGrad)"/>
-                        <path d="M 46 0 L 22 38 L 16 24 Z" fill="#6d28d9" opacity="0.25"/>
-                        <path d="M 0 30 L 16 24 L 46 0 Z" fill="#e9d5ff" opacity="0.5"/>
-                    </g>
-
-                    <!-- Floating At-Circle (Unclipped Right Side) -->
-                    <g transform="translate(390, 80)" filter="url(#softShadow)">
-                        <circle cx="26" cy="26" r="26" fill="url(#atBadgeGrad)"/>
-                        <text x="26" y="34" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="24" fill="#ffffff" text-anchor="middle">&#64;</text>
-                    </g>
-
-                    <!-- Envelope Back Interior (Centered) -->
-                    <rect x="210" y="135" width="140" height="96" rx="14" fill="url(#envelopeBackGrad)" filter="url(#softShadow)"/>
-
-                    <!-- Folded Letter / Document inside envelope -->
-                    <g transform="translate(223, 75)" filter="url(#softShadow)">
-                        <rect x="0" y="0" width="114" height="90" rx="8" fill="#ffffff"/>
-                        <!-- Dog-ear fold top-right -->
-                        <path d="M 96 0 L 114 18 L 96 18 Z" fill="#cbd5e1"/>
-                        <path d="M 114 18 L 96 18 L 96 0 Z" fill="#f1f5f9"/>
-                        <!-- Text indicator lines -->
-                        <rect x="14" y="22" width="86" height="5" rx="2.5" fill="#94a3b8" opacity="0.5"/>
-                        <rect x="14" y="34" width="86" height="4" rx="2" fill="#cbd5e1" opacity="0.7"/>
-                        <rect x="14" y="44" width="68" height="4" rx="2" fill="#cbd5e1" opacity="0.7"/>
-                        <rect x="14" y="54" width="76" height="4" rx="2" fill="#cbd5e1" opacity="0.7"/>
-                    </g>
-
-                    <!-- Envelope Front Body & Flap Pocket -->
-                    <path d="M 210 148 L 280 196 L 350 148 L 350 217 C 350 224.7 343.7 231 336 231 L 224 231 C 216.3 231 210 224.7 210 217 Z" 
-                          fill="url(#envelopeBodyGrad)" filter="url(#softShadow)"/>
-                    
-                    <!-- Front V-seam shadow detail -->
-                    <path d="M 210 231 L 280 185 L 350 231 Z" fill="#6d28d9" opacity="0.12"/>
-
-                    <!-- Sparkles & Diamonds scattered around edges -->
-                    <path d="M 420 45 Q 420 50 425 50 Q 420 50 420 55 Q 420 50 415 50 Q 420 50 420 45 Z" fill="#c084fc"/>
-                    <path d="M 465 145 Q 465 148 468 148 Q 465 148 465 151 Q 465 148 462 148 Q 465 148 465 145 Z" fill="#d8b4fe"/>
-                    <path d="M 105 145 Q 105 148 108 148 Q 105 148 105 151 Q 105 148 102 148 Q 105 148 105 145 Z" fill="#c084fc"/>
-                    
-                    <circle cx="340" cy="35" r="2.5" fill="#d8b4fe"/>
-                    <circle cx="135" cy="50" r="2" fill="#c084fc"/>
-                </svg>
-            </div>
-
-            <!-- Empty state text -->
-            <h2 class="et-empty-title">No email templates yet</h2>
-            <p class="et-empty-subtitle">Create your first email template to get started with notifications and authentication emails.</p>
-
-            <!-- 'Add New Template' dashed card -->
-            ${canCreateTemplate ? `
-            <div class="et-empty-dashed-card" onclick="createEmailTemplate()">
-                <div class="et-empty-plus-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                </div>
-                <div class="et-empty-card-title">Add New Template</div>
-                <div class="et-empty-card-desc">Start by creating your first email template</div>
-            </div>` : ''}
-
-            <!-- Feature highlights row -->
-            <div class="et-features-row">
-                <div class="et-feature-col">
-                    <div class="et-feature-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect>
-                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                            <polyline points="21 15 16 10 5 21"></polyline>
-                        </svg>
-                    </div>
-                    <div class="et-feature-content">
-                        <h4>Pre-built Templates</h4>
-                        <p>Use our pre-built templates to get started quickly</p>
-                    </div>
-                </div>
-                <div class="et-feature-col">
-                    <div class="et-feature-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 20h9"></path>
-                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-                        </svg>
-                    </div>
-                    <div class="et-feature-content">
-                        <h4>Customizable</h4>
-                        <p>Easily customize templates to match your needs</p>
-                    </div>
-                </div>
-                <div class="et-feature-col">
-                    <div class="et-feature-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                            <polyline points="9 12 11 14 15 10"></polyline>
-                        </svg>
-                    </div>
-                    <div class="et-feature-content">
-                        <h4>Secure &amp; Reliable</h4>
-                        <p>Ensure consistent and secure email communications</p>
-                    </div>
-                </div>
-            </div>
-        </div>`;
-    }
-
     function escapeHtml(str) {
         if (!str) return '';
         return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -665,23 +265,27 @@
             headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
             data: { draw: 1, start: 0, length: 100, search: { value: '' } },
             success: function (res) {
-                const container = $('#emailTemplateContainer');
-                container.empty();
+                const grid = $('#emailTemplateGrid');
+                grid.empty();
                 if (!res.data || res.data.length === 0) {
-                    container.append(buildEmptyState());
+                    grid.append(`
+                        <div class="et-empty">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                <polyline points="22,6 12,13 2,6"/>
+                            </svg>
+                            <p>No email templates yet. Create your first one!</p>
+                        </div>
+                    `);
                 } else {
-                    const grid = $('<div class="et-grid"></div>');
                     res.data.forEach(function (t) {
                         grid.append(buildCard(t));
                     });
-                    if (canCreateTemplate) {
-                        grid.append(buildAddCard());
-                    }
-                    container.append(grid);
                 }
+                grid.append(buildAddCard());
             },
             error: function () {
-                $('#emailTemplateContainer').html('<div class="et-empty-view"><p style="color:var(--text-muted);">Failed to load templates. Please refresh.</p></div>');
+                $('#emailTemplateGrid').html('<div class="et-empty"><p>Failed to load templates. Please refresh.</p></div>');
             }
         });
     }
@@ -726,13 +330,13 @@
                 success: function (res) {
                     if (res.succeeded) {
                         $('#et-card-' + id).fadeOut(300, function () { $(this).remove(); });
+                        Swal.fire({ icon: 'success', title: 'Deleted', text: 'Email template deleted.', timer: 1500, showConfirmButton: false });
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Error', text: window.getPrimaryResultMessage(res, 'Could not delete the template.') });
                     }
                 },
                 error: function () {
-                    window.showRequestError({
-                        title: 'Unable to Delete Template',
-                        fallbackMessage: 'An unexpected error occurred. Please try again.'
-                    });
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'An unexpected error occurred. Please try again.' });
                 }
             });
         });

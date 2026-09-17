@@ -15,18 +15,6 @@ namespace SSO.Domain.Entities
         public string? Audience { get; set; }
         public bool IsActive { get; set; }
         public bool RequireLicense { get; set; }
-
-        /// <summary>When true, all logins to this client require an email OTP after password entry.</summary>
-        public bool Require2FA { get; set; }
-
-        /// <summary>Determines which login flow(s) are shown to users on the login page.</summary>
-        public LoginMethod AllowedLoginMethod { get; set; } = LoginMethod.CredentialsOnly;
-
-        /// <summary>When true, allows public self-registration from the login page for this client.</summary>
-        public bool AllowPublicRegistration { get; set; } = false;
-
-        /// <summary>The default role assigned to self-registered users under this client (e.g. "End User", "Student").</summary>
-        public string? DefaultRoleName { get; set; } = "End User";
         public string? LogoUrl { get; set; }
         public string? Website { get; set; }
         public ClientType AppClientType { get; set; }

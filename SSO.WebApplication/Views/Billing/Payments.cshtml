@@ -5,352 +5,51 @@
     var invoiceId = ViewBag.InvoiceId as Guid?;
 }
 
-<style>
-    /* Full-page background for seamless integration (Premium Sky Blue Theme based on #2563EB) */
-    body {
-        background: linear-gradient(150deg,
-                        rgba(37, 99, 235, 0.12) 0%,
-                        rgba(59, 130, 246, 0.06) 22%,
-                        rgba(147, 197, 253, 0.08) 55%,
-                        rgba(219, 234, 254, 0.5) 78%,
-                        rgba(255, 255, 255, 0.95) 100%) !important;
-        background-attachment: fixed !important;
-        background-repeat: no-repeat !important;
-        background-size: cover !important;
-    }
+<div class="breadcrumbs">
+    <span>Auxinz Identity</span>
+    <a href="/Billing/Invoices">Billing</a>
+    <span class="current">Payments</span>
+</div>
 
-    html[data-theme="dark"] body {
-        background: linear-gradient(150deg,
-                        rgba(37, 99, 235, 0.20) 0%,
-                        rgba(59, 130, 246, 0.08) 22%,
-                        rgba(15, 23, 42, 0.6) 78%,
-                        rgba(9, 12, 20, 0.95) 100%) !important;
-        background-attachment: fixed !important;
-        background-repeat: no-repeat !important;
-        background-size: cover !important;
-    }
-
-    .page-wrapper, .content-wrapper, .container-xl, main, #content, .page-body {
-        background: transparent !important;
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       HERO BANNER — Seamless Background with Scattered Billing Illustrations
-       ═══════════════════════════════════════════════════════════ */
-    .inv-page-card {
-        background: transparent;
-        border: none;
-        border-radius: 0;
-        box-shadow: none;
-        overflow: visible;
-        margin-bottom: 8px;
-    }
-
-    html[data-theme="dark"] .inv-page-card {
-        background: transparent;
-    }
-
-    .inv-hero {
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 24px;
-        flex-wrap: wrap;
-        background: transparent;
-        border: none;
-        border-radius: 0;
-        padding: 14px 4px 6px;
-        margin-bottom: 0;
-        overflow: hidden;
-    }
-
-    html[data-theme="dark"] .inv-hero {
-        background: transparent;
-    }
-
-    .inv-hero::before {
-        content: "";
-        position: absolute;
-        right: -60px;
-        top: -60px;
-        width: 280px;
-        height: 280px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(37, 99, 235, 0.14) 0%, rgba(37, 99, 235, 0) 70%);
-        pointer-events: none;
-    }
-
-    .inv-hero::after {
-        display: none !important;
-    }
-
-    /* Scattered Background Pattern (8-12% opacity outline SVGs in #2563EB) */
-    .inv-hero-bg-pattern {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        overflow: hidden;
-        z-index: 0;
-    }
-
-    .hero-bg-icon {
-        position: absolute;
-        stroke: #2563eb;
-        stroke-width: 1.5;
-        fill: none;
-        opacity: 0.10;
-        transition: opacity 0.3s ease;
-    }
-
-    html[data-theme="dark"] .hero-bg-icon {
-        stroke: #60a5fa;
-        opacity: 0.12;
-    }
-
-    .hero-bg-icon.icon-invoice-1 { top: 8%; left: 1%; width: 32px; height: 32px; transform: rotate(-12deg); }
-    .hero-bg-icon.icon-rupee-1   { top: 14%; left: 36%; width: 26px; height: 26px; transform: rotate(10deg); }
-    .hero-bg-icon.icon-card-1    { bottom: 10%; left: 18%; width: 30px; height: 30px; transform: rotate(-8deg); }
-    .hero-bg-icon.icon-receipt-1 { top: 58%; left: 3%; width: 28px; height: 28px; transform: rotate(6deg); }
-    .hero-bg-icon.icon-chart-1   { top: 10%; left: 22%; width: 28px; height: 28px; transform: rotate(-10deg); }
-    .hero-bg-icon.icon-wallet-1  { top: 62%; left: 44%; width: 26px; height: 26px; transform: rotate(-14deg); }
-    .hero-bg-icon.icon-coins-1   { top: 12%; right: 44%; width: 28px; height: 28px; transform: rotate(18deg); }
-    .hero-bg-icon.icon-wave-1    { bottom: 8%; right: 36%; width: 32px; height: 32px; transform: rotate(-10deg); }
-    .hero-bg-icon.icon-leaf-1    { top: 10%; right: 26%; width: 26px; height: 26px; transform: rotate(8deg); }
-
-    .inv-hero-left {
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: 18px;
-        z-index: 1;
-        flex: 1 1 320px;
-        min-width: 260px;
-    }
-
-    .inv-hero-icon {
-        width: 54px;
-        height: 54px;
-        flex-shrink: 0;
-        border-radius: 16px;
-        background: linear-gradient(135deg, #3b82f6, #2563eb);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.32);
-    }
-
-    .inv-hero-title {
-        font-size: 1.85rem !important;
-        font-weight: 800 !important;
-        color: var(--text-main);
-        letter-spacing: -0.02em;
-        margin: 0 0 2px;
-    }
-
-    .inv-hero-subtitle {
-        font-size: 0.86rem;
-        color: var(--text-muted);
-        margin: 0 0 6px;
-    }
-
-    .inv-hero-actions {
-        position: relative;
-        z-index: 2;
-        display: flex;
-        align-items: center;
-        flex-shrink: 0;
-    }
-
-    .btn-hero-primary {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 20px;
-        border-radius: 12px;
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        color: #ffffff !important;
-        font-size: 0.88rem;
-        font-weight: 600;
-        text-decoration: none !important;
-        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.32);
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        border: 1px solid rgba(255, 255, 255, 0.25);
-    }
-
-    .btn-hero-primary:hover {
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
-        transform: translateY(-1.5px);
-        color: #ffffff !important;
-    }
-
-    .btn-hero-primary:active {
-        transform: translateY(0);
-        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
-    }
-
-    .btn-hero-primary svg {
-        transition: transform 0.2s ease;
-    }
-
-    .btn-hero-primary:hover svg {
-        transform: translateX(-3px);
-    }
-
-    .inv-hero-underline {
-        width: 36px;
-        height: 4px;
-        border-radius: 4px;
-        background: linear-gradient(90deg, #2563eb, #60a5fa);
-    }
-
-    /* Bottom Flowing Waves */
-    .inv-hero-wave-container {
-        position: absolute;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        height: 50px;
-        pointer-events: none;
-        overflow: hidden;
-        z-index: 0;
-    }
-
-    .inv-hero-wave-svg {
-        width: 100%;
-        height: 100%;
-    }
-
-    @@media (max-width: 1024px) {
-        .inv-hero {
-            padding: 16px 12px;
-        }
-    }
-
-    /* Hide legacy header and breadcrumbs */
-    .page-header, .breadcrumbs {
-        display: none !important;
-    }
-
-    .panel {
-        margin-top: 0 !important;
-    }
-
-    /* Column widths and alignment */
-    #paymentTable th:nth-child(1), #paymentTable td:nth-child(1) { width: 32px !important; min-width: 32px; text-align: center; }
-    #paymentTable th:nth-child(2), #paymentTable td:nth-child(2) { width: 22% !important; min-width: 140px; }
-    #paymentTable th:nth-child(3), #paymentTable td:nth-child(3) { width: 14% !important; min-width: 90px; }
-    #paymentTable th:nth-child(4), #paymentTable td:nth-child(4) { width: 18% !important; min-width: 130px; }
-    #paymentTable th:nth-child(5), #paymentTable td:nth-child(5) { width: 12% !important; min-width: 80px; }
-    #paymentTable th:nth-child(6), #paymentTable td:nth-child(6) { width: 10% !important; min-width: 80px; }
-    #paymentTable th:nth-child(7), #paymentTable td:nth-child(7) { width: 12% !important; min-width: 80px; }
-    #paymentTable th:nth-child(8), #paymentTable td:nth-child(8) { width: 10% !important; min-width: 85px; }
-    #paymentTable th:nth-child(9), #paymentTable td:nth-child(9) { width: 5% !important; min-width: 45px; text-align: right; }
-</style>
-
-<!-- ═══════════════════════════════════════════════════════════
-   UNIFIED HERO HEADER (Sky Blue Theme matching Billing & Invoices)
-   ═══════════════════════════════════════════════════════════ -->
-<div class="inv-page-card">
-    <div class="inv-hero">
-        <!-- Layered Bottom Flowing Waves -->
-        <div class="inv-hero-wave-container">
-            <svg class="inv-hero-wave-svg" viewBox="0 0 1300 70" preserveAspectRatio="none" fill="none">
-                <path d="M0,35 C200,65 420,0 700,40 C950,75 1100,15 1300,45 L1300,70 L0,70 Z" fill="#2563eb" opacity="0.06" />
-                <path d="M0,45 C220,15 450,55 720,25 C980,-5 1120,50 1300,35 L1300,70 L0,70 Z" fill="#60a5fa" opacity="0.05" />
+<div class="page-header">
+    <div>
+        <h1>Transaction History</h1>
+        <p style="color: var(--text-muted); margin-top: 4px;">
+            Process subscription payments and manage transaction records.
+        </p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <a href="/Billing/ExportPayments" class="btn btn-secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
-        </div>
-
-        <!-- Scattered background outline icons -->
-        <div class="inv-hero-bg-pattern">
-            <!-- Invoice -->
-            <svg class="hero-bg-icon icon-invoice-1" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-            <!-- Rupee ₹ -->
-            <svg class="hero-bg-icon icon-rupee-1" viewBox="0 0 24 24"><path d="M6 3h12M6 8h12M6 13h4a4 4 0 0 0 0-8M9 13l6 6"></path></svg>
-            <!-- Credit Card -->
-            <svg class="hero-bg-icon icon-card-1" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-            <!-- Receipt -->
-            <svg class="hero-bg-icon icon-receipt-1" viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"></path></svg>
-            <!-- Analytics Chart -->
-            <svg class="hero-bg-icon icon-chart-1" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-            <!-- Wallet -->
-            <svg class="hero-bg-icon icon-wallet-1" viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4z"></path></svg>
-            <!-- Coins -->
-            <svg class="hero-bg-icon icon-coins-1" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M14.8 9A2 2 0 0 0 13 8h-2a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4h-2a2 2 0 0 1-1.8-1"></path><path d="M12 6v2m0 8v2"></path></svg>
-            <!-- Waves -->
-            <svg class="hero-bg-icon icon-wave-1" viewBox="0 0 24 24"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.6 2 5.1 2 2.5 0 2.5-2 5.1-2 1.3 0 1.9.5 2.5 1"></path><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5 2.5 0 2.5-2 5.1-2 2.5 0 2.5-2 5.1-2 1.3 0 1.9.5 2.5 1"></path></svg>
-            <!-- Leaf -->
-            <svg class="hero-bg-icon icon-leaf-1" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.4 19 2c1 2 2 4.1 2 9a9 9 0 0 1-10 9z"></path><path d="M11 20v-8"></path></svg>
-            <!-- Sparkles & Geometry -->
-            <svg class="hero-bg-icon" style="top:18%; left:48%; width:16px; height:16px;" viewBox="0 0 24 24"><path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5Z" fill="#2563eb" opacity="0.16"></path></svg>
-            <svg class="hero-bg-icon" style="top:62%; right:22%; width:14px; height:14px;" viewBox="0 0 24 24"><path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5Z" fill="#3b82f6" opacity="0.18"></path></svg>
-            <svg class="hero-bg-icon" style="top:25%; right:14%; width:10px; height:10px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#60a5fa" opacity="0.25"></circle></svg>
-        </div>
-
-        <!-- Left Title Group -->
-        <div class="inv-hero-left">
-            <div class="inv-hero-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                    <line x1="1" y1="10" x2="23" y2="10"></line>
-                </svg>
-            </div>
-            <div>
-                <h1 class="inv-hero-title">Transaction History</h1>
-                <p class="inv-hero-subtitle">Process subscription payments and manage transaction records.</p>
-                <div class="inv-hero-underline"></div>
-            </div>
-        </div>
-
-        <!-- Right Action Button: Back to Invoices -->
-        <div class="inv-hero-actions">
-            <a href="/Billing/Invoices" class="btn-hero-primary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                    <line x1="19" y1="12" x2="5" y2="12"></line>
-                    <polyline points="12 19 5 12 12 5"></polyline>
-                </svg>
-                <span>Back to Invoices</span>
-            </a>
-        </div>
+            Export Excel
+        </a>
+        <a href="/Billing/Invoices" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Back to Invoices
+        </a>
     </div>
 </div>
 
 <div class="panel">
-    <div class="table-toolbar" style="display:none;">
-        <div class="smart-export-dropdown-wrapper">
-            <button type="button" class="btn btn-secondary smart-export-dropdown-btn smart-export-btn btn-toolbar" id="exportPaymentsBtn" title="More Options">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="1.5"></circle>
-                    <circle cx="12" cy="5" r="1.5"></circle>
-                    <circle cx="12" cy="19" r="1.5"></circle>
+    <div class="table-toolbar">
+        <div class="table-filters">
+            <div style="position: relative;">
+                <svg style="position: absolute; left: 10px; top: 10px; color: var(--text-muted);"
+                     width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
-            </button>
-            <span class="smart-export-badge" id="paymentSelectionBadge"></span>
-            <div class="smart-export-menu glass-dropdown">
-                <button type="button" class="dropdown-item smart-import-option" onclick="window.openImportModal('Payments')">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    Import
-                </button>
-                <button type="button" class="dropdown-item smart-export-option" onclick="window.smartExport('paymentTable', '/Billing/ExportPayments')">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    Export
-                </button>
+                <input type="text" class="form-input" placeholder="Search Transaction ID or Tenant..."
+                       style="padding-left: 32px; width: 280px;">
             </div>
-        </div>
-    </div>
-
-    <div class="table-filters-data" style="display:none;">
-        <div class="filter-group-item">
-            <label>Payment Status</label>
-            <select name="Status" class="form-select">
-                <option value="">All Statuses</option>
-                <option value="1">Completed</option>
-                <option value="0">Pending</option>
-                <option value="2">Failed</option>
-                <option value="3">Refunded</option>
-            </select>
         </div>
     </div>
 
@@ -358,16 +57,14 @@
         <table id="paymentTable" class="data-table table-hoverable manual-init">
             <thead>
                 <tr>
-                    <th class="text-center" style="width: 48px;"><input type="checkbox" class="master-select-cb" data-table="paymentTable"></th>
-                    <th class="text-center">Transaction ID</th>
-                    <th class="text-center">Invoice</th>
-                    <th class="text-left">Tenant</th>
-                    <th class="text-right">Amount</th>
-                    <th class="text-center">Method</th>
-                    <th class="text-center">Date</th>
-                    <th class="text-center">Status</th>
-                    <th class="text-center">Currency</th>
-                    <th class="text-center" style="width: 80px;">Actions</th>
+                    <th style="width: 48px;"><input type="checkbox" class="custom-checkbox"></th>
+                    <th>Transaction ID</th>
+                    <th>Invoice</th>
+                    <th>Tenant</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Date</th>
+                    <th>Status</th>
                 </tr>
             </thead>
             <tbody>
@@ -382,14 +79,6 @@
         const $panel = $('#paymentTable').closest('.panel');
         const $customSearch = $panel.find('.table-toolbar .form-input');
 
-        function getCurrencySymbol(code) {
-            if (code === 'INR') return '₹';
-            if (code === 'USD') return '$';
-            if (code === 'EUR') return '€';
-            if (code === 'GBP') return '£';
-            return code ? code + ' ' : '₹';
-        }
-
         const dt = $('#paymentTable').DataTable({
             processing: true,
             serverSide: true,
@@ -402,55 +91,42 @@
                     }
                 }
             },
-            responsive: false,
-            dom: '<"table-toolbar datatables-injected"<"table-filters">f>t<"if-table-footer-wrap"<"footer-right"<"if-pill-pagination-mount">>>',
-            drawCallback: function () {
-                const api = this.api();
-                window.renderPillPagination(api, '.if-pill-pagination-mount', 'transactions');
-            },
+            responsive: true,
+            dom: '<"table-toolbar datatables-injected"<"table-filters"l>f>t<"pagination"ip>',
             order: [[6, 'desc']],
             columns: [
                 {
                     data: null,
                     orderable: false,
                     searchable: false,
-                    className: 'text-center align-middle',
-                    render: function (data, type, row) {
-                        return '<input type="checkbox" class="row-select-cb" data-row-id="' + (row.id || row.Id || '') + '">';
-                    }
+                    render: function () { return '<input type="checkbox" class="custom-checkbox">'; }
                 },
                 {
                     data: 'transactionId',
-                    className: 'text-center align-middle',
                     render: function (data) {
-                        return `<span style="font-family: 'Fira Code', ui-monospace, monospace; font-weight: 600; font-size: 0.72rem; color: var(--brand-primary);">${data}</span>`;
+                        return `<span style="font-family: monospace; font-weight: 600; font-size: 13px;">${data}</span>`;
                     }
                 },
                 {
                     data: 'invoiceNumber',
-                    className: 'text-center align-middle',
                     render: function (data, type, row) {
                         return `<a href="/Billing/PrintInvoice?id=${row.invoiceId}" style="color: var(--brand-primary); text-decoration: none; font-weight: 500;">${data}</a>`;
                     }
                 },
                 {
                     data: 'tenantName',
-                    className: 'text-left align-middle',
                     render: function (data) {
                         return `<span style="font-weight: 500;">${data}</span>`;
                     }
                 },
                 {
                     data: 'amount',
-                    className: 'text-right align-middle',
-                    render: function (data, type, row) {
-                        const sym = getCurrencySymbol(row.currency);
-                        return `<span style="font-weight: 600; color: var(--brand-primary);">${sym}${data.toFixed(2)}</span>`;
+                    render: function (data) {
+                        return `<span style="font-weight: 600; color: var(--brand-primary);">$${data.toFixed(2)}</span>`;
                     }
                 },
                 {
                     data: 'method',
-                    className: 'text-center align-middle',
                     render: function (data) {
                         const icons = {
                             'CreditCard': '💳',
@@ -466,38 +142,19 @@
                 },
                 {
                     data: 'paymentDate',
-                    className: 'text-center align-middle',
                     render: function (data) {
                         return new Date(data).toLocaleDateString();
                     }
                 },
                 {
                     data: 'status',
-                    className: 'text-center align-middle',
                     render: function (data) {
                         let badgeClass = 'badge-neutral';
-                        if (data === 'Completed' || data === 'Paid') { badgeClass = 'badge-success'; }
-                        else if (data === 'Pending') { badgeClass = 'badge-warning'; }
-                        else if (data === 'Failed') { badgeClass = 'badge-error'; }
-                        else if (data === 'Refunded') { badgeClass = 'badge-neutral'; }
+                        if (data === 'Completed') badgeClass = 'badge-success';
+                        else if (data === 'Pending') badgeClass = 'badge-warning';
+                        else if (data === 'Failed') badgeClass = 'badge-error';
+                        else if (data === 'Refunded') badgeClass = 'badge-neutral';
                         return `<span class="badge ${badgeClass}">${data}</span>`;
-                    }
-                },
-                { data: 'currency', visible: false, className: 'text-center align-middle', render: function(d){ return d || 'INR'; } },
-                {
-                    data: null,
-                    orderable: false,
-                    searchable: false,
-                    className: 'text-center align-middle',
-                    render: function (data, type, row) {
-                        return `<div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                                    <button class="action-btn action-btn-view" title="View Details" data-type="payment" data-id="${row.id}">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <circle cx="12" cy="12" r="3"></circle>
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                        </svg>
-                                    </button>
-                                </div>`;
                     }
                 }
             ]
@@ -513,8 +170,5 @@
                 }, 400);
             });
         }
-
-        // Initialize row selection for smart export
-        window.initRowSelection('paymentTable', 'id');
     });
 </script>

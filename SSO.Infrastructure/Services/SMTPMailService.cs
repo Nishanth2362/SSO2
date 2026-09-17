@@ -1,4 +1,4 @@
-using MailKit.Net.Smtp;
+﻿using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -45,8 +45,7 @@ namespace SSO.Infrastructure.Services
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Failed to send email to {To} due to: {Message}", string.Join(", ", request.To), ex.Message);
-                throw;
+                _logger.LogError(ex.Message, ex);
             }
         }
     }

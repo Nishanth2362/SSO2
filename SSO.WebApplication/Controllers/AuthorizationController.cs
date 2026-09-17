@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
@@ -29,9 +28,7 @@ namespace SSO.WebApplication.Controllers
         private readonly IOpenIddictScopeManager _scopeManager;
         private readonly ApplicationDbContext _dbContext;
         private readonly IAccessControlService _accessControlService;
-        private readonly ITokenLifetimeSettingsService _tokenSettingsService;
         private readonly IConfiguration _configuration;
-        private readonly ILogger<AuthorizationController> _logger;
 
         public AuthorizationController(
             SignInManager<ApplicationUser> signInManager,
@@ -39,11 +36,8 @@ namespace SSO.WebApplication.Controllers
             RoleManager<ApplicationRole> roleManager,
             IOpenIddictApplicationManager applicationManager,
             IOpenIddictScopeManager scopeManager,
-            ApplicationDbContext dbContext,
-            IConfiguration configuration,
-            IAccessControlService accessControlService,
-            ITokenLifetimeSettingsService tokenSettingsService,
-            ILogger<AuthorizationController> logger)
+            ApplicationDbContext dbContext,IConfiguration configuration,
+            IAccessControlService accessControlService)
         {
             _signInManager = signInManager;
             _userManager = userManager;
@@ -53,8 +47,6 @@ namespace SSO.WebApplication.Controllers
             _dbContext = dbContext;
             _configuration = configuration;
             _accessControlService = accessControlService;
-            _tokenSettingsService = tokenSettingsService;
-            _logger = logger;
         }
 
         #region Authorization Endpoint
@@ -70,43 +62,10 @@ namespace SSO.WebApplication.Controllers
             // Retrieve the user principal stored in the authentication cookie.
             var result = await HttpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme);
 
-            // If prompt=create or screen_hint=signup was requested, direct the user directly to the registration page
-            var isSignUpRequested = HasPrompt(request, "create") ||
-                                    string.Equals(Request.Query["screen_hint"], "signup", StringComparison.OrdinalIgnoreCase) ||
-                                    string.Equals(Request.Query["prompt"], "create", StringComparison.OrdinalIgnoreCase);
-
-            if (isSignUpRequested)
-            {
-                var registerReturnUrl = Request.PathBase + Request.Path + QueryString.Create(
-                    Request.HasFormContentType ? Request.Form.ToList() : Request.Query.ToList());
-                return RedirectToAction("Register", "Login", new { returnUrl = registerReturnUrl });
-            }
-
-            // If prompt=login was requested, force re-authentication even if user has active session
-            if (HasPrompt(request, "login"))
-            {
-                return Challenge(
-                    properties: new AuthenticationProperties
-                    {
-                        RedirectUri = Request.PathBase + Request.Path + QueryString.Create(
-                            Request.HasFormContentType ? Request.Form.ToList() : Request.Query.ToList())
-                    },
-                    authenticationSchemes: new[] { IdentityConstants.ApplicationScheme });
-            }
-
-            // If the user principal can't be extracted, redirect the user to the login page (or return login_required if prompt=none).
+            // If the user principal can't be extracted, redirect the user to the login page.
             if (!result.Succeeded)
             {
-                if (HasPrompt(request, "none"))
-                {
-                    return Forbid(
-                        properties: new AuthenticationProperties(new Dictionary<string, string?>
-                        {
-                            [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.LoginRequired,
-                            [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The user is not logged in."
-                        }),
-                        authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
-                }
+
 
                 return Challenge(
                     properties: new AuthenticationProperties
@@ -191,8 +150,6 @@ namespace SSO.WebApplication.Controllers
             {
                 claim.SetDestinations(GetDestinations(claim, principal));
             }
-
-            await ApplyDynamicTokenLifetimesAsync(principal, user?.TenantId);
 
             return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
@@ -284,8 +241,6 @@ namespace SSO.WebApplication.Controllers
                     claim.SetDestinations(GetDestinations(claim, principal));
                 }
 
-                await ApplyDynamicTokenLifetimesAsync(principal, user?.TenantId);
-
                 return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             }
             else if (request.IsClientCredentialsGrantType())
@@ -314,8 +269,6 @@ namespace SSO.WebApplication.Controllers
                 {
                     claim.SetDestinations(GetDestinations(claim, principal));
                 }
-
-                await ApplyDynamicTokenLifetimesAsync(principal, null);
 
                 return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             }
@@ -400,8 +353,6 @@ namespace SSO.WebApplication.Controllers
                     claim.SetDestinations(GetDestinations(claim, principal));
                 }
 
-                await ApplyDynamicTokenLifetimesAsync(principal, user?.TenantId);
-
                 return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             }
             else if (request.IsTokenExchangeGrantType())
@@ -427,8 +378,6 @@ namespace SSO.WebApplication.Controllers
                 {
                     claim.SetDestinations(GetDestinations(claim, principal));
                 }
-
-                await ApplyDynamicTokenLifetimesAsync(principal, null);
 
                 return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             }
@@ -486,23 +435,11 @@ namespace SSO.WebApplication.Controllers
         [HttpPost("~/connect/endsession")]
         public async Task<IActionResult> Logout()
         {
-            try
-            {
-                var result = await HttpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme);
+            var result = await HttpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme);
 
-                if (result.Succeeded)
-                {
-                    await _signInManager.SignOutAsync();
-                }
-
-                foreach (var cookieName in SSO.Common.Constants.Application.ApplicationConstants.RpapCookies.AllRpapCookies)
-                {
-                    Response.Cookies.Delete(cookieName);
-                }
-            }
-            catch (Exception ex)
+            if (result.Succeeded)
             {
-                _logger?.LogError(ex, "Exception during OpenID Connect endsession logout");
+                await _signInManager.SignOutAsync();
             }
 
             return SignOut(
@@ -520,7 +457,7 @@ namespace SSO.WebApplication.Controllers
         [HttpPost("~/connect/userinfo")]
         [Produces("application/json")]
         public async Task<IActionResult> Userinfo()
-         {
+        {
             var user = await _userManager.GetUserAsync(User);
             if (user is null)
             {
@@ -551,27 +488,10 @@ namespace SSO.WebApplication.Controllers
                 claims[Claims.PreferredUsername] = user.UserName;
             }
 
-            // Include user roles unconditionally in the UserInfo response
-            var roles = await _userManager.GetRolesAsync(user);
-            claims[Claims.Role] = roles.FirstOrDefault() ?? string.Empty;
-
-            // Include mobile/phone number unconditionally if present
-            var phoneNumber = await _userManager.GetPhoneNumberAsync(user);
-            if (!string.IsNullOrEmpty(phoneNumber))
+            if (User.HasScope(Scopes.Roles))
             {
-                claims[Claims.PhoneNumber] = phoneNumber;
-                claims[Claims.PhoneNumberVerified] = await _userManager.IsPhoneNumberConfirmedAsync(user);
+                claims[Claims.Role] = await _userManager.GetRolesAsync(user);
             }
-
-
-            // Include user ID and tenant ID
-            var userIdStr = user.Id.ToString();
-            var tenantIdStr = user.TenantId.ToString();
-            claims["user_id"] = userIdStr;
-            claims["userId"] = userIdStr;
-            claims["tenant_id"] = tenantIdStr;
-            claims["tenantId"] = tenantIdStr;
-            claims["tenant"] = tenantIdStr;
 
             // Include permissions from the custom RolePermissions table
             var clientIdClaim = User.GetClaim(Claims.AuthorizedParty) ?? User.GetClaim(Claims.ClientId);
@@ -659,8 +579,6 @@ namespace SSO.WebApplication.Controllers
                 claim.SetDestinations(GetDestinations(claim, principal));
             }
 
-            await ApplyDynamicTokenLifetimesAsync(principal, user?.TenantId);
-
             return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
 
@@ -711,8 +629,6 @@ namespace SSO.WebApplication.Controllers
             {
                 claim.SetDestinations(GetDestinations(claim, principal));
             }
-
-            await ApplyDynamicTokenLifetimesAsync(principal, user?.TenantId);
 
             return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
@@ -820,28 +736,6 @@ namespace SSO.WebApplication.Controllers
             {
                 identity.RemoveClaim(claim);
             }
-        }
-
-        private async Task ApplyDynamicTokenLifetimesAsync(ClaimsPrincipal principal, Guid? tenantId = null)
-        {
-            try
-            {
-                var settings = await _tokenSettingsService.GetActiveSettingsAsync(tenantId);
-                principal.SetAccessTokenLifetime(TimeSpan.FromMinutes(settings.AccessTokenLifetimeMinutes));
-                principal.SetRefreshTokenLifetime(TimeSpan.FromDays(settings.RefreshTokenLifetimeDays));
-                principal.SetAuthorizationCodeLifetime(TimeSpan.FromMinutes(settings.AuthorizationCodeLifetimeMinutes));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to apply dynamic token lifetimes to ClaimsPrincipal.");
-            }
-        }
-
-        private static bool HasPrompt(OpenIddictRequest? request, string prompt)
-        {
-            if (request == null || string.IsNullOrWhiteSpace(request.Prompt)) return false;
-            return request.Prompt.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                .Contains(prompt, StringComparer.OrdinalIgnoreCase);
         }
     }
 }

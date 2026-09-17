@@ -6,1028 +6,215 @@
 }
 
 <style>
-    /* Scope: appModal when #etForm is loaded */
-    #appModal:has(#etForm) .modal-dialog {
-        max-width: 960px !important;
-        width: 92vw !important;
-        border-radius: 24px !important;
-        background: #ffffff !important;
-        overflow: hidden !important;
-        box-shadow: 0 25px 60px rgba(15, 23, 42, 0.16) !important;
-        border: 1px solid #e2e8f0 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        margin: auto !important;
-    }
-
-    #appModal:has(#etForm) #modalContent {
-        display: flex !important;
-        flex-direction: column !important;
-        padding: 0 !important;
-        overflow: hidden !important;
-    }
-
-    /* Header styling with subtle wave background */
-    #appModal:has(#etForm) .modal-header {
-        position: relative !important;
-        padding: 24px 32px 18px 32px !important;
-        border-bottom: none !important;
-        background: linear-gradient(135deg, rgba(238, 242, 255, 0.7) 0%, rgba(245, 243, 255, 0.35) 50%, #ffffff 100%) !important;
-        overflow: hidden !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-    }
-
-    #appModal:has(#etForm) .modal-header::after {
-        content: '';
-        position: absolute;
-        top: -10px;
-        right: -10px;
-        width: 340px;
-        height: 140px;
-        background: radial-gradient(circle at 85% 20%, rgba(192, 132, 252, 0.22) 0%, rgba(99, 102, 241, 0.08) 45%, transparent 75%);
-        pointer-events: none;
-        z-index: 0;
-    }
-
-    #appModal:has(#etForm) #modalIcon {
-        display: flex !important;
-        align-items: center;
-        justify-content: center;
-        width: 48px !important;
-        height: 48px !important;
-        border-radius: 14px !important;
-        background: linear-gradient(135deg, #818cf8 0%, #4f46e5 100%) !important;
-        box-shadow: 0 8px 20px rgba(79, 70, 229, 0.28) !important;
-        color: #ffffff !important;
-        flex-shrink: 0;
-    }
-
-    #appModal:has(#etForm) .modal-title {
-        font-size: 1.45rem !important;
-        font-weight: 700 !important;
-        color: #0f172a !important;
-        margin: 0 !important;
-        letter-spacing: -0.02em !important;
-    }
-
-    #appModal:has(#etForm) .modal-subtitle {
-        font-size: 0.88rem !important;
-        color: #64748b !important;
-        margin-top: 3px !important;
-        margin-bottom: 0 !important;
-    }
-
-    #appModal:has(#etForm) .modal-close-btn {
-        position: relative;
-        z-index: 1;
-        width: 34px !important;
-        height: 34px !important;
-        border-radius: 50% !important;
-        background: #ffffff !important;
-        border: 1px solid #e2e8f0 !important;
-        color: #64748b !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.04) !important;
-        transition: all 0.2s ease !important;
-        cursor: pointer;
-    }
-
-    #appModal:has(#etForm) .modal-close-btn:hover {
-        background: #f8fafc !important;
-        color: #0f172a !important;
-        border-color: #cbd5e1 !important;
-    }
-
-    /* Stepper Styling */
-    #etForm .wizard-steps-header {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 12px 32px 20px 32px;
-        background: #ffffff;
-        gap: 0;
-        border-bottom: 1px solid #f1f5f9;
-        margin-bottom: 16px;
-    }
-
-    #etForm .wizard-step-indicator {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        position: relative;
-    }
-
-    #etForm .wizard-step-indicator:not(:last-child)::after {
-        content: '';
-        height: 3px;
-        width: 140px;
-        background: #e2e8f0;
-        margin: 0 16px;
-        border-radius: 2px;
-        transition: background 0.3s ease;
-    }
-
-    #etForm .wizard-step-indicator.active:not(:last-child)::after,
-    #etForm .wizard-step-indicator.completed:not(:last-child)::after {
-        background: linear-gradient(to right, #4f46e5 0%, #818cf8 100%);
-    }
-
-    #etForm .step-number {
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        background: #ffffff;
-        border: 2px solid #cbd5e1;
-        color: #64748b;
-        font-size: 0.85rem;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.25s ease;
-    }
-
-    #etForm .wizard-step-indicator.active .step-number {
-        background: #4f46e5;
-        border-color: #4f46e5;
-        color: #ffffff;
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
-    }
-
-    #etForm .wizard-step-indicator.completed .step-number {
-        background: #10b981;
-        border-color: #10b981;
-        color: #ffffff;
-    }
-
-    #etForm .step-label {
-        font-size: 0.88rem;
-        font-weight: 600;
-        color: #64748b;
-        transition: color 0.25s ease;
-    }
-
-    #etForm .wizard-step-indicator.active .step-label {
-        color: #4f46e5;
-        font-weight: 700;
-    }
-
-    #etForm .wizard-step-indicator.completed .step-label {
-        color: #0f172a;
-    }
-
-    /* Main Form Layout (Step 1) */
-    .et-step-layout {
-        display: grid;
-        grid-template-columns: 1.35fr 1fr;
-        gap: 24px;
-        padding: 4px 32px 24px 32px;
-    }
-
-    /* Left Column (Main Form Panel) */
-    .et-form-main {
-        background: #f8fafc;
-        border: 1px solid #f1f5f9;
-        border-radius: 18px;
-        padding: 24px;
-        display: flex;
-        flex-direction: column;
-        gap: 18px;
-    }
-
-    .et-section-header {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        margin-bottom: 2px;
-    }
-
-    .et-section-icon {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-        background: #ede9fe;
-        color: #4f46e5;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-
-    .et-section-title {
-        font-size: 0.8rem;
-        font-weight: 800;
-        color: #4f46e5;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-    }
-
-    .et-section-subtitle {
-        font-size: 0.78rem;
-        color: #64748b;
-        margin-top: 1px;
-    }
-
-    /* Field Group & Inputs */
-    .et-field-group {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-
-    .et-field-label {
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: #1e293b;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-    }
-
-    .et-required-star {
-        color: #ef4444;
-        font-weight: 700;
-    }
-
-    .et-input-wrapper {
-        position: relative;
-        width: 100%;
-        display: flex;
-        align-items: center;
-    }
-
-    .et-input-icon {
-        position: absolute;
-        left: 14px;
-        color: #64748b;
-        pointer-events: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .et-input {
-        width: 100%;
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 10px 14px 10px 42px;
-        font-size: 0.88rem;
-        color: #1e293b;
-        transition: all 0.2s ease;
-        outline: none;
-    }
-
-    .et-input:focus {
-        border-color: #818cf8;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
-    }
-
-    .et-input::placeholder {
-        color: #94a3b8;
-    }
-
-    /* Select Inputs with Icons */
-    .et-select-wrapper {
-        position: relative;
-        width: 100%;
-        display: flex;
-        align-items: center;
-    }
-
-    .et-select {
-        width: 100%;
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 10px 36px 10px 42px;
-        font-size: 0.88rem;
-        color: #1e293b;
-        appearance: none;
-        -webkit-appearance: none;
-        outline: none;
-        transition: all 0.2s ease;
-        cursor: pointer;
-    }
-
-    .et-select:focus {
-        border-color: #818cf8;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
-    }
-
-    .et-select-chevron {
-        position: absolute;
-        right: 12px;
-        pointer-events: none;
-        color: #64748b;
-    }
-
-    /* Tokens Badges */
-    .et-tokens-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin-top: 2px;
-    }
-
-    .et-tokens-label {
-        font-size: 0.82rem;
-        font-weight: 700;
-        color: #1e293b;
-    }
-
-    .et-token-badge {
-        display: inline-flex;
-        align-items: center;
-        background: #ede9fe;
-        color: #4f46e5;
-        border-radius: 20px;
-        padding: 3px 12px;
+    #etForm .et-label {
+        display: block;
         font-size: 0.78rem;
         font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        user-select: none;
-    }
-
-    .et-token-badge:hover {
-        background: #ddd6fe;
-        transform: translateY(-1px);
-    }
-
-    /* Settings Card & Toggle Switch */
-    .et-settings-card {
-        background: #eef2ff;
-        border-radius: 14px;
-        padding: 16px 20px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-    }
-
-    .et-settings-left {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .et-settings-icon-box {
-        width: 38px;
-        height: 38px;
-        border-radius: 10px;
-        background: #e0e7ff;
-        color: #4f46e5;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-
-    .et-settings-title {
-        font-size: 0.88rem;
-        font-weight: 700;
-        color: #1e293b;
-    }
-
-    .et-settings-desc {
-        font-size: 0.78rem;
-        color: #64748b;
-        margin-top: 1px;
-    }
-
-    /* Switch styling */
-    .et-switch {
-        position: relative;
-        display: inline-block;
-        width: 44px;
-        height: 24px;
-        flex-shrink: 0;
-        cursor: pointer;
-    }
-
-    .et-switch input {
-        opacity: 0;
-        width: 0;
-        height: 0;
-    }
-
-    .et-switch-slider {
-        position: absolute;
-        cursor: pointer;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background-color: #cbd5e1;
-        transition: .3s;
-        border-radius: 24px;
-    }
-
-    .et-switch-slider:before {
-        position: absolute;
-        content: "";
-        height: 18px;
-        width: 18px;
-        left: 3px;
-        bottom: 3px;
-        background-color: white;
-        transition: .3s;
-        border-radius: 50%;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    }
-
-    .et-switch input:checked + .et-switch-slider {
-        background-color: #4f46e5;
-    }
-
-    .et-switch input:checked + .et-switch-slider:before {
-        transform: translateX(20px);
-    }
-
-    /* Right Column (Template Summary Sidebar) */
-    .et-summary-sidebar {
-        background: #f8fafc;
-        border: 1px solid #eef2ff;
-        border-radius: 18px;
-        padding: 22px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        gap: 18px;
-    }
-
-    .et-summary-header {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        padding-bottom: 12px;
-        border-bottom: 1px dashed #e2e8f0;
-    }
-
-    .et-summary-header-icon {
-        width: 28px;
-        height: 28px;
-        border-radius: 8px;
-        background: #ede9fe;
-        color: #4f46e5;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-
-    .et-summary-header-title {
-        font-size: 0.78rem;
-        font-weight: 800;
-        color: #4f46e5;
         text-transform: uppercase;
         letter-spacing: 0.05em;
+        color: var(--text-muted, #9ca3af);
+        margin-bottom: 6px;
     }
-
-    .et-summary-header-subtitle {
-        font-size: 0.75rem;
-        color: #64748b;
-        margin-top: 1px;
-    }
-
-    /* Summary Illustration Box */
-    .et-summary-illustration {
-        position: relative;
+    #etForm .et-required { color: #f87171; margin-left: 2px; }
+    #etForm .et-input,
+    #etForm .et-select,
+    #etForm .et-textarea {
         width: 100%;
-        height: 155px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 4px 0;
+        background: var(--surface-primary, #0d0d1a);
+        border: 1px solid var(--border-color, rgba(255,255,255,0.1));
+        border-radius: 8px;
+        color: var(--text-primary, #f1f5f9);
+        font-size: 0.875rem;
+        padding: 10px 14px;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        outline: none;
+        box-sizing: border-box;
     }
-
-    .et-summary-illustration-blob {
-        position: absolute;
-        width: 240px;
-        height: 120px;
-        background: radial-gradient(circle at 50% 50%, rgba(233, 213, 255, 0.85) 0%, rgba(243, 232, 255, 0.4) 60%, rgba(255, 255, 255, 0) 100%);
-        border-radius: 50%;
-        filter: blur(20px);
-        z-index: 0;
+    #etForm .et-input::placeholder,
+    #etForm .et-textarea::placeholder { color: var(--text-muted, #6b7280); opacity: 1; }
+    #etForm .et-input:focus,
+    #etForm .et-select:focus,
+    #etForm .et-textarea:focus {
+        border-color: var(--brand-primary, #7c3aed);
+        box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
     }
-
-    .et-summary-illustration-svg {
-        position: relative;
-        z-index: 1;
-        width: 100%;
-        height: 100%;
-        overflow: visible;
+    #etForm .et-select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        padding-right: 36px;
+        cursor: pointer;
     }
-
-    /* Summary Stats Card */
-    .et-summary-stats-card {
-        background: #ffffff;
-        border: 1px solid #f1f5f9;
-        border-radius: 14px;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
+    #etForm .et-select option { background: #1a1a2e; }
+    #etForm .et-textarea {
+        resize: vertical;
+        font-family: 'Fira Code', 'Consolas', 'Courier New', monospace;
+        font-size: 0.82rem;
+        line-height: 1.65;
+        min-height: 260px;
+    }
+    #etForm .et-group { margin-bottom: 16px; }
+    #etForm .et-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
         gap: 14px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
     }
-
-    .et-summary-stat-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
+    #etForm .et-hint {
+        font-size: 0.72rem;
+        color: var(--text-muted, #6b7280);
+        margin-top: 5px;
+        line-height: 1.5;
     }
-
-    .et-summary-stat-left {
+    #etForm .et-hint code {
+        background: rgba(124,58,237,0.12);
+        color: #a78bfa;
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+    }
+    #etForm .et-toggle-row {
         display: flex;
         align-items: center;
         gap: 10px;
-    }
-
-    .et-summary-stat-icon {
-        width: 32px;
-        height: 32px;
+        padding: 10px 14px;
+        background: var(--surface-primary, #0d0d1a);
+        border: 1px solid var(--border-color, rgba(255,255,255,0.1));
         border-radius: 8px;
-        background: #f3e8ff;
-        color: #7c3aed;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    }
+    #etForm .et-toggle {
+        width: 17px; height: 17px;
+        accent-color: var(--brand-primary, #7c3aed);
+        cursor: pointer;
         flex-shrink: 0;
     }
-
-    .et-summary-stat-label {
-        font-size: 0.82rem;
-        font-weight: 600;
-        color: #1e293b;
+    #etForm .et-toggle-label {
+        font-size: 0.845rem;
+        color: var(--text-primary, #f1f5f9);
+        cursor: pointer;
+        margin: 0;
+        user-select: none;
     }
-
-    .et-summary-stat-value {
-        font-size: 0.82rem;
-        font-weight: 700;
-        color: #0f172a;
-    }
-
-    .et-status-pill {
-        display: inline-block;
-        border-radius: 12px;
-        padding: 2px 10px;
-        font-size: 0.75rem;
-        font-weight: 700;
-    }
-    .et-status-pill.active {
-        background: #dcfce7;
-        color: #15803d;
-    }
-    .et-status-pill.inactive {
-        background: #f1f5f9;
-        color: #64748b;
-    }
-
-    /* Step 2: Body Content Styling */
-    .et-body-step-wrapper {
-        padding: 4px 32px 24px 32px;
+    #etForm .et-body-header {
         display: flex;
-        flex-direction: column;
-        gap: 16px;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 6px;
     }
-
-    .et-body-panel {
-        background: #f8fafc;
-        border: 1px solid #f1f5f9;
-        border-radius: 18px;
-        padding: 24px;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-    }
-
-    .et-textarea-editor {
-        width: 100%;
-        min-height: 250px;
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 14px;
-        font-family: 'Fira Code', 'Consolas', 'Courier New', monospace;
-        font-size: 0.84rem;
-        line-height: 1.5;
-        color: #1e293b;
-        outline: none;
-        resize: vertical;
-        transition: all 0.2s ease;
-    }
-
-    .et-textarea-editor:focus {
-        border-color: #818cf8;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
-    }
-
     .et-preview-btn {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        background: #ffffff;
-        border: 1px solid #cbd5e1;
-        color: #4f46e5;
-        border-radius: 8px;
-        padding: 6px 14px;
-        font-size: 0.8rem;
+        gap: 5px;
+        padding: 5px 13px;
+        font-size: 0.75rem;
         font-weight: 600;
+        background: rgba(124,58,237,0.1);
+        border: 1px solid rgba(124,58,237,0.3);
+        color: #a78bfa;
+        border-radius: 6px;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.15s ease;
     }
-
     .et-preview-btn:hover {
-        background: #eef2ff;
-        border-color: #818cf8;
+        background: rgba(124,58,237,0.2);
+        border-color: rgba(124,58,237,0.5);
+        color: #c4b5fd;
     }
-
-    /* Modal Footer Buttons */
-    #appModal:has(#etForm) .modal-footer {
-        padding: 16px 32px 24px 32px !important;
-        border-top: 1px solid #f1f5f9 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        background: #ffffff !important;
+    .et-footer {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+        padding-top: 18px;
+        margin-top: 6px;
+        border-top: 1px solid var(--border-color, rgba(255,255,255,0.08));
     }
-
-    #appModal:has(#etForm) .wizard-btn-back,
-    #appModal:has(#etForm) .wizard-btn-prev {
-        background: #ffffff !important;
-        border: 1px solid #e2e8f0 !important;
-        color: #1e293b !important;
-        border-radius: 10px !important;
-        padding: 10px 24px !important;
-        font-size: 0.88rem !important;
-        font-weight: 600 !important;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.02) !important;
-        cursor: pointer;
-        transition: all 0.2s ease !important;
-    }
-
-    #appModal:has(#etForm) .wizard-btn-back:hover,
-    #appModal:has(#etForm) .wizard-btn-prev:hover {
-        background: #f8fafc !important;
-        border-color: #cbd5e1 !important;
-    }
-
-    #appModal:has(#etForm) .wizard-btn-next,
-    #appModal:has(#etForm) .wizard-btn-save {
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
-        border: none !important;
-        color: #ffffff !important;
-        border-radius: 10px !important;
-        padding: 10px 24px !important;
-        font-size: 0.88rem !important;
-        font-weight: 600 !important;
-        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35) !important;
-        cursor: pointer;
-        transition: all 0.2s ease !important;
-    }
-
-    #appModal:has(#etForm) .wizard-btn-next:hover,
-    #appModal:has(#etForm) .wizard-btn-save:hover {
-        background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%) !important;
-        box-shadow: 0 6px 18px rgba(79, 70, 229, 0.45) !important;
-        transform: translateY(-1px);
-    }
-    @@keyframes etSpin { to { transform: rotate(360deg); } }
-    .et-spin { display: inline-block; animation: etSpin 0.75s linear infinite; }
 </style>
 
-<form id="etForm" class="wizard-container" novalidate>
-    @Html.AntiForgeryToken()
-    <input type="hidden" asp-for="Id" />
+<div class="modal-body" style="padding: 22px 24px 0;">
+    <form id="etForm" onsubmit="return submitEtForm(event)">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
 
-    <div class="modal-body" style="padding: 0;">
-
-        <!-- Step 1: Template Info -->
-        <div class="wizard-step" data-title="Template Info">
-            <div class="et-step-layout">
-                <!-- LEFT COLUMN: Main Form Area -->
-                <div class="et-form-main">
-                    
-                    <!-- Section Header -->
-                    <div class="et-section-header">
-                        <div class="et-section-icon">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                                <polyline points="22,6 12,13 2,6"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="et-section-title">GENERAL DETAILS</div>
-                            <div class="et-section-subtitle">Set up the basic information for your email template.</div>
-                        </div>
-                    </div>
-
-                    <!-- Template Name -->
-                    <div class="et-field-group">
-                        <label class="et-field-label" for="etName">
-                            Template Name <span class="et-required-star">*</span>
-                        </label>
-                        <div class="et-input-wrapper">
-                            <span class="et-input-icon">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                    <polyline points="14 2 14 8 20 8"/>
-                                    <line x1="16" y1="13" x2="8" y2="13"/>
-                                    <line x1="16" y1="17" x2="8" y2="17"/>
-                                </svg>
-                            </span>
-                            <input id="etName" asp-for="Name" type="text" class="et-input" placeholder="e.g. Invitation Email" required maxlength="150" autocomplete="off" />
-                        </div>
-                    </div>
-
-                    <!-- Subject Line -->
-                    <div class="et-field-group">
-                        <label class="et-field-label" for="etSubject">
-                            Subject Line <span class="et-required-star">*</span>
-                        </label>
-                        <div class="et-input-wrapper">
-                            <span class="et-input-icon" style="font-weight: 700; font-size: 0.95rem; color: #4f46e5;">
-                                Tt
-                            </span>
-                            <input id="etSubject" asp-for="Subject" type="text" class="et-input" placeholder="Welcome to {{AppName}}" required maxlength="500" autocomplete="off" />
-                        </div>
-                    </div>
-
-                    <!-- Tokens Row -->
-                    <div class="et-tokens-row">
-                        <span class="et-tokens-label">Tokens:</span>
-                        <span class="et-token-badge" onclick="insertToken('{{AppName}}')">{{AppName}}</span>
-                        <span class="et-token-badge" onclick="insertToken('{{UserName}}')">{{UserName}}</span>
-                        <span class="et-token-badge" onclick="insertToken('{{TenantName}}')">{{TenantName}}</span>
-                        <span class="et-token-badge" onclick="insertToken('{{CallbackUrl}}')">{{CallbackUrl}}</span>
-                    </div>
-
-                    <!-- Dropdowns Side-by-Side -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                        <!-- Template Type -->
-                        <div class="et-field-group">
-                            <label class="et-field-label" for="etTemplateType">
-                                Template Type
-                            </label>
-                            <div class="et-select-wrapper">
-                                <span class="et-input-icon">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <polyline points="16 18 22 12 16 6"/>
-                                        <polyline points="8 6 2 12 8 18"/>
-                                    </svg>
-                                </span>
-                                <select id="etTemplateType" asp-for="TemplateType" class="et-select" required>
-                                    <option value="0">HTML</option>
-                                    <option value="1">Plain Text</option>
-                                </select>
-                                <svg class="et-select-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="6 9 12 15 18 9"></polyline>
-                                </svg>
-                            </div>
-                        </div>
-
-                        <!-- Trigger Event -->
-                        <div class="et-field-group">
-                            <label class="et-field-label" for="etTriggerEvent">
-                                Trigger Event
-                            </label>
-                            <div class="et-select-wrapper">
-                                <span class="et-input-icon">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                                    </svg>
-                                </span>
-                                <select id="etTriggerEvent" asp-for="TriggerEvent" class="et-select" required>
-                                    <option value="0">Registration</option>
-                                    <option value="1">Password Reset</option>
-                                    <option value="2">Email Confirmation</option>
-                                    <option value="3">Security Alert</option>
-                                    <option value="4">Account Locked</option>
-                                    <option value="5">Welcome Email</option>
-                                    <option value="6">Invitation</option>
-                                    <option value="99">Custom</option>
-                                </select>
-                                <svg class="et-select-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="6 9 12 15 18 9"></polyline>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Settings Card -->
-                    <div class="et-settings-card">
-                        <div class="et-settings-left">
-                            <div class="et-settings-icon-box">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="3"/>
-                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <div class="et-settings-title">Active Status</div>
-                                <div class="et-settings-desc">Send this template for matching trigger events</div>
-                            </div>
-                        </div>
-                        <label class="et-switch" for="etIsActive">
-                            <input type="checkbox" id="etIsActive" asp-for="IsActive">
-                            <span class="et-switch-slider"></span>
-                        </label>
-                    </div>
-
-                </div><!-- /et-form-main -->
-
-                <!-- RIGHT COLUMN: Template Summary Sidebar -->
-                <div class="et-summary-sidebar">
-                    <div>
-                        <!-- Header -->
-                        <div class="et-summary-header">
-                            <div class="et-summary-header-icon">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                                    <polyline points="22,6 12,13 2,6"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <div class="et-summary-header-title">TEMPLATE SUMMARY</div>
-                                <div class="et-summary-header-subtitle">Quick overview of your template configuration</div>
-                            </div>
-                        </div>
-
-                        <!-- Illustration Box -->
-                        <div class="et-summary-illustration">
-                            <div class="et-summary-illustration-blob"></div>
-                            <svg class="et-summary-illustration-svg" viewBox="0 0 320 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <defs>
-                                    <linearGradient id="smEnvBody" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stop-color="#a855f7"/>
-                                        <stop offset="100%" stop-color="#8b5cf6"/>
-                                    </linearGradient>
-                                    <linearGradient id="smEnvBack" x1="0" y1="0" x2="1" y2="1">
-                                        <stop offset="0%" stop-color="#7c3aed"/>
-                                        <stop offset="100%" stop-color="#6d28d9"/>
-                                    </linearGradient>
-                                    <linearGradient id="smPlaneGrad" x1="0" y1="0" x2="1" y2="1">
-                                        <stop offset="0%" stop-color="#a855f7"/>
-                                        <stop offset="100%" stop-color="#7c3aed"/>
-                                    </linearGradient>
-                                    <filter id="smSoftShadow" x="-20%" y="-20%" width="140%" height="140%">
-                                        <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#7c3aed" flood-opacity="0.2"/>
-                                    </filter>
-                                </defs>
-
-                                <!-- Symmetrical Leaf Backdrop -->
-                                <g opacity="0.6">
-                                    <path d="M 125 105 C 95 85, 80 65, 92 48 C 105 70, 115 90, 125 105 Z" fill="#d8b4fe"/>
-                                    <path d="M 125 112 C 90 105, 70 88, 80 70 C 95 85, 110 100, 125 112 Z" fill="#e9d5ff"/>
-
-                                    <path d="M 195 105 C 225 85, 240 65, 228 48 C 215 70, 205 90, 195 105 Z" fill="#d8b4fe"/>
-                                    <path d="M 195 112 C 230 105, 250 88, 240 70 C 225 85, 210 100, 195 112 Z" fill="#e9d5ff"/>
-                                </g>
-
-                                <!-- Paper Plane top-left -->
-                                <g transform="translate(105, 22) rotate(-15)" filter="url(#smSoftShadow)">
-                                    <path d="M 0 22 L 34 0 L 16 28 L 12 21 Z" fill="url(#smPlaneGrad)"/>
-                                    <path d="M 34 0 L 16 28 L 12 18 Z" fill="#6d28d9" opacity="0.25"/>
-                                </g>
-
-                                <!-- Envelope Back -->
-                                <rect x="110" y="75" width="100" height="70" rx="10" fill="url(#smEnvBack)" filter="url(#smSoftShadow)"/>
-
-                                <!-- Letter Document -->
-                                <g transform="translate(120, 35)" filter="url(#smSoftShadow)">
-                                    <rect x="0" y="0" width="80" height="65" rx="6" fill="#ffffff"/>
-                                    <path d="M 68 0 L 80 12 L 68 12 Z" fill="#cbd5e1"/>
-                                    <rect x="10" y="16" width="60" height="4" rx="2" fill="#94a3b8" opacity="0.5"/>
-                                    <rect x="10" y="24" width="60" height="3" rx="1.5" fill="#cbd5e1"/>
-                                    <rect x="10" y="31" width="48" height="3" rx="1.5" fill="#cbd5e1"/>
-                                    <rect x="10" y="38" width="54" height="3" rx="1.5" fill="#cbd5e1"/>
-                                </g>
-
-                                <!-- Envelope Front -->
-                                <path d="M 110 85 L 160 120 L 210 85 L 210 135 C 210 140.5 205.5 145 200 145 L 120 145 C 114.5 145 110 140.5 110 135 Z" fill="url(#smEnvBody)" filter="url(#smSoftShadow)"/>
-
-                                <!-- Floating Green Checkmark Badge (Right Side) -->
-                                <g transform="translate(215, 60)" filter="url(#smSoftShadow)">
-                                    <circle cx="14" cy="14" r="14" fill="#10b981"/>
-                                    <path d="M9 14l3.5 3.5 7-7" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                </g>
-
-                                <!-- Sparkles -->
-                                <path d="M 270 32 Q 270 36 274 36 Q 270 36 270 40 Q 270 36 266 36 Q 270 36 270 32 Z" fill="#c084fc"/>
-                                <circle cx="85" cy="42" r="2" fill="#c084fc"/>
-                            </svg>
-                        </div>
-
-                        <!-- Stats Card -->
-                        <div class="et-summary-stats-card">
-                            <!-- Template Type Stat -->
-                            <div class="et-summary-stat-row">
-                                <div class="et-summary-stat-left">
-                                    <div class="et-summary-stat-icon">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <polyline points="16 18 22 12 16 6"/>
-                                            <polyline points="8 6 2 12 8 18"/>
-                                        </svg>
-                                    </div>
-                                    <span class="et-summary-stat-label">Template Type</span>
-                                </div>
-                                <span id="summaryTemplateType" class="et-summary-stat-value">HTML</span>
-                            </div>
-
-                            <!-- Trigger Event Stat -->
-                            <div class="et-summary-stat-row">
-                                <div class="et-summary-stat-left">
-                                    <div class="et-summary-stat-icon">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                                        </svg>
-                                    </div>
-                                    <span class="et-summary-stat-label">Trigger Event</span>
-                                </div>
-                                <span id="summaryTriggerEvent" class="et-summary-stat-value">Registration</span>
-                            </div>
-
-                            <!-- Status Stat -->
-                            <div class="et-summary-stat-row">
-                                <div class="et-summary-stat-left">
-                                    <div class="et-summary-stat-icon">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <circle cx="12" cy="12" r="10"/>
-                                            <circle cx="12" cy="12" r="3"/>
-                                        </svg>
-                                    </div>
-                                    <span class="et-summary-stat-label">Status</span>
-                                </div>
-                                <span id="summaryStatusBadge" class="et-status-pill active">Active</span>
-                            </div>
-                        </div>
-
-                    </div>
-                </div><!-- /et-summary-sidebar -->
-
-            </div><!-- /et-step-layout -->
+        <!-- Template Name -->
+        <div class="et-group">
+            <label class="et-label">Template Name <span class="et-required">*</span></label>
+            <input asp-for="Name" class="et-input" placeholder="e.g. Invitation Email" required maxlength="150" autocomplete="off" />
         </div>
 
-        <!-- Step 2: Body Content -->
-        <div class="wizard-step" data-title="Body Content">
-            <div class="et-body-step-wrapper">
-                <div class="et-body-panel">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-                        <div class="et-section-header" style="margin-bottom: 0;">
-                            <div class="et-section-icon">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="16 18 22 12 16 6"/>
-                                    <polyline points="8 6 2 12 8 18"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <div class="et-section-title">HTML BODY CONTENT <span class="et-required-star">*</span></div>
-                                <div class="et-section-subtitle">Design your email content using standard HTML and placeholder tokens.</div>
-                            </div>
-                        </div>
-                        <button type="button" class="et-preview-btn" onclick="etOpenPreview()">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                            </svg>
-                            Preview
-                        </button>
-                    </div>
+        <!-- Subject Line -->
+        <div class="et-group">
+            <label class="et-label">Subject Line <span class="et-required">*</span></label>
+            <input asp-for="Subject" class="et-input" placeholder="Welcome to {{AppName}}" required maxlength="500" autocomplete="off" />
+            <p class="et-hint">Tokens: <code>{{AppName}}</code> <code>{{UserName}}</code> <code>{{TenantName}}</code> <code>{{CallbackUrl}}</code></p>
+        </div>
 
-                    <div class="et-field-group">
-                        <textarea asp-for="Body" id="etBody" class="et-textarea-editor"
-                                  placeholder="Paste your HTML email template here. Use tokens like {{UserName}}, {{CallbackUrl}}, {{AppName}}..."
-                                  required></textarea>
-                    </div>
-
-                    <div class="et-tokens-row" style="margin-top: 4px;">
-                        <span class="et-tokens-label">Available Tokens:</span>
-                        <span class="et-token-badge" onclick="insertToken('{{UserName}}')">{{UserName}}</span>
-                        <span class="et-token-badge" onclick="insertToken('{{Email}}')">{{Email}}</span>
-                        <span class="et-token-badge" onclick="insertToken('{{AppName}}')">{{AppName}}</span>
-                        <span class="et-token-badge" onclick="insertToken('{{TenantName}}')">{{TenantName}}</span>
-                        <span class="et-token-badge" onclick="insertToken('{{CallbackUrl}}')">{{CallbackUrl}}</span>
-                        <span class="et-token-badge" onclick="insertToken('{{LogoUrl}}')">{{LogoUrl}}</span>
-                    </div>
-                </div>
+        <!-- Type + Event -->
+        <div class="et-row">
+            <div class="et-group" style="margin-bottom:0;">
+                <label class="et-label">Template Type</label>
+                <select asp-for="TemplateType" class="et-select" required>
+                    <option value="0">HTML</option>
+                    <option value="1">Plain Text</option>
+                </select>
+            </div>
+            <div class="et-group" style="margin-bottom:0;">
+                <label class="et-label">Trigger Event</label>
+                <select asp-for="TriggerEvent" class="et-select" required>
+                    <option value="0">Registration</option>
+                    <option value="1">Password Reset</option>
+                    <option value="2">Email Confirmation</option>
+                    <option value="3">Security Alert</option>
+                    <option value="4">Account Locked</option>
+                    <option value="5">Welcome Email</option>
+                    <option value="6">Invitation</option>
+                    <option value="99">Custom</option>
+                </select>
             </div>
         </div>
 
-    </div>
+        <!-- Is Active -->
+        <div class="et-group" style="margin-top:14px;">
+            <div class="et-toggle-row">
+                <input type="checkbox" asp-for="IsActive" id="etIsActive" class="et-toggle" />
+                <label for="etIsActive" class="et-toggle-label">Active — send this template for matching trigger events</label>
+            </div>
+        </div>
 
-    <!-- REMARKS FIELD (Edit mode only) -->
-    @await Html.PartialAsync("_EditRemarksPartial", isEdit)
+        <!-- HTML Body -->
+        <div class="et-group">
+            <div class="et-body-header">
+                <label class="et-label" style="margin:0;">HTML Body <span class="et-required">*</span></label>
+                <button type="button" class="et-preview-btn" onclick="etOpenPreview()">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    Preview
+                </button>
+            </div>
+            <textarea asp-for="Body" id="etBody" class="et-textarea" rows="14"
+                      placeholder="Paste your HTML email template here. Use tokens like {{UserName}}, {{CallbackUrl}}, {{AppName}}..."
+                      required></textarea>
+            <p class="et-hint">
+                Available tokens:
+                <code>{{UserName}}</code> <code>{{Email}}</code> <code>{{AppName}}</code>
+                <code>{{TenantName}}</code> <code>{{CallbackUrl}}</code> <code>{{LogoUrl}}</code>
+            </p>
+        </div>
 
-    <!-- Modal Footer -->
-    <div class="modal-footer">
-        <button type="submit" class="btn btn-primary" id="etSubmitBtn">
-            @(isEdit ? "Update Template" : "Save Template")
-        </button>
-    </div>
-</form>
+        <div class="et-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="etSubmitBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                    <polyline points="17 21 17 13 7 13 7 21"/>
+                    <polyline points="7 3 7 8 15 8"/>
+                </svg>
+                @(isEdit ? "Update Template" : "Save Template")
+            </button>
+        </div>
+    </form>
+</div>
 
 <script>
     function etOpenPreview() {
@@ -1045,103 +232,44 @@
         setTimeout(function () { URL.revokeObjectURL(url); }, 8000);
     }
 
-    function insertToken(token) {
-        const bodyElem = document.getElementById('etBody');
-        const subjectElem = document.getElementById('etSubject');
-        const activeElem = document.activeElement;
+    function submitEtForm(e) {
+        e.preventDefault();
+        var form = document.getElementById('etForm');
+        var btn  = document.getElementById('etSubmitBtn');
 
-        if (activeElem === subjectElem) {
-            const start = subjectElem.selectionStart || subjectElem.value.length;
-            const end = subjectElem.selectionEnd || subjectElem.value.length;
-            subjectElem.value = subjectElem.value.substring(0, start) + token + subjectElem.value.substring(end);
-            subjectElem.focus();
-            subjectElem.setSelectionRange(start + token.length, start + token.length);
-        } else {
-            const start = bodyElem.selectionStart || bodyElem.value.length;
-            const end = bodyElem.selectionEnd || bodyElem.value.length;
-            bodyElem.value = bodyElem.value.substring(0, start) + token + bodyElem.value.substring(end);
-            bodyElem.focus();
-            bodyElem.setSelectionRange(start + token.length, start + token.length);
-        }
-    }
+        if (window.validateAjaxForm && !window.validateAjaxForm(form)) return false;
 
-    function updateSummarySidebar() {
-        // Update Template Type
-        const typeVal = $('#etTemplateType').val();
-        const typeText = typeVal === '1' || typeVal === 'PlainText' ? 'Plain Text' : 'HTML';
-        $('#summaryTemplateType').text(typeText);
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="et-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Saving…';
 
-        // Update Trigger Event
-        const triggerText = $('#etTriggerEvent option:selected').text() || 'Registration';
-        $('#summaryTriggerEvent').text(triggerText);
-
-        // Update Active Status
-        const isActive = $('#etIsActive').is(':checked');
-        const $statusBadge = $('#summaryStatusBadge');
-        if (isActive) {
-            $statusBadge.text('Active').removeClass('inactive').addClass('active');
-        } else {
-            $statusBadge.text('Inactive').removeClass('active').addClass('inactive');
-        }
-    }
-
-    $(function() {
-        // Initialize live update listeners
-        $('#etTemplateType, #etTriggerEvent').on('change', updateSummarySidebar);
-        $('#etIsActive').on('change', updateSummarySidebar);
-        updateSummarySidebar();
-
-        const wizard = window.initWizardForm('#etForm', {
-            onFinished: function() {
-                var form = document.getElementById('etForm');
-                const $btn = $('.wizard-btn-save');
-                const originalHtml = $btn.html();
-
-                // Validate remarks before submission (edit mode only)
-                if (typeof validateRemarks === 'function' && !validateRemarks()) return;
-
-                $btn.prop('disabled', true).html('<svg class="et-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Saving…');
-
-                $.ajax({
-                    url: '/Home/CreateEmailTemplate',
-                    type: 'POST',
-                    data: new FormData(form),
-                    processData: false,
-                    contentType: false,
-                    success: function (res) {
-                        if (res.succeeded) {
-                            window.closeModal();
-                            if (typeof window.onModalSuccess === 'function') {
-                                window.onModalSuccess();
-                            }
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Saved',
-                                text: res.messages?.[0] || 'Email template saved successfully.',
-                                showConfirmButton: false,
-                                timer: 1500
-                            });
-                        } else {
-                            $btn.prop('disabled', false).html(originalHtml);
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Unable to Save',
-                                text: window.getPrimaryResultMessage ? window.getPrimaryResultMessage(res, 'Could not save the template.') : 'Error saving template.'
-                            });
-                        }
-                    },
-                    error: function (xhr) {
-                        $btn.prop('disabled', false).html(originalHtml);
-                        if (window.showRequestError) {
-                            window.showRequestError({
-                                title: 'Unable to Save',
-                                xhr: xhr,
-                                fallbackMessage: 'Could not save the email template.'
-                            });
-                        }
-                    }
-                });
+        $.ajax({
+            url: '/Home/CreateEmailTemplate',
+            type: 'POST',
+            data: new FormData(form),
+            processData: false,
+            contentType: false,
+            success: function (res) {
+                if (res.succeeded) {
+                    closeModal();
+                    if (typeof window.onModalSuccess === 'function') window.onModalSuccess();
+                    Swal.fire({ icon: 'success', title: 'Saved', text: res.messages?.[0] || 'Email template saved.', showConfirmButton: false, timer: 1500 });
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '@(isEdit ? "Update Template" : "Save Template")';
+                    Swal.fire({ icon: 'error', title: 'Unable to Save', text: window.getPrimaryResultMessage ? window.getPrimaryResultMessage(res, 'Could not save the template.') : 'Error saving template.' });
+                }
+            },
+            error: function (xhr) {
+                btn.disabled = false;
+                btn.innerHTML = '@(isEdit ? "Update Template" : "Save Template")';
+                if (window.showRequestError) window.showRequestError({ title: 'Unable to Save', xhr: xhr, fallbackMessage: 'Could not save the email template.' });
             }
         });
-    });
+        return false;
+    }
 </script>
+
+<style>
+    @@keyframes etSpin { to { transform: rotate(360deg); } }
+    .et-spin { display: inline-block; animation: etSpin 0.75s linear infinite; }
+</style>

@@ -7,7 +7,6 @@ using SSO.Application.Interfaces.Repos;
 using SSO.Application.Interfaces.Services;
 using SSO.Application.Interfaces.Services.Features;
 using SSO.Application.Requests.Features;
-using SSO.Application.Responses.Features;
 using SSO.Common.Constants.Application;
 using SSO.Common.Wrapper;
 using SSO.Domain.Entities;
@@ -40,7 +39,7 @@ namespace SSO.Infrastructure.Services.Features
             _logger = logger;
         }
 
-        public async Task<IResult<ImportScopesResponse>> ImportScopesAsync(Stream data, Guid? clientId = null)
+        public async Task<IResult<int>> ImportScopesAsync(Stream data, Guid? clientId = null)
         {
             var mappers = new Dictionary<string, Func<DataRow, ScopeRequest, object>>
             {
@@ -60,7 +59,7 @@ namespace SSO.Infrastructure.Services.Features
             };
 
             var result = await _excelService.ImportAsync(data, mappers);
-            if (!result.Succeeded) return await Result<ImportScopesResponse>.FailAsync(result.Messages);
+            if (!result.Succeeded) return await Result<int>.FailAsync(result.Messages);
 
             var scopeRequests = result.Data;
 
@@ -80,14 +79,6 @@ namespace SSO.Infrastructure.Services.Features
                 })
                 .ToList();
 
-            // Fetch existing permission codes BEFORE starting transaction/modifications to detect pre-existing duplicates
-            var preExistingPermissionCodes = await _dbContext.Permissions
-                .Where(p => p.ClientApplicationId == clientId)
-                .Select(p => p.Code)
-                .ToListAsync();
-
-            var response = new ImportScopesResponse();
-
             // Wrap everything in a transaction so a mid-flight failure cannot leave
             // partially-committed state that causes ASP.NET to throw
             // "StatusCode cannot be set because the response has already started".
@@ -98,7 +89,7 @@ namespace SSO.Infrastructure.Services.Features
                 var processedScopeIds = new List<Guid>();
                 foreach (var req in groupedScopes)
                 {
-                    var id = await CreateScopeAsync(req, clientId, response.SkippedPermissions, preExistingPermissionCodes);
+                    var id = await CreateScopeAsync(req, clientId);
                     processedScopeIds.Add(id);
                     importedCount++;
                 }
@@ -125,19 +116,17 @@ namespace SSO.Infrastructure.Services.Features
                     }
                 }
 
-                response.ImportedCount = importedCount;
-
                 await transaction.CommitAsync();
-                return await Result<ImportScopesResponse>.SuccessAsync(response);
+                return await Result<int>.SuccessAsync(importedCount);
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                return await Result<ImportScopesResponse>.FailAsync($"Import failed: {ex.Message}");
+                return await Result<int>.FailAsync($"Import failed: {ex.Message}");
             }
         }
 
-        public async Task<Guid> CreateScopeAsync(ScopeRequest req, Guid? clientId = null, List<string>? skippedPermissions = null, List<string>? preExistingPermissionCodes = null)
+        public async Task<Guid> CreateScopeAsync(ScopeRequest req, Guid? clientId = null)
         {
             try
             {
@@ -255,20 +244,7 @@ namespace SSO.Infrastructure.Services.Features
                     }
                     else
                     {
-                        // Check if it already existed in the database BEFORE this import process started
-                        if (preExistingPermissionCodes != null && preExistingPermissionCodes.Contains(permissionRequest.Code, StringComparer.OrdinalIgnoreCase))
-                        {
-                            // Avoid modifying / overwriting the existing permission description
-                            if (skippedPermissions != null && !skippedPermissions.Contains(permissionRequest.Code))
-                            {
-                                skippedPermissions.Add(permissionRequest.Code);
-                            }
-                        }
-                        else
-                        {
-                            // Otherwise, update description (since it's a new duplicate in the same import file or modified in a non-duplicate context)
-                            permission.Description = permissionRequest.Description;
-                        }
+                        permission.Description = permissionRequest.Description;
                     }
 
                     // Save here so permission.Id is populated (DB-generated) before use below.
@@ -314,22 +290,71 @@ namespace SSO.Infrastructure.Services.Features
 
         private async Task DeleteStaleScopePermissionsAsync(Guid scopeId, Guid? clientId, IReadOnlyCollection<Guid> currentPermissionIds)
         {
-            var clientPermissionIds = await _dbContext.Permissions
-                .Where(p => p.ClientApplicationId == clientId)
-                .Select(p => p.Id)
-                .ToListAsync();
+            var provider = _dbContext.Database.ProviderName ?? string.Empty;
+            var parameters = new DynamicParameters();
+            parameters.Add("scopeId", scopeId);
+            parameters.Add("clientId", clientId);
 
-            var staleMappings = await _dbContext.ApplicationScopePermissions
-                .Where(sp => sp.ScopeId == scopeId
-                          && clientPermissionIds.Contains(sp.PermissionId)
-                          && !currentPermissionIds.Contains(sp.PermissionId))
-                .ToListAsync();
+            var sql = GetDeleteStaleScopePermissionsQuery(provider, currentPermissionIds, parameters);
+            await _dapper.ExecuteNonSPAsync(sql, parameters);
+        }
 
-            if (staleMappings.Any())
+        private string GetDeleteStaleScopePermissionsQuery(string provider, IReadOnlyCollection<Guid> currentPermissionIds, DynamicParameters parameters)
+        {
+            var scopePermissionsTable = GetIdentifier(provider, "ApplicationScopePermissions");
+            var permissionsTable = GetIdentifier(provider, "Permissions");
+            var scopeIdColumn = GetIdentifier(provider, "ScopeId");
+            var permissionIdColumn = GetIdentifier(provider, "PermissionId");
+            var permissionPrimaryKeyColumn = GetIdentifier(provider, "Id");
+            var clientApplicationIdColumn = GetIdentifier(provider, "ClientApplicationId");
+            var scopeIdParameter = GetParameterToken(provider, "scopeId");
+            var clientIdParameter = GetParameterToken(provider, "clientId");
+
+            var sql = $@"
+                        DELETE FROM {scopePermissionsTable}
+                        WHERE {scopeIdColumn} = {scopeIdParameter}
+                          AND {permissionIdColumn} IN (
+                              SELECT p.{permissionPrimaryKeyColumn}
+                              FROM {permissionsTable} p
+                              WHERE p.{clientApplicationIdColumn} = {clientIdParameter}
+                          )";
+
+            if (currentPermissionIds.Count > 0)
             {
-                _dbContext.ApplicationScopePermissions.RemoveRange(staleMappings);
-                await _dbContext.SaveChangesAsync();
+                var idParameters = new List<string>();
+                var index = 0;
+                foreach (var permissionId in currentPermissionIds)
+                {
+                    var parameterName = $"permissionId{index++}";
+                    parameters.Add(parameterName, permissionId);
+                    idParameters.Add(GetParameterToken(provider, parameterName));
+                }
+
+                sql += $@" AND {permissionIdColumn} NOT IN ({string.Join(", ", idParameters)})";
             }
+
+            return sql + ";";
+        }
+
+        private static string GetIdentifier(string provider, string identifier)
+        {
+            if (provider.Contains(ApplicationConstants.DBProvider.PostgreSql, StringComparison.OrdinalIgnoreCase) ||
+                provider.Contains(ApplicationConstants.DBProvider.Oracle, StringComparison.OrdinalIgnoreCase))
+            {
+                return $"\"{identifier}\"";
+            }
+
+            return identifier;
+        }
+
+        private static string GetParameterToken(string provider, string parameterName)
+        {
+            if (provider.Contains(ApplicationConstants.DBProvider.Oracle, StringComparison.OrdinalIgnoreCase))
+            {
+                return $":{parameterName}";
+            }
+
+            return $"@{parameterName}";
         }
     }
 }

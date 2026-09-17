@@ -45,19 +45,6 @@ namespace SSO.Infrastructure.Contexts
         public DbSet<Invoice> Invoices => Set<Invoice>();
         public DbSet<Payment> Payments => Set<Payment>();
         public DbSet<TenantClient> TenantClients => Set<TenantClient>();
-
-        /// <summary>Authentication security events — failed logins, lockouts, OTP failures, access denials.</summary>
-        public DbSet<LoginSecurityEvent> LoginSecurityEvents => Set<LoginSecurityEvent>();
-
-        /// <summary>Restricted Page Access Protocol transactions (single-use scoped ephemeral sessions).</summary>
-        public DbSet<ManagementTransaction> ManagementTransactions => Set<ManagementTransaction>();
-
-        /// <summary>Restricted Page Access Protocol configurable settings.</summary>
-        public DbSet<RpapSetting> RpapSettings => Set<RpapSetting>();
-
-        /// <summary>Token lifetime configuration settings (Access Token, Refresh Token, Authorization Code).</summary>
-        public DbSet<TokenLifetimeSetting> TokenLifetimeSettings => Set<TokenLifetimeSetting>();
-
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new())
         {
             foreach (Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<IAuditableEntity>? entry in ChangeTracker.Entries<IAuditableEntity>().ToList())
@@ -78,36 +65,8 @@ namespace SSO.Infrastructure.Contexts
                 }
             }
             return string.IsNullOrEmpty(_currentUserService.UserName)
-                ? await base.SaveChangesAsync(userId: null!, remarks: null, cancellationToken: cancellationToken)
-                : await base.SaveChangesAsync(userId: _currentUserService.UserName, remarks: null, cancellationToken: cancellationToken);
-        }
-
-        /// <summary>
-        /// SaveChanges overload that carries a user-supplied remarks/description string into the audit trail.
-        /// Call this from UnitOfWork.Commit(remarks: ...) for edit operations.
-        /// </summary>
-        public async Task<int> SaveChangesAsync(string? remarks, CancellationToken cancellationToken = new())
-        {
-            foreach (Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<IAuditableEntity>? entry in ChangeTracker.Entries<IAuditableEntity>().ToList())
-            {
-                switch (entry.State)
-                {
-                    case EntityState.Added:
-                        entry.Entity.CreatedOn = _dateTimeService.NowUtc;
-                        entry.Entity.CreatedBy = _currentUserService.UserName;
-                        entry.Entity.IPAddress = _currentUserService.IpAddress;
-                        break;
-
-                    case EntityState.Modified:
-                        entry.Entity.LastModifiedOn = _dateTimeService.NowUtc;
-                        entry.Entity.LastModifiedBy = _currentUserService.UserName;
-                        entry.Entity.IPAddress = _currentUserService.IpAddress;
-                        break;
-                }
-            }
-            return string.IsNullOrEmpty(_currentUserService.UserName)
-                ? await base.SaveChangesAsync(userId: null!, remarks: remarks, cancellationToken: cancellationToken)
-                : await base.SaveChangesAsync(userId: _currentUserService.UserName, remarks: remarks, cancellationToken: cancellationToken);
+                ? await base.SaveChangesAsync(cancellationToken)
+                : await base.SaveChangesAsync(_currentUserService.UserName, cancellationToken);
         }
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -218,49 +177,6 @@ namespace SSO.Infrastructure.Contexts
                     .WithMany()
                     .HasForeignKey(tl => tl.TenantId)
                     .OnDelete(DeleteBehavior.NoAction);
-            });
-
-            // ─── LoginSecurityEvent ──────────────────────────────────────────────
-            builder.Entity<LoginSecurityEvent>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Id).ValueGeneratedOnAdd();
-                entity.HasIndex(e => e.UserId);
-                entity.HasIndex(e => new { e.IpAddress, e.OccurredAtUtc });
-                entity.HasIndex(e => e.OccurredAtUtc);
-                entity.Property(e => e.EventType).HasConversion<byte>();
-                entity.Property(e => e.ClientId).HasMaxLength(100);
-                entity.Property(e => e.UserName).HasMaxLength(256);
-                entity.Property(e => e.IpAddress).HasMaxLength(45);   // supports IPv6
-                entity.Property(e => e.CountryCode).HasMaxLength(5);
-                entity.Property(e => e.Country).HasMaxLength(100);
-                entity.Property(e => e.City).HasMaxLength(100);
-                entity.Property(e => e.DeviceType).HasMaxLength(20);
-                entity.Property(e => e.BrowserName).HasMaxLength(100);
-                entity.Property(e => e.OsName).HasMaxLength(100);
-            });
-
-            // ─── ManagementTransaction (RPAP) ──────────────────────────────────
-            builder.Entity<ManagementTransaction>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.HasIndex(e => e.LaunchTokenHash);
-                entity.HasIndex(e => e.ResultCodeHash);
-                entity.HasIndex(e => new { e.TenantId, e.Status });
-                entity.HasIndex(e => new { e.ClientId, e.Status });
-                entity.HasIndex(e => e.ExpiresOn);
-
-                entity.Property(e => e.ClientId).HasMaxLength(100).IsRequired();
-                entity.Property(e => e.Scope).HasMaxLength(100).IsRequired();
-                entity.Property(e => e.LaunchTokenHash).HasMaxLength(128).IsRequired();
-                entity.Property(e => e.TargetUrl).HasMaxLength(500).IsRequired();
-                entity.Property(e => e.CallbackUrl).HasMaxLength(1000).IsRequired();
-                entity.Property(e => e.State).HasMaxLength(500);
-                entity.Property(e => e.ResultCodeHash).HasMaxLength(128);
-                entity.Property(e => e.ConsumedIpAddress).HasMaxLength(45);
-                entity.Property(e => e.ConsumedUserAgent).HasMaxLength(500);
-                entity.Property(e => e.RevokedReason).HasMaxLength(500);
-                entity.Property(e => e.RevokedBy).HasMaxLength(256);
             });
 
         }

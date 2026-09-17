@@ -6,6 +6,5 @@ namespace SSO.Application.Interfaces.Services
     {
         Task CleanTemporaryFilesAsync();
         Task PerformSystemBackupAsync();
-        Task PerformClientHealthCheckAsync();
     }
 }

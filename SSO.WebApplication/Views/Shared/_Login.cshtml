@@ -1,0 +1,67 @@
+﻿@using SSO.Domain.Entities
+@{
+    var tenant = ViewBag.TenantBranding as Tenants;
+    var rawLogo = tenant?.LogoUrl?.Replace("\\", "/");
+    var tenantName = tenant?.Name ?? "Schoola";
+    var logo = !string.IsNullOrEmpty(rawLogo) ? "/" + rawLogo : "/pwa-icon-512.png";
+    var pageSubtitle = ViewData["ChalkSubtitle"]?.ToString() ?? "Your Gateway to the Perfect Education";
+    var cspNonce = Context.Items["CSPNonce"]?.ToString();
+}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csp-nonce" content="@cspNonce">
+    <title>@tenantName - @ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/css/styles.css" asp-append-version="true">
+    <link rel="stylesheet" href="~/css/chalk-login.css" asp-append-version="true">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="chalk-auth-page">
+        <div class="chalk-formulas">
+            <span style="top:5%; left:3%; font-size:2.2rem; transform:rotate(-8deg);">E = mc²</span>
+            <span style="top:12%; left:15%; font-size:1.4rem; transform:rotate(5deg);">கற்க</span>
+            <span style="top:8%; right:25%; font-size:1.3rem; transform:rotate(-3deg);">a² + b² = c²</span>
+            <span style="top:4%; right:8%; font-size:1.6rem; transform:rotate(6deg);">H₂O</span>
+            <span style="top:18%; left:8%; font-size:1.1rem; transform:rotate(-12deg);">கசடஇல்லா</span>
+            <span style="top:22%; right:5%; font-size:2rem; transform:rotate(4deg);">கற்க</span>
+            <span style="top:15%; left:40%; font-size:1rem; transform:rotate(-5deg);">Knowledge</span>
+            <span style="top:30%; left:2%; font-size:1.3rem; transform:rotate(10deg);">School</span>
+            <span style="top:45%; left:5%; font-size:1rem; transform:rotate(-6deg);">Discovery</span>
+            <span style="top:50%; right:3%; font-size:1.4rem; transform:rotate(8deg);">Education</span>
+            <span style="top:38%; right:10%; font-size:1.1rem; transform:rotate(-4deg);">Σn = n(n+1)/2</span>
+            <span style="top:55%; right:15%; font-size:1rem; transform:rotate(3deg);">%</span>
+            <span style="top:60%; left:10%; font-size:1.5rem; transform:rotate(-7deg);">கற்பவை</span>
+            <span style="top:58%; right:5%; font-size:1rem; transform:rotate(12deg);">J.Rosla</span>
+            <span style="top:70%; left:4%; font-size:1rem; transform:rotate(6deg);">ω</span>
+            <span style="top:75%; right:8%; font-size:1.3rem; transform:rotate(-5deg);">Study</span>
+            <span style="top:80%; left:15%; font-size:1.1rem; transform:rotate(-9deg);">sin θ + cos θ = 1</span>
+            <span style="top:72%; right:3%; font-size:1rem; transform:rotate(4deg);">கற்பவை</span>
+            <span style="top:85%; right:6%; font-size:1.4rem; transform:rotate(-6deg);">C₆H₁₂</span>
+            <span style="top:65%; right:20%; font-size:0.9rem; transform:rotate(7deg);">θ</span>
+            <span style="top:32%; right:2%; font-size:1.1rem; transform:rotate(-10deg);">Σn = nln + H₂O</span>
+            <span style="top:90%; left:5%; font-size:1rem; transform:rotate(3deg);">F = ma</span>
+        </div>
+
+        <div class="chalk-brand">
+            <div class="chalk-brand-badge">
+                <img src="@logo" alt="@tenantName" class="chalk-brand-logo" />
+            </div>
+            <h1 class="chalk-brand-title">@tenantName</h1>
+            <p class="chalk-brand-subtitle">@pageSubtitle</p>
+        </div>
+
+        <div class="chalk-card">
+            @RenderBody()
+        </div>
+    </div>
+    <script src="~/js/jquery-3.7.1.min.js" nonce="@cspNonce"></script>
+    <partial name="_ValidationScriptsPartial" />
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+
+</html>

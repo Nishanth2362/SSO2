@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SSO.Application.Interfaces.Repos;
@@ -35,7 +35,7 @@ namespace SSO.Application.Features.Users.Queries.GetAll
         {
             try
             {
-                var users = await _userManager.Users
+                var users =await _userManager.Users
                     .Select(x => new UserResponse
                     {
                         Id = x.Id,
@@ -43,8 +43,6 @@ namespace SSO.Application.Features.Users.Queries.GetAll
                         Email = x.Email,
                         FirstName = x.Name, // Assuming Name is FirstName or FullName
                         LastName = string.Empty, // ApplicationUser only has Name
-                        PhoneNumber = x.PhoneNumber,
-                        IsEmailConfirmed = x.EmailConfirmed,
                         TenantId = x.TenantId,
                         CreatedAt = x.CreatedOn ?? DateTime.MinValue,
                         UpdatedAt = x.LastModifiedOn ?? DateTime.MinValue,

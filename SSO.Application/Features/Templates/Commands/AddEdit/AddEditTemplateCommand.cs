@@ -18,9 +18,6 @@ namespace SSO.Application.Features.Templates.Commands.AddEdit
         public DocumentType Type { get; set; }
         public string Version { get; set; } = "1.0";
         public string Content { get; set; } = default!;
-
-        /// <summary>Mandatory change description when editing an existing template.</summary>
-        public string? Remarks { get; set; }
     }
 
     public class AddEditTemplateValidator : IRequestValidator<AddEditTemplateCommand>
@@ -56,16 +53,6 @@ namespace SSO.Application.Features.Templates.Commands.AddEdit
 
             if (string.IsNullOrWhiteSpace(request.Content))
                 errors.Add(new ValidationError { PropertyName = nameof(request.Content), ErrorMessage = "Template content (file path) is required." });
-
-            if (request.Id != Guid.Empty)
-            {
-                if (string.IsNullOrWhiteSpace(request.Remarks))
-                    errors.Add(new ValidationError { PropertyName = nameof(request.Remarks), ErrorMessage = "A change description (remarks) is required when editing." });
-                else if (request.Remarks.Trim().Length < 5)
-                    errors.Add(new ValidationError { PropertyName = nameof(request.Remarks), ErrorMessage = "Remarks must be at least 5 characters." });
-                else if (request.Remarks.Length > 500)
-                    errors.Add(new ValidationError { PropertyName = nameof(request.Remarks), ErrorMessage = "Remarks cannot exceed 500 characters." });
-            }
 
             return Task.FromResult(errors.AsEnumerable());
         }
@@ -103,7 +90,7 @@ namespace SSO.Application.Features.Templates.Commands.AddEdit
                     template.Content = command.Content;
 
                     await _unitOfWork.Repository<Domain.Entities.Template>().UpdateAsync(template).ConfigureAwait(false);
-                    await _unitOfWork.Commit(ct, remarks: command.Remarks).ConfigureAwait(false);
+                    await _unitOfWork.Commit(ct).ConfigureAwait(false);
                     return await Result<Guid>.SuccessAsync(template.Id, "Template updated successfully.").ConfigureAwait(false);
                 }
                 else

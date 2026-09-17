@@ -3,1070 +3,152 @@
 }
 @model SSO.Application.Features.Subscriptions.Commands.AddEdit.AddEditSubscriptionCommand
 
-<style>
-    /* ═══════════════════════════════════════════════════════════
-       COMPACT SINGLE-PAGE SUBSCRIPTION MODAL (Zero-Clipping)
-       ═══════════════════════════════════════════════════════════ */
-
-    #appModal .modal-dialog {
-        max-width: 1140px !important;
-        width: 92vw !important;
-        max-height: 92vh !important;
-        border-radius: 18px !important;
-        background: #ffffff !important;
-        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12) !important;
-        border: 1px solid #FED7AA !important;
-        overflow: hidden !important;
-        display: flex !important;
-        flex-direction: column !important;
-    }
-
-    html[data-theme="dark"] #appModal .modal-dialog {
-        background: #0f172a !important;
-        border-color: #334155 !important;
-        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.5) !important;
-    }
-
-    /* Modal Header Override */
-    #appModal .modal-header {
-        padding: 14px 24px 10px 24px !important;
-        border-bottom: 1px solid #FFF7ED !important;
-        background: #ffffff !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        flex-shrink: 0 !important;
-    }
-
-    html[data-theme="dark"] #appModal .modal-header {
-        background: #0f172a !important;
-        border-color: #1e293b !important;
-    }
-
-    #appModal .modal-title-group {
-        display: flex !important;
-        align-items: center !important;
-        gap: 12px !important;
-    }
-
-    #appModal .modal-icon {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 40px !important;
-        height: 40px !important;
-        border-radius: 10px !important;
-        background: #FFF7ED !important;
-        border: 1px solid #FED7AA !important;
-        color: #F97316 !important;
-    }
-
-    html[data-theme="dark"] #appModal .modal-icon {
-        background: rgba(249, 115, 22, 0.15) !important;
-        border-color: rgba(249, 115, 22, 0.3) !important;
-        color: #F97316 !important;
-    }
-
-    #appModal .modal-title {
-        font-size: 1.4rem !important;
-        font-weight: 800 !important;
-        color: #0F172A !important;
-        letter-spacing: -0.02em !important;
-        margin: 0 !important;
-        line-height: 1.2 !important;
-    }
-
-    html[data-theme="dark"] #appModal .modal-title {
-        color: #F8FAFC !important;
-    }
-
-    #appModal .modal-subtitle {
-        font-size: 0.8rem !important;
-        color: #64748B !important;
-        margin-top: 1px !important;
-        font-weight: 400 !important;
-    }
-
-    html[data-theme="dark"] #appModal .modal-subtitle {
-        color: #94A3B8 !important;
-    }
-
-    #appModal .modal-close-btn {
-        width: 34px !important;
-        height: 34px !important;
-        border-radius: 8px !important;
-        background: #FFFFFF !important;
-        border: 1px solid #E2E8F0 !important;
-        color: #64748B !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        cursor: pointer !important;
-        transition: all 0.2s ease !important;
-    }
-
-    #appModal .modal-close-btn:hover {
-        background: #FFF7ED !important;
-        border-color: #FED7AA !important;
-        color: #F97316 !important;
-    }
-
-    #modalContent {
-        padding: 0 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        flex: 1 !important;
-        overflow: hidden !important;
-    }
-
-    /* Modal Body Wrapper */
-    .sub-modal-container {
-        padding: 12px 24px 16px 24px;
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        overflow: hidden;
-    }
-
-    /* Compact Interactive Stepper Bar */
-    .sub-stepper-bar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 12px;
-        position: relative;
-        padding: 0 20px;
-        flex-shrink: 0;
-    }
-
-    .sub-stepper-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        z-index: 1;
-        background: #ffffff;
-        padding: 0 8px;
-        cursor: pointer;
-        user-select: none;
-    }
-
-    html[data-theme="dark"] .sub-stepper-item {
-        background: #0f172a;
-    }
-
-    .sub-step-num {
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.75rem;
-        font-weight: 700;
-        transition: all 0.3s ease;
-    }
-
-    .sub-step-num.active {
-        background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
-        color: #ffffff;
-        box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
-    }
-
-    .sub-step-num.inactive {
-        background: #F1F5F9;
-        color: #94A3B8;
-    }
-
-    html[data-theme="dark"] .sub-step-num.inactive {
-        background: #1e293b;
-        color: #64748B;
-    }
-
-    .sub-step-label {
-        font-size: 0.8rem;
-        font-weight: 600;
-        transition: color 0.3s ease;
-    }
-
-    .sub-step-label.active {
-        color: #F97316;
-    }
-
-    .sub-step-label.inactive {
-        color: #64748B;
-    }
-
-    html[data-theme="dark"] .sub-step-label.inactive {
-        color: #94A3B8;
-    }
-
-    .sub-stepper-line-segment {
-        flex: 1;
-        height: 2px;
-        background: #E2E8F0;
-        margin: 0 4px;
-        transition: background 0.3s ease;
-    }
-
-    html[data-theme="dark"] .sub-stepper-line-segment {
-        background: #334155;
-    }
-
-    .sub-stepper-line-segment.active {
-        background: linear-gradient(90deg, #F97316 0%, #EA580C 100%);
-    }
-
-    /* 70% Form | 30% Summary Layout Grid */
-    .sub-layout-grid {
-        display: flex;
-        gap: 20px;
-        align-items: stretch;
-        flex: 1;
-        min-height: 0;
-    }
-
-    .sub-form-col {
-        flex: 1 1 70%;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .sub-summary-col {
-        flex: 0 0 30%;
-        min-width: 270px;
-        max-width: 300px;
-        display: flex;
-        flex-direction: column;
-    }
-
-    /* Single Card Form Container */
-    .sub-card-container {
-        background: #ffffff;
-        border-radius: 14px;
-        border: 1px solid #FED7AA;
-        padding: 14px 18px;
-        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
-
-    html[data-theme="dark"] .sub-card-container {
-        background: #1e293b;
-        border-color: #334155;
-    }
-
-    /* Section Header Badges */
-    .sub-section-badge {
-        font-size: 0.7rem;
-        font-weight: 800;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: #F97316;
-        margin-bottom: 8px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .sub-section-badge::after {
-        content: '';
-        flex: 1;
-        height: 1px;
-        background: #FFF7ED;
-    }
-
-    html[data-theme="dark"] .sub-section-badge::after {
-        background: #334155;
-    }
-
-    /* Form Rows */
-    .sub-form-row {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-        margin-bottom: 10px;
-    }
-
-    .sub-field-group {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .sub-field-label {
-        font-size: 0.78rem;
-        font-weight: 600;
-        color: #0F172A;
-        margin-bottom: 4px;
-    }
-
-    html[data-theme="dark"] .sub-field-label {
-        color: #F8FAFC;
-    }
-
-    .sub-field-label .required-star {
-        color: #EF4444;
-        margin-left: 2px;
-    }
-
-    /* Ultra Compact Inputs */
-    .sub-input-custom {
-        height: 38px !important;
-        border-radius: 8px !important;
-        border: 1px solid #CBD5E1 !important;
-        background: #FFFFFF !important;
-        padding: 0 12px !important;
-        font-size: 0.84rem !important;
-        color: #0F172A !important;
-        outline: none !important;
-        transition: all 0.2s ease !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
-    }
-
-    html[data-theme="dark"] .sub-input-custom {
-        background: #0f172a !important;
-        border-color: #334155 !important;
-        color: #F8FAFC !important;
-    }
-
-    .sub-input-custom:hover {
-        border-color: #94A3B8 !important;
-    }
-
-    .sub-input-custom:focus {
-        border-color: #F97316 !important;
-        box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15) !important;
-    }
-
-    .sub-field-hint {
-        font-size: 0.7rem;
-        color: #64748B;
-        margin-top: 2px;
-    }
-
-    html[data-theme="dark"] .sub-field-hint {
-        color: #94A3B8;
-    }
-
-    .sub-price-group {
-        display: flex;
-        gap: 6px;
-    }
-
-    .sub-price-group select {
-        width: 95px !important;
-        flex-shrink: 0;
-    }
-
-    .sub-price-group input {
-        flex: 1;
-    }
-
-    /* Isolation Strategy Card */
-    .sub-status-card {
-        background: #FFF7ED;
-        border: 1px solid #FED7AA;
-        border-radius: 10px;
-        padding: 10px 14px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-top: 2px;
-    }
-
-    html[data-theme="dark"] .sub-status-card {
-        background: rgba(249, 115, 22, 0.08);
-        border-color: rgba(249, 115, 22, 0.2);
-    }
-
-    .sub-status-left {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .sub-status-icon {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-        background: #FFEDD5;
-        color: #F97316;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-
-    html[data-theme="dark"] .sub-status-icon {
-        background: rgba(249, 115, 22, 0.2);
-    }
-
-    .sub-status-title {
-        font-size: 0.84rem;
-        font-weight: 700;
-        color: #0F172A;
-    }
-
-    html[data-theme="dark"] .sub-status-title {
-        color: #F8FAFC;
-    }
-
-    .sub-status-sub {
-        font-size: 0.72rem;
-        color: #64748B;
-    }
-
-    html[data-theme="dark"] .sub-status-sub {
-        color: #94A3B8;
-    }
-
-    /* Switch */
-    .sub-toggle-switch {
-        position: relative;
-        display: inline-block;
-        width: 40px;
-        height: 22px;
-        flex-shrink: 0;
-    }
-
-    .sub-toggle-switch input {
-        opacity: 0;
-        width: 0;
-        height: 0;
-    }
-
-    .sub-toggle-track {
-        position: absolute;
-        cursor: pointer;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background-color: #CBD5E1;
-        transition: .25s ease;
-        border-radius: 34px;
-    }
-
-    .sub-toggle-track:before {
-        position: absolute;
-        content: "";
-        height: 16px;
-        width: 16px;
-        left: 3px;
-        bottom: 3px;
-        background-color: white;
-        transition: .25s ease;
-        border-radius: 50%;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-    }
-
-    .sub-toggle-switch input:checked + .sub-toggle-track {
-        background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
-    }
-
-    .sub-toggle-switch input:checked + .sub-toggle-track:before {
-        transform: translateX(18px);
-    }
-
-    /* Plan Summary Panel */
-    .sub-summary-card {
-        background: #ffffff;
-        border-radius: 14px;
-        border: 1px solid #FED7AA;
-        padding: 14px 16px;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        box-sizing: border-box;
-        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
-        justify-content: space-between;
-    }
-
-    html[data-theme="dark"] .sub-summary-card {
-        background: #1e293b;
-        border-color: #334155;
-    }
-
-    .sub-summary-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 8px;
-    }
-
-    .sub-summary-header-icon {
-        width: 28px;
-        height: 28px;
-        border-radius: 6px;
-        background: #FFF7ED;
-        color: #F97316;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    html[data-theme="dark"] .sub-summary-header-icon {
-        background: rgba(249, 115, 22, 0.15);
-    }
-
-    .sub-summary-header-title {
-        font-size: 0.92rem;
-        font-weight: 700;
-        color: #0F172A;
-    }
-
-    html[data-theme="dark"] .sub-summary-header-title {
-        color: #F8FAFC;
-    }
-
-    .sub-illustration-box {
-        background: linear-gradient(180deg, #FFFDFB 0%, #FFF7ED 100%);
-        border-radius: 10px;
-        padding: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 8px;
-        border: 1px solid #FFEDD5;
-    }
-
-    html[data-theme="dark"] .sub-illustration-box {
-        background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-        border-color: #334155;
-    }
-
-    /* Summary Rows */
-    .sub-summary-list {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-
-    .sub-summary-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-size: 0.77rem;
-        padding-bottom: 5px;
-        border-bottom: 1px dashed #F1F5F9;
-    }
-
-    html[data-theme="dark"] .sub-summary-row {
-        border-bottom-color: #334155;
-    }
-
-    .sub-summary-row:last-child {
-        border-bottom: none;
-        padding-bottom: 0;
-    }
-
-    .sub-summary-label {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        color: #64748B;
-        font-weight: 500;
-    }
-
-    html[data-theme="dark"] .sub-summary-label {
-        color: #94A3B8;
-    }
-
-    .sub-summary-label-icon {
-        color: #F97316;
-        flex-shrink: 0;
-    }
-
-    .sub-summary-val {
-        font-weight: 700;
-        color: #0F172A;
-        text-align: right;
-    }
-
-    html[data-theme="dark"] .sub-summary-val {
-        color: #F8FAFC;
-    }
-
-    .sub-badge-active {
-        background: #DCFCE7;
-        color: #166534;
-        font-size: 0.68rem;
-        font-weight: 700;
-        padding: 2px 7px;
-        border-radius: 8px;
-        display: inline-block;
-    }
-
-    /* Action Footer Buttons (Fully Visible, Zero Clipping) */
-    .sub-action-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-top: 10px;
-        padding-top: 10px;
-        border-top: 1px solid #F1F5F9;
-        flex-shrink: 0;
-    }
-
-    html[data-theme="dark"] .sub-action-footer {
-        border-top-color: #334155;
-    }
-
-    .sub-btn-cancel {
-        background: #FFFFFF !important;
-        border: 1px solid #CBD5E1 !important;
-        color: #475569 !important;
-        height: 38px !important;
-        border-radius: 8px !important;
-        padding: 0 20px !important;
-        font-weight: 600 !important;
-        font-size: 0.84rem !important;
-        cursor: pointer !important;
-        transition: all 0.2s ease !important;
-    }
-
-    .sub-btn-cancel:hover {
-        background: #F8FAFC !important;
-        color: #0F172A !important;
-    }
-
-    #createSubscriptionForm .btn-primary,
-    #createSubscriptionForm .wizard-btn-save,
-    #submitSubscriptionForm {
-        background: linear-gradient(135deg, #F97316 0%, #EA580C 100%) !important;
-        border: none !important;
-        color: #ffffff !important;
-        border-radius: 8px !important;
-        height: 38px !important;
-        padding: 0 22px !important;
-        font-size: 0.84rem !important;
-        font-weight: 600 !important;
-        box-shadow: 0 3px 10px rgba(249, 115, 22, 0.3) !important;
-        cursor: pointer !important;
-        transition: all 0.2s ease !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 6px !important;
-    }
-
-    #createSubscriptionForm .btn-primary:hover,
-    #createSubscriptionForm .wizard-btn-save:hover,
-    #submitSubscriptionForm:hover {
-        background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%) !important;
-        box-shadow: 0 5px 14px rgba(249, 115, 22, 0.4) !important;
-    }
-
-    /* Force single-page form display without step hiding */
-    #createSubscriptionForm .wizard-step {
-        display: block !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-    }
-
-    #createSubscriptionForm .wizard-steps-header,
-    #createSubscriptionForm .wizard-btn-next,
-    #createSubscriptionForm .wizard-btn-prev {
-        display: none !important;
-    }
-</style>
-
-<form id="createSubscriptionForm" class="wizard-container" novalidate>
+<form id="createSubscriptionForm" novalidate>
     <input type="hidden" asp-for="Id" />
+    <div class="modal-body">
 
-    <div class="sub-modal-container">
-        <!-- Interactive Progress Stepper -->
-        <div class="sub-stepper-bar">
-            <div class="sub-stepper-item" id="stepIndicator1">
-                <div class="sub-step-num active" id="stepNum1">1</div>
-                <span class="sub-step-label active" id="stepLabel1">Plan Details</span>
+        <!-- Section: Basic Details -->
+        <div class="modal-section-label">Plan Details</div>
+        <div class="modal-form-grid">
+            <div class="modal-field">
+                <label class="modal-label" for="subName">
+                    Plan Name <span class="required-star">*</span>
+                </label>
+                <input id="subName" asp-for="Name" type="text" class="modal-input"
+                       placeholder="e.g. Enterprise Tier" required autocomplete="off">
+                <span class="field-hint">The display name for this subscription plan.</span>
             </div>
-            <div class="sub-stepper-line-segment" id="stepperLine1"></div>
-            <div class="sub-stepper-item" id="stepIndicator2">
-                <div class="sub-step-num inactive" id="stepNum2">2</div>
-                <span class="sub-step-label inactive" id="stepLabel2">Pricing &amp; Quotas</span>
-            </div>
-            <div class="sub-stepper-line-segment" id="stepperLine2"></div>
-            <div class="sub-stepper-item" id="stepIndicator3">
-                <div class="sub-step-num inactive" id="stepNum3">3</div>
-                <span class="sub-step-label inactive" id="stepLabel3">Isolation Strategy</span>
-            </div>
-        </div>
-
-        <!-- Single Page 70% / 30% Grid -->
-        <div class="sub-layout-grid">
-            <!-- Left Form Area (70%) -->
-            <div class="sub-form-col">
-                <div class="sub-card-container">
-                    
-                    <!-- Section 1: Plan Details -->
-                    <div class="wizard-step" data-title="Plan Details">
-                        <div class="sub-section-badge">PLAN DETAILS</div>
-                        
-                        <div class="sub-form-row">
-                            <div class="sub-field-group">
-                                <label class="sub-field-label" for="subName">
-                                    Plan Name <span class="required-star">*</span>
-                                </label>
-                                <input id="subName" asp-for="Name" type="text" class="sub-input-custom modal-input"
-                                       placeholder="e.g. Enterprise Tier" required autocomplete="off">
-                                <span class="sub-field-hint">The display name for this subscription plan.</span>
-                            </div>
-
-                            <div class="sub-field-group">
-                                <label class="sub-field-label" for="description">
-                                    Description <span class="required-star">*</span>
-                                </label>
-                                <input id="description" asp-for="Description" type="text" class="sub-input-custom modal-input"
-                                       placeholder="e.g. Enterprise Tier Description" required autocomplete="off">
-                                <span class="sub-field-hint">The description for this subscription plan.</span>
-                            </div>
-                        </div>
-
-                        <div class="sub-form-row">
-                            <div class="sub-field-group">
-                                <label class="sub-field-label" for="billingCycle">
-                                    Billing Cycle <span class="required-star">*</span>
-                                </label>
-                                <select id="billingCycle" asp-for="BillingCycle" class="sub-input-custom modal-input" required>
-                                    <option value="@SSO.Domain.Enums.SubscriptionBillingCycle.Monthly">Monthly</option>
-                                    <option value="@SSO.Domain.Enums.SubscriptionBillingCycle.Yearly">Yearly</option>
-                                </select>
-                                <span class="sub-field-hint">Subscription interval.</span>
-                            </div>
-
-                            <div class="sub-field-group">
-                                <label class="sub-field-label" for="price">
-                                    Price <span class="required-star">*</span>
-                                </label>
-                                <div class="sub-price-group">
-                                    <select id="currency" asp-for="Currency" class="sub-input-custom modal-input" required>
-                                        <option value="INR">INR (₹)</option>
-                                        <option value="USD">USD ($)</option>
-                                        <option value="EUR">EUR (€)</option>
-                                        <option value="GBP">GBP (£)</option>
-                                    </select>
-                                    <input id="price" asp-for="Price" type="number" step="0.01" class="sub-input-custom modal-input"
-                                           placeholder="0.00" required>
-                                </div>
-                                <span class="sub-field-hint">Cost per billing cycle.</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Section 2: Pricing & Quotas -->
-                    <div class="wizard-step" data-title="Pricing &amp; Quotas">
-                        <div class="sub-section-badge">PRICING &amp; QUOTAS</div>
-                        <div class="sub-form-row">
-                            <div class="sub-field-group">
-                                <label class="sub-field-label" for="subMaxUsers">
-                                    Max Users <span class="required-star">*</span>
-                                </label>
-                                <input id="subMaxUsers" asp-for="MaxUsers" type="number" class="sub-input-custom modal-input"
-                                       placeholder="0" required>
-                                <span class="sub-field-hint">Maximum number of user accounts.</span>
-                            </div>
-
-                            <div class="sub-field-group">
-                                <label class="sub-field-label" for="subMaxApps">
-                                    Max Applications <span class="required-star">*</span>
-                                </label>
-                                <input id="subMaxApps" asp-for="MaxApps" type="number" class="sub-input-custom modal-input"
-                                       placeholder="0" required>
-                                <span class="sub-field-hint">Maximum number of client applications.</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Section 3: Isolation Strategy & Plan Status -->
-                    <div class="wizard-step" data-title="Isolation Strategy">
-                        <div class="sub-section-badge">ISOLATION STRATEGY &amp; PLAN STATUS</div>
-                        <div class="sub-status-card">
-                            <div class="sub-status-left">
-                                <div class="sub-status-icon">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                                        <polyline points="9 12 11 14 15 10"></polyline>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <div class="sub-status-title">Allow Separate Database (Active Plan)</div>
-                                    <div class="sub-status-sub">Enable isolated database infrastructure and activate this plan for tenants.</div>
-                                </div>
-                            </div>
-                            <label class="sub-toggle-switch" for="subSeparateDb">
-                                <input type="checkbox" id="subSeparateDb" asp-for="AllowSeparateDb">
-                                <span class="sub-toggle-track"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-
-            <!-- Right Plan Summary Panel (30%) -->
-            <div class="sub-summary-col">
-                <div class="sub-summary-card">
-                    <div class="sub-summary-header">
-                        <div class="sub-summary-header-icon">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                                <line x1="16" y1="13" x2="8" y2="13"></line>
-                                <line x1="16" y1="17" x2="8" y2="17"></line>
-                            </svg>
-                        </div>
-                        <span class="sub-summary-header-title">Plan Summary</span>
-                    </div>
-
-                    <!-- Trophy Banner Illustration -->
-                    <div class="sub-illustration-box">
-                        <svg width="90" height="55" viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M25 30L27 24L33 22L27 20L25 14L23 20L17 22L23 24L25 30Z" fill="#FDBA74" opacity="0.6"/>
-                            <path d="M135 25L136.5 20.5L141 19L136.5 17.5L135 13L133.5 17.5L129 19L133.5 20.5L135 25Z" fill="#F97316" opacity="0.7"/>
-                            <ellipse cx="80" cy="88" rx="36" ry="5" fill="#E2E8F0"/>
-                            <rect x="52" y="78" width="56" height="8" rx="3" fill="#D1D5DB"/>
-                            <rect x="58" y="73" width="44" height="5" rx="2" fill="#E5E7EB"/>
-                            <path d="M80 16L108 30V52C108 67 96 79 80 83C64 79 52 67 52 52V30L80 16Z" fill="url(#orangeGrad)"/>
-                            <path d="M80 20L104 32V51C104 64 93.5 75 80 78.5C66.5 75 56 64 56 51V32L80 20Z" fill="#F97316"/>
-                            <path d="M80 30L83.8 37.8L92.5 39L86.2 45L87.7 53.5L80 49.5L72.3 53.5L73.8 45L67.5 39L76.2 37.8L80 30Z" fill="#FFFFFF"/>
-                            <defs>
-                                <linearGradient id="orangeGrad" x1="52" y1="16" x2="108" y2="83" gradientUnits="userSpaceOnUse">
-                                    <stop stop-color="#F97316"/>
-                                    <stop offset="1" stop-color="#EA580C"/>
-                                </linearGradient>
-                            </defs>
-                        </svg>
-                    </div>
-
-                    <!-- Dynamic Summary List -->
-                    <div class="sub-summary-list">
-                        <div class="sub-summary-row">
-                            <span class="sub-summary-label">
-                                <svg class="sub-summary-label-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                                </svg>
-                                Plan Name
-                            </span>
-                            <span class="sub-summary-val" id="summaryPlanName">-</span>
-                        </div>
-
-                        <div class="sub-summary-row">
-                            <span class="sub-summary-label">
-                                <svg class="sub-summary-label-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <polyline points="12 6 12 12 16 14"></polyline>
-                                </svg>
-                                Billing Cycle
-                            </span>
-                            <span class="sub-summary-val" id="summaryBillingCycle">-</span>
-                        </div>
-
-                        <div class="sub-summary-row">
-                            <span class="sub-summary-label">
-                                <svg class="sub-summary-label-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="12" cy="7" r="4"></circle>
-                                </svg>
-                                Max Users
-                            </span>
-                            <span class="sub-summary-val" id="summaryMaxUsers">-</span>
-                        </div>
-
-                        <div class="sub-summary-row">
-                            <span class="sub-summary-label">
-                                <svg class="sub-summary-label-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="3" width="7" height="7"></rect>
-                                    <rect x="14" y="3" width="7" height="7"></rect>
-                                    <rect x="14" y="14" width="7" height="7"></rect>
-                                    <rect x="3" y="14" width="7" height="7"></rect>
-                                </svg>
-                                Max Applications
-                            </span>
-                            <span class="sub-summary-val" id="summaryMaxApps">-</span>
-                        </div>
-
-                        <div class="sub-summary-row">
-                            <span class="sub-summary-label">
-                                <svg class="sub-summary-label-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="12" y1="1" x2="12" y2="23"></line>
-                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                                </svg>
-                                Price
-                            </span>
-                            <span class="sub-summary-val" id="summaryPrice">-</span>
-                        </div>
-
-                        <div class="sub-summary-row">
-                            <span class="sub-summary-label">
-                                <svg class="sub-summary-label-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                                </svg>
-                                Status
-                            </span>
-                            <span class="sub-summary-val">
-                                <span class="sub-badge-active">Active</span>
-                            </span>
-                        </div>
-
-                        <div class="sub-summary-row">
-                            <span class="sub-summary-label">
-                                <svg class="sub-summary-label-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-                                </svg>
-                                Isolation Strategy
-                            </span>
-                            <span class="sub-summary-val" id="summaryIsolation">Shared DB</span>
-                        </div>
-                    </div>
-                </div>
+            <div class="modal-field">
+                <label class="modal-label" for="description">
+                    Description <span class="required-star">*</span>
+                </label>
+                <input id="description" asp-for="Description" type="text" class="modal-input"
+                       placeholder="e.g. Enterprise Tier Desp" required autocomplete="off">
+                <span class="field-hint">The Description for this subscription plan.</span>
             </div>
         </div>
 
-        <!-- REMARKS FIELD (Edit mode only) -->
-        @await Html.PartialAsync("_EditRemarksPartial", Model.Id != null && Model.Id != Guid.Empty)
+        <!-- Section: Billing -->
+        <div class="modal-section-label">Billing & Pricing</div>
+        <div class="modal-form-grid">
+            <div class="modal-field">
+                <label class="modal-label" for="billingCycle">
+                    Billing Cycle <span class="required-star">*</span>
+                </label>
+                <select id="billingCycle" asp-for="BillingCycle" class="modal-input" required>
+                    <option value="1">Monthly</option>
+                    <option value="2">Yearly</option>
+                </select>
+                <span class="field-hint">Subscription interval.</span>
+            </div>
+            <div class="modal-field">
+                <label class="modal-label" for="price">
+                    Price <span class="required-star">*</span>
+                </label>
+                <div style="display: flex; gap: 8px;">
+                    <select id="currency" asp-for="Currency" class="modal-input" style="width: 100px;" required>
+                        <option value="INR">INR (₹)</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="GBP">GBP (£)</option>
+                    </select>
+                    <input id="price" asp-for="Price" type="number" step="0.01" class="modal-input"
+                           placeholder="e.g. 99.00" required style="flex: 1;">
+                </div>
+                <span class="field-hint">The cost and currency per billing cycle.</span>
+            </div>
+        </div>
+       
 
+        <!-- Section: Quotas -->
+        <div class="modal-section-label">Feature Quotas</div>
+        <div class="modal-form-grid">
+            <div class="modal-field">
+                <label class="modal-label" for="subMaxUsers">
+                    Max Users <span class="required-star">*</span>
+                </label>
+                <input id="subMaxUsers" asp-for="MaxUsers" type="number" class="modal-input"
+                       placeholder="e.g. 50" required>
+                <span class="field-hint">Maximum number of user accounts allowed.</span>
+            </div>
+            <div class="modal-field">
+                <label class="modal-label" for="subMaxApps">
+                    Max Applications <span class="required-star">*</span>
+                </label>
+                <input id="subMaxApps" asp-for="MaxApps" type="number" class="modal-input"
+                       placeholder="e.g. 10" required>
+                <span class="field-hint">Maximum number of client applications.</span>
+            </div>
+        </div>
+
+        <!-- Section: Advanced -->
+        <div class="modal-section-label">Isolation Strategy</div>
+        <div class="modal-field">
+            <label class="modal-toggle-row" for="subSeparateDb">
+                <div>
+                    <div class="modal-label" style="margin-bottom:2px;">Allow Separate Database</div>
+                    <span class="field-hint" style="margin-top:0;">
+                        Enable isolated database infrastructure for tenants on this plan.
+                    </span>
+                </div>
+                <div class="toggle-switch">
+                    <input type="checkbox" id="subSeparateDb" asp-for="AllowSeparateDb">
+                    <span class="toggle-track">
+                        <span class="toggle-thumb"></span>
+                    </span>
+                </div>
+            </label>
+        </div>
+
+    </div><!-- /modal-body -->
+    <!-- Modal Footer -->
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="window.closeModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="submitSubscriptionForm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            @(Model.Id == Guid.Empty ? "Create Plan" : "Update Plan")
+        </button>
     </div>
 </form>
 
 <script>
-    $(function() {
-        // Dynamic Progressive Interactive Stepper Handler
-        function updateStepperProgress(targetStep) {
-            // Step 1 is always active
-            $('#stepNum1').removeClass('inactive').addClass('active');
-            $('#stepLabel1').removeClass('inactive').addClass('active');
-
-            // Line 1 -> Step 2
-            if (targetStep >= 2) {
-                $('#stepperLine1').addClass('active');
-                $('#stepNum2').removeClass('inactive').addClass('active');
-                $('#stepLabel2').removeClass('inactive').addClass('active');
-            } else {
-                $('#stepperLine1').removeClass('active');
-                $('#stepNum2').removeClass('active').addClass('inactive');
-                $('#stepLabel2').removeClass('active').addClass('inactive');
-            }
-
-            // Line 2 -> Step 3
-            if (targetStep >= 3) {
-                $('#stepperLine2').addClass('active');
-                $('#stepNum3').removeClass('inactive').addClass('active');
-                $('#stepLabel3').removeClass('inactive').addClass('active');
-            } else {
-                $('#stepperLine2').removeClass('active');
-                $('#stepNum3').removeClass('active').addClass('inactive');
-                $('#stepLabel3').removeClass('active').addClass('inactive');
-            }
+    $('#createSubscriptionForm').off('submit').on('submit', function(e) {
+        e.preventDefault();
+        if (!window.validateAjaxForm(this)) {
+            return;
         }
 
-        // Stepper Progress triggers based on form input focus/interaction
-        $('#subName, #description, #billingCycle').on('focus input change', function() {
-            updateStepperProgress(1);
-        });
+        const $btn = $('#submitSubscriptionForm');
+        $btn.prop('disabled', true).html('Processing...');
 
-        $('#subMaxUsers, #subMaxApps, #price, #currency').on('focus input change', function() {
-            updateStepperProgress(2);
-        });
+        const formData = $(this).serialize();
 
-        $('#subSeparateDb').on('focus change', function() {
-            updateStepperProgress(3);
-        });
-
-        // Clickable stepper indicators
-        $('#stepIndicator1').on('click', function() { updateStepperProgress(1); $('#subName').focus(); });
-        $('#stepIndicator2').on('click', function() { updateStepperProgress(2); $('#subMaxUsers').focus(); });
-        $('#stepIndicator3').on('click', function() { updateStepperProgress(3); $('#subSeparateDb').focus(); });
-
-        // Dynamic Live Summary Updater
-        function updateSummary() {
-            const name = $('#subName').val() || '-';
-            const cycleText = $('#billingCycle option:selected').text() || $('#billingCycle').val() || '-';
-            const curr = $('#currency').val() || 'INR';
-            const price = $('#price').val();
-            const symbol = curr === 'INR' ? '₹' : curr === 'USD' ? '$' : curr === 'EUR' ? '€' : '£';
-            const priceText = price ? (symbol + ' ' + parseFloat(price).toLocaleString()) : '-';
-            const maxUsers = $('#subMaxUsers').val() || '-';
-            const maxApps = $('#subMaxApps').val() || '-';
-            const isSeparateDb = $('#subSeparateDb').is(':checked');
-
-            $('#summaryPlanName').text(name);
-            $('#summaryBillingCycle').text(cycleText);
-            $('#summaryPrice').text(priceText);
-            $('#summaryMaxUsers').text(maxUsers);
-            $('#summaryMaxApps').text(maxApps);
-            $('#summaryIsolation').text(isSeparateDb ? 'Isolated DB' : 'Shared DB');
-        }
-
-        // Initialize Summary & Stepper state
-        updateSummary();
-        updateStepperProgress(1);
-
-        // Update Summary on input/change
-        $('#createSubscriptionForm').find('input, select, textarea').on('input change', function() {
-            $(this).removeClass('ct-invalid');
-            updateSummary();
-        });
-
-        const wizard = window.initWizardForm('#createSubscriptionForm', {
-            onStepChanging: function(currentIndex, newIndex) {
-                return true;
-            },
-            onFinished: function() {
-                const $btn = $('#submitSubscriptionForm');
-                const originalHtml = $btn.html();
-
-                // Validate remarks before submission (edit mode only)
-                if (typeof validateRemarks === 'function' && !validateRemarks()) return;
-
-                $btn.prop('disabled', true).html('Processing...');
-
-                const formData = $('#createSubscriptionForm').serialize();
-
-                $.post('/Home/CreateSubscription', formData, function(result) {
-                    if (result.succeeded) {
-                        window.closeModal();
-                        if (window.appToast) {
-                            window.appToast.show('success', 'Plan Saved', result.messages ? result.messages[0] : 'Subscription plan has been saved successfully.');
-                        }
-                        if (window.onModalSuccess) {
-                            window.onModalSuccess();
-                        } else if ($('#subscriptionTable').length) {
-                            $('#subscriptionTable').DataTable().ajax.reload();
-                        } else {
-                            location.reload();
-                        }
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error Saving Subscription',
-                            text: window.getPrimaryResultMessage ? window.getPrimaryResultMessage(result, 'Unknown error') : (result.messages ? result.messages.join('\n') : 'Unknown error')
-                        });
-                        resetBtn();
-                    }
-                }).fail(function(xhr) {
-                    if (window.showRequestError) {
-                        window.showRequestError({
-                            title: 'Unable to Save Plan',
-                            xhr: xhr,
-                            fallbackMessage: 'We could not save the subscription plan right now. Please try again.'
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Unable to Save Plan',
-                            text: 'We could not save the subscription plan right now. Please try again.'
-                        });
-                    }
-                    resetBtn();
-                });
-
-                function resetBtn() {
-                    $btn.prop('disabled', false).html(originalHtml);
+        $.post('/Home/CreateSubscription', formData, function(result) {
+            if (result.succeeded) {
+                window.closeModal();
+                if($('#subscriptionTable').length) {
+                    $('#subscriptionTable').DataTable().ajax.reload();
+                } else {
+                    location.reload();
                 }
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error Saving Subscription',
+                    text: window.getPrimaryResultMessage(result, 'Unknown error')
+                });
+                $btn.prop('disabled', false).html('@(Model.Id == Guid.Empty ? "Create Plan" : "Update Plan")');
             }
+        }).fail(function(xhr) {
+            window.showRequestError({
+                title: 'Unable to Save Plan',
+                xhr: xhr,
+                fallbackMessage: 'We could not save the subscription plan right now. Please try again.'
+            });
+            $btn.prop('disabled', false).html('@(Model.Id == Guid.Empty ? "Create Plan" : "Update Plan")');
         });
     });
 </script>

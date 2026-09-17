@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Caching.Memory;
 using OpenIddict.Abstractions;
 using OpenIddict.Core;
 using SSO.Application.Helper;
@@ -38,12 +37,10 @@ namespace SSO.Infrastructure.Services.Features
         private readonly IScopeServices _scopeServices;
         private readonly DefaultSetting _defaultSetting;
         private readonly IEnumerable<IRequestValidator<ClientRequest>> _validators;
-        private readonly IMemoryCache _memoryCache;
         public ClientService(IUnitOfWork<Guid> unitOfWork, IOpenIddictApplicationManager appManager,
             IDataTableService dataTableService, ApplicationDbContext dbContext, IScopeServices scopeServices,
              IConfiguration configuration, ILogger<ClientService> logger,
-             IEnumerable<IRequestValidator<ClientRequest>> validators,
-             IMemoryCache memoryCache)
+             IEnumerable<IRequestValidator<ClientRequest>> validators)
         {
             _unitOfWork = unitOfWork;
             _dbContext = dbContext;
@@ -53,7 +50,6 @@ namespace SSO.Infrastructure.Services.Features
             _dataTableService = dataTableService;
             _defaultSetting = configuration.GetSection("DefaultSetting").Get<DefaultSetting>()!;
             _validators = validators;
-            _memoryCache = memoryCache;
         }
         public async Task<Result<Guid>> CreateAsync(ClientRequest request)
         {
@@ -187,10 +183,6 @@ namespace SSO.Infrastructure.Services.Features
                 entity.IsActive = true;
                 entity.Audience = request.Audience;
                 entity.AppClientType = request.ClientType;
-                entity.Require2FA = request.Require2FA;
-                entity.AllowedLoginMethod = request.AllowedLoginMethod;
-                entity.AllowPublicRegistration = request.AllowPublicRegistration;
-                entity.DefaultRoleName = string.IsNullOrWhiteSpace(request.DefaultRoleName) ? "End User" : request.DefaultRoleName.Trim();
 
                 var clientId = entity.Id;
 
@@ -291,11 +283,7 @@ namespace SSO.Infrastructure.Services.Features
                         Audience = e.Audience,
                         Name = e.DisplayName,
                         Scopes = string.Join(",", e.ClientScopes.Select(x => x.Scope.Name).ToList()),
-                        AppClientType = e.AppClientType.ToString(),
-                        Require2FA = e.Require2FA,
-                        AllowedLoginMethod = e.AllowedLoginMethod.ToString(),
-                        AllowPublicRegistration = e.AllowPublicRegistration,
-                        DefaultRoleName = e.DefaultRoleName ?? "End User"
+                        AppClientType = e.AppClientType.ToString()
                     })
                     .ToListAsync();
 
@@ -321,7 +309,7 @@ namespace SSO.Infrastructure.Services.Features
             try
             {
                 var query = _dbContext.Clients.AsNoTracking();
-                var response = await _dataTableService.BuildAsync(
+                return await _dataTableService.BuildAsync(
                             query,
                             request,
                             e => new ClientResponse
@@ -333,46 +321,16 @@ namespace SSO.Infrastructure.Services.Features
                                 Audience = e.Audience,
                                 Name = e.DisplayName,
                                 Scopes = string.Join(",", e.ClientScopes.Select(x => x.Scope.Name).ToList()),
-                                AppClientType = e.AppClientType.ToString(),
-                                Require2FA = e.Require2FA,
-                                AllowedLoginMethod = e.AllowedLoginMethod.ToString(),
-                                AllowPublicRegistration = e.AllowPublicRegistration,
-                                DefaultRoleName = e.DefaultRoleName ?? "End User",
-                                CreatedBy = e.CreatedBy,
-                                CreatedOn = e.CreatedOn,
-                                LastModifiedBy = e.LastModifiedBy,
-                                LastModifiedOn = e.LastModifiedOn,
-                                IPAddress = e.IPAddress,
-                                IsDeleted = e.IsDeleted
+                                AppClientType = e.AppClientType.ToString()
                             },
                             e => true,
                             new List<string>
                             {
                                 nameof(ApplicationClient.ClientId),
                                 nameof(ApplicationClient.DisplayName),
-                                nameof(ApplicationClient.AppClientType),
-                                nameof(ApplicationClient.CreatedBy),
-                                nameof(ApplicationClient.CreatedOn),
-                                nameof(ApplicationClient.LastModifiedBy),
-                                nameof(ApplicationClient.LastModifiedOn),
-                                nameof(ApplicationClient.IPAddress),
-                                nameof(ApplicationClient.IsDeleted)
+                                nameof(ApplicationClient.AppClientType)
                             },
                             CancellationToken.None);
-
-                if (response?.Data != null)
-                {
-                    foreach (var client in response.Data)
-                    {
-                        if (_memoryCache.TryGetValue($"client-health-{client.ClientId}", out ClientHealthStatus health))
-                        {
-                            client.IsOnline = health.IsOnline;
-                            client.LastCheckTime = health.LastCheck.ToString("yyyy-MM-dd HH:mm:ss");
-                        }
-                    }
-                }
-
-                return response;
             }
             catch (Exception ex)
             {
@@ -415,29 +373,17 @@ namespace SSO.Infrastructure.Services.Features
                     ClientName = client.DisplayName,
                     Audience = client.Audience,
                     ClientType = client.AppClientType,
-                    Require2FA = client.Require2FA,
-                    AllowedLoginMethod = client.AllowedLoginMethod,
-                    AllowPublicRegistration = client.AllowPublicRegistration,
-                    DefaultRoleName = client.DefaultRoleName ?? "End User",
-                    CreatedBy = client.CreatedBy,
-                    CreatedOn = client.CreatedOn,
-                    LastModifiedBy = client.LastModifiedBy,
-                    LastModifiedOn = client.LastModifiedOn,
-                    IPAddress = client.IPAddress,
-                    IsDeleted = client.IsDeleted,
                     RedirectUris = (await _appManager.GetRedirectUrisAsync(client)).ToList(),
                     PostLogoutRedirectUris = (await _appManager.GetPostLogoutRedirectUrisAsync(client)).ToList(),
                     Scopes = client.ClientScopes.Select(cs => new ScopeRequest
                     {
                         Name = cs.Scope.Name,
                         DisplayName = cs.Scope.DisplayName,
-                        Permissions = cs.Scope.Permissions
-                            .Where(p => p.Permission.ClientApplicationId == clientId)
-                            .Select(p => new Application.Requests.Features.Permissions
-                            {
-                                Code = p.Permission.Code,
-                                Description = p.Permission.Description
-                            }).ToList()
+                        Permissions = cs.Scope.Permissions.Select(p => new Application.Requests.Features.Permissions
+                        {
+                            Code = p.Permission.Code,
+                            Description = p.Permission.Description
+                        }).ToList()
                     }).ToList()
                 };
 

@@ -1,1540 +1,237 @@
 @using SSO.Application.Responses.Features
 
 @{
-    ViewData["Title"] = "Tenants & Licenses";
-    var canCreateTenant = (await AuthorizationService.AuthorizeAsync(User, Permissions.Tenant.Create)).Succeeded;
-    var canExportTenant = (await AuthorizationService.AuthorizeAsync(User, Permissions.Tenant.Export)).Succeeded || (await AuthorizationService.AuthorizeAsync(User, Permissions.Tenant.View)).Succeeded;
-    var canEditTenant = (await AuthorizationService.AuthorizeAsync(User, Permissions.Tenant.Edit)).Succeeded;
-    var canDeleteTenant = (await AuthorizationService.AuthorizeAsync(User, Permissions.Tenant.Delete)).Succeeded;
-    var canManageSubs = (await AuthorizationService.AuthorizeAsync(User, Permissions.Subscription.View)).Succeeded;
+    ViewData["Title"] = "Tenants";
 }
 
-<style>
-    /* ═══════════════════════════════════════════════════════════
-       FULL-PAGE BACKGROUND — the whole viewport (not just the hero
-       strip) now carries the mint/purple gradient, so there is no
-       plain grey showing anywhere around the card.
-       ═══════════════════════════════════════════════════════════ */
-    body {
-        background: linear-gradient(150deg,
-                        rgba(124, 92, 252, 0.10) 0%,
-                        rgba(124, 92, 252, 0.05) 22%,
-                        rgba(24, 167, 223, 0.06) 55%,
-                        rgba(236, 253, 245, 0.5) 78%,
-                        rgba(255, 255, 255, 0.9) 100%) !important;
-        background-attachment: fixed !important;
-        background-repeat: no-repeat !important;
-        background-size: cover !important;
-    }
-    html[data-theme="dark"] body {
-        background: linear-gradient(150deg,
-                        rgba(124, 92, 252, 0.18) 0%,
-                        rgba(124, 92, 252, 0.08) 22%,
-                        rgba(24, 167, 223, 0.09) 55%,
-                        rgba(15, 23, 42, 0.6) 78%,
-                        rgba(9, 12, 20, 0.95) 100%) !important;
-        background-attachment: fixed !important;
-        background-repeat: no-repeat !important;
-        background-size: cover !important;
-    }
-    /* Any generic content wrapper the layout puts around this view
-       (page-wrapper / content-wrapper / main) should stay transparent
-       so the gradient above shows through instead of its own grey. */
-    .page-wrapper, .content-wrapper, .container-xl, main, #content, .page-body {
-        background: transparent !important;
-    }
+<div class="breadcrumbs">
+    <span>Auxinz Identity</span>
+    <a href="#">Multi-Tenancy</a>
+    <span class="current">Tenants & Licenses</span>
+</div>
 
-    /* ═══════════════════════════════════════════════════════════
-       UNIFIED PAGE CARD — hero + table read as ONE surface, sitting
-       on top of the page gradient with just enough glass/frost so
-       the gradient still reads through at the edges.
-       ═══════════════════════════════════════════════════════════ */
-    .th-page-card {
-        background: transparent;
-        border: none;
-        border-radius: 0;
-        box-shadow: none;
-        overflow: visible;
-        margin-bottom: 20px;
-    }
-    html[data-theme="dark"] .th-page-card {
-        background: transparent;
-    }
-
-
-    .th-hero {
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 24px;
-        flex-wrap: wrap;
-        background: transparent;
-        border: none;
-        border-radius: 0;
-        padding: 24px 20px;
-        margin-bottom: 0;
-        overflow: visible;
-    }
-    html[data-theme="dark"] .th-hero {
-        background: transparent;
-    }
-    .th-hero::before {
-        content: "";
-        position: absolute;
-        right: -60px; top: -60px;
-        width: 260px; height: 260px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(124,92,252,0.14) 0%, rgba(124,92,252,0) 70%);
-        pointer-events: none;
-    }
-    .th-hero::after {
-        content: "";
-        position: absolute;
-        left: 0; bottom: 0;
-        width: 340px; height: 110px;
-        pointer-events: none;
-        opacity: 0.55;
-        background-repeat: no-repeat;
-        background-position: left bottom;
-        background-image:
-            linear-gradient(180deg, transparent 0 60%, rgba(124,92,252,0.14) 60% 100%),
-            repeating-linear-gradient(90deg, rgba(124,92,252,0.16) 0 26px, transparent 26px 40px);
-        clip-path: polygon(0 100%, 0 55%, 10% 40%, 10% 65%, 22% 65%, 22% 30%, 34% 30%, 34% 70%, 46% 70%, 46% 45%, 58% 45%, 58% 75%, 70% 75%, 70% 20%, 82% 20%, 82% 80%, 100% 80%, 100% 100%);
-    }
-    .th-hero-left { position: relative; display: flex; align-items: flex-start; gap: 16px; min-width: 260px; flex: 1 1 320px; z-index: 1; }
-    .th-hero-icon {
-        width: 52px; height: 52px; flex-shrink: 0; border-radius: 14px;
-        background: linear-gradient(135deg, #8b6cfd, #6a3df5);
-        display: flex; align-items: center; justify-content: center; color: #fff;
-        box-shadow: 0 6px 16px rgba(124, 92, 252, 0.38);
-    }
-    .th-hero-title {
-        font-size: 1.7rem !important;
-        font-weight: 800 !important;
-        color: var(--text-main);
-        letter-spacing: -0.02em;
-        margin: 2px 0 4px;
-    }
-    .th-hero-subtitle {
-        font-size: 0.84rem;
-        color: var(--text-muted);
-        margin: 0;
-        max-width: 480px;
-        line-height: 1.5;
-    }
-    .th-hero-underline { width: 34px; height: 3px; border-radius: 4px; background: #7c5cfc; margin-top: 10px; }
-
-    /* -- Compact KPI cards (hero variant) ---------------------------- */
-    .sub-kpi-container {
-        position: relative;
-        display: flex;
-        gap: 14px;
-        align-items: stretch;
-        z-index: 1;
-        flex-wrap: wrap;
-    }
-    .sub-kpi-card {
-        cursor: pointer;
-        user-select: none;
-        width: 178px;
-        flex-shrink: 0;
-        background: var(--bg-surface);
-        border: 1px solid var(--border-subtle);
-        border-radius: 14px;
-        padding: 10px 14px;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 6px 16px -8px rgba(15,23,42,0.08);
-        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-    }
-    .sub-kpi-card:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.05), 0 10px 24px -8px rgba(15,23,42,0.14); }
-    .sub-kpi-card.active {
-        border-color: var(--brand-primary) !important;
-        box-shadow: 0 0 0 2px rgba(23, 201, 142, 0.15), var(--shadow-sm) !important;
-    }
-    .sub-kpi-card .tabler-stat-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-    .sub-kpi-card .tabler-stat-title { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #64748b; line-height: 1.3; }
-    html[data-theme="dark"] .sub-kpi-card .tabler-stat-title { color: #94a3b8; }
-    .sub-kpi-card .tabler-stat-value { font-size: 1.6rem; font-weight: 800; color: var(--text-main); line-height: 1; }
-    .tabler-stat-icon {
-        width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
-        display: flex; align-items: center; justify-content: center;
-        transition: transform 0.2s ease;
-    }
-    .sub-kpi-card:hover .tabler-stat-icon { transform: scale(1.08); }
-    .tabler-stat-icon.total-icon { background: rgba(124, 92, 252, 0.14); color: #7c5cfc !important; }
-    .tabler-stat-icon.monthly-icon { background: rgba(245, 158, 11, 0.14); color: #f59e0b !important; }
-    .tabler-stat-icon.yearly-icon { background: rgba(24, 167, 223, 0.14); color: #18a7df !important; }
-    .kpi-mini-visual { position: absolute; right: 10px; bottom: 6px; opacity: 0.7; pointer-events: none; }
-
-    @@media (max-width: 1024px) {
-        .th-hero { padding: 20px; }
-        .sub-kpi-container { width: 100%; }
-        .sub-kpi-card { flex: 1 1 150px; }
-    }
-    @@media (max-width: 768px) {
-        .sub-kpi-container { flex-direction: column; align-items: stretch; }
-        .sub-kpi-card { width: 100% !important; }
-    }
-
-    /* Legacy page-header kept (unused now, header replaced by .th-hero) */
-    .page-header { display: none; }
-
-    /* Action Buttons (Plain Outline Icons - Transparent Background) */
-    .action-btn {
-        width: 30px !important;
-        height: 30px !important;
-        border-radius: 6px !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        border: none !important;
-        background: transparent !important;
-        cursor: pointer !important;
-        transition: all 0.2s ease !important;
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-    .action-btn svg {
-        width: 16px !important;
-        height: 16px !important;
-        flex-shrink: 0 !important;
-        transition: transform 0.2s ease !important;
-    }
-
-    /* View: Blue (#2563EB) */
-    .action-btn-view {
-        background: transparent !important;
-        color: #2563EB !important;
-        border: none !important;
-    }
-    .action-btn-view:hover {
-        background: rgba(37, 99, 235, 0.08) !important;
-        color: #1D4ED8 !important;
-        transform: scale(1.05) !important;
-    }
-
-    /* Manage Subscriptions (₹): Indigo/Purple (#6366F1) */
-    .action-btn-manage {
-        background: transparent !important;
-        color: #6366F1 !important;
-        border: none !important;
-    }
-    .action-btn-manage:hover {
-        background: rgba(99, 102, 241, 0.08) !important;
-        color: #4F46E5 !important;
-        transform: scale(1.05) !important;
-    }
-
-    /* Edit: Amber (#F59E0B) */
-    .action-btn-edit {
-        background: transparent !important;
-        color: #F59E0B !important;
-        border: none !important;
-    }
-    .action-btn-edit:hover {
-        background: rgba(245, 158, 11, 0.08) !important;
-        color: #D97706 !important;
-        transform: scale(1.05) !important;
-    }
-
-    /* Delete: Red (#EF4444) */
-    .action-btn-delete, .action-btn.text-error {
-        background: transparent !important;
-        color: #EF4444 !important;
-        border: none !important;
-    }
-    .action-btn-delete:hover, .action-btn.text-error:hover {
-        background: rgba(239, 68, 68, 0.08) !important;
-        color: #DC2626 !important;
-        transform: scale(1.05) !important;
-    }
-
-    /* -- Panel ------------------------------------------------------ */
-    .if-panel {
-        background: transparent;
-        border: none;
-        border-radius: 0;
-        overflow: visible;
-        display: flex;
-        flex-direction: column;
-        min-height: 0;
-        box-shadow: none;
-    }
-
-    .if-toolbar { flex-shrink: 0; }
-
-    .table-responsive {
-        flex: 1;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-    }
-    .table-responsive .dataTables_wrapper {
-        flex: 1;
-        display: flex !important;
-        flex-direction: column !important;
-        width: 100% !important;
-    }
-
-    .if-table-footer-wrap { flex-shrink: 0; }
-
-    /* -- Toolbar ---------------------------------------------------- */
-    .if-toolbar {
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        padding: 16px 20px 12px 20px;
-        border-bottom: none;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-    .if-toolbar-pill-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 7px 12px;
-        border: 1px solid var(--border-subtle);
-        border-radius: 10px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: var(--text-main);
-        background: var(--bg-surface);
-        cursor: pointer;
-        transition: all 0.15s;
-        white-space: nowrap;
-    }
-    .if-toolbar-pill-btn:hover { background: var(--bg-surface-hover); border-color: var(--border-strong); }
-    .if-toolbar-pill-btn svg { flex-shrink: 0; color: var(--text-muted); }
-    .if-toolbar-pill-btn .chev { margin-left: 2px; }
-
-    .if-search-wrap {
-        position: relative;
-        flex: 1 1 260px;
-        max-width: 320px;
-    }
-    .if-search-wrap svg {
-        position: absolute;
-        left: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--text-muted);
-        pointer-events: none;
-    }
-    .if-search-input {
-        width: 100%;
-        padding: 8px 10px 8px 34px;
-        border: 1px solid var(--border-subtle);
-        border-radius: 10px;
-        font-size: 0.82rem;
-        color: var(--text-main);
-        background: var(--bg-base);
-        outline: none;
-        transition: border-color 0.15s;
-        box-sizing: border-box;
-    }
-    .if-search-input:focus {
-        border-color: #7c5cfc;
-        background: var(--bg-surface);
-        box-shadow: 0 0 0 3px rgba(23, 201, 142, 0.12);
-    }
-    .if-search-input::placeholder { color: var(--text-muted); }
-
-    .if-filter-group {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-    }
-
-    .btn-toolbar.btn-primary {
-        background: #7c5cfc !important;
-        border-color: #7c5cfc !important;
-        border-radius: 10px !important;
-    }
-    .btn-toolbar.btn-primary:hover { background: #5b3df0 !important; border-color: #5b3df0 !important; }
-    .btn-toolbar.btn-secondary { border-radius: 10px !important; }
-
-    /* -- Table ------------------------------------------------------ */
-    .if-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.82rem;
-    }
-    .if-table thead tr {
-        background: var(--bg-base);
-        border-bottom: 1px solid var(--border-subtle);
-    }
-    .if-table thead th {
-        padding: 12px 14px;
-        font-size: 0.7rem;
-        font-weight: 700;
-        color: var(--text-muted);
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        white-space: nowrap;
-        vertical-align: middle !important;
-    }
-    .if-table thead th.text-left, .if-table tbody td.text-left {
-        text-align: left !important;
-    }
-    .if-table thead th.text-center, .if-table tbody td.text-center {
-        text-align: center !important;
-    }
-    .if-table thead th.text-right, .if-table tbody td.text-right {
-        text-align: right !important;
-    }
-    .if-table thead th.text-center.sorting,
-    .if-table thead th.text-center.sorting_asc,
-    .if-table thead th.text-center.sorting_desc {
-        padding-left: 26px !important;
-        padding-right: 26px !important;
-    }
-    .if-table tbody tr {
-        border-bottom: 1px solid var(--border-subtle);
-        transition: background 0.12s;
-    }
-    .if-table tbody tr:last-child { border-bottom: none; }
-    .if-table tbody tr:hover { background: var(--bg-surface-hover); }
-    .if-table tbody td {
-        padding: 12px 14px;
-        color: var(--text-main);
-        vertical-align: middle !important;
-    }
-
-    /* -- Tenant cell ------------------------------------------------ */
-    .if-tenant-cell { display: flex; align-items: center; gap: 10px; }
-    .if-tenant-icon {
-        width: 34px;
-        height: 34px;
-        border-radius: 10px;
-        background: rgba(23, 201, 142, 0.1);
-        border: 1px solid var(--border-subtle);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        color: #7c5cfc;
-    }
-    .if-tenant-name { font-weight: 700; color: var(--text-main); font-size: 0.84rem; }
-    .if-tenant-code {
-        font-size: 0.7rem;
-        color: var(--text-muted);
-        font-family: 'SFMono-Regular', 'Consolas', monospace;
-        margin-top: 1px;
-    }
-
-    /* -- Database Mode ---------------------------------------------- */
-    .if-db-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 3px 9px;
-        border-radius: 20px;
-        font-size: 0.72rem;
-        font-weight: 600;
-        background: rgba(124, 92, 252, 0.1);
-        color: #7c5cfc;
-    }
-    .if-db-badge.isolated {
-        background: rgba(24, 167, 223, 0.1);
-        color: #18a7df;
-    }
-
-    /* -- Plan / Subscription ---------------------------------------- */
-    .if-plan-cell h5 { font-size: 0.82rem; font-weight: 700; color: #7c5cfc; margin: 0 0 2px; }
-    .if-plan-cell p { font-size: 0.7rem; color: var(--text-muted); margin: 0; }
-
-    /* -- Grace ------------------------------------------------------ */
-    .if-grace { font-weight: 600; font-family: 'SFMono-Regular', 'Consolas', monospace; font-size: 0.8rem; color: var(--text-main); }
-
-    /* -- Status ----------------------------------------------------- */
-    .if-status {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 3px 9px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-    .if-status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-    .if-status-active  { color: #059669; background: rgba(16, 185, 129, 0.12); }
-    .if-status-active  .if-status-dot { background: #10b981; }
-    .if-status-disabled { color: var(--text-muted); background: var(--bg-surface-hover); }
-    .if-status-disabled .if-status-dot { background: var(--border-strong); }
-
-    /* -- Table footer ----------------------------------------------- */
-    .if-table-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 10px 16px;
-        border-top: 1px solid var(--border-subtle);
-        font-size: 0.78rem;
-        color: var(--text-muted);
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-
-    /* -- DataTables overrides --------------------------------------- */
-    .dataTables_wrapper .dataTables_processing {
-        top: 60px;
-        border: 1px solid var(--border-subtle);
-        border-radius: 8px;
-        box-shadow: var(--shadow-md);
-        font-size: 0.8rem;
-        color: var(--text-muted);
-    }
-
-    /* ──────────────────────────────────────────────────────────
-       VIEW SWITCHER
-       ────────────────────────────────────────────────────────── */
-    .view-toggle-wrapper {
-        display: flex;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 3px;
-        gap: 2px;
-        align-items: center;
-        flex-shrink: 0;
-        margin-left: auto;
-    }
-    html[data-theme="dark"] .view-toggle-wrapper { background: #18181b; border-color: #27272a; }
-    .view-toggle-wrapper .view-toggle-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 30px;
-        height: 30px;
-        border: 1px solid transparent;
-        background: transparent;
-        border-radius: 7px;
-        color: #94a3b8;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        padding: 0;
-        outline: none;
-        box-shadow: none;
-    }
-    .view-toggle-wrapper .view-toggle-btn:hover { color: var(--text-main); background: rgba(0,0,0,0.05); }
-    html[data-theme="dark"] .view-toggle-wrapper .view-toggle-btn:hover { background: rgba(255,255,255,0.05); }
-    .view-toggle-wrapper .view-toggle-btn.active {
-        background: #ffffff;
-        border-color: #e2e8f0;
-        color: #7c5cfc;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    html[data-theme="dark"] .view-toggle-wrapper .view-toggle-btn.active {
-        background: #27272a;
-        border-color: #3f3f46;
-        color: #7c5cfc;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    }
-
-    /* ──────────────────────────────────────────────────────────
-       VIEW WRAPPERS
-       ────────────────────────────────────────────────────────── */
-    .view-wrapper {
-        opacity: 0;
-        transform: translateY(10px);
-        transition: opacity 0.25s cubic-bezier(0.4,0,0.2,1), transform 0.25s cubic-bezier(0.4,0,0.2,1);
-    }
-    .view-wrapper.active  { opacity: 1; transform: translateY(0); }
-    .view-wrapper:not(.active) { display: none !important; }
-
-    /* ──────────────────────────────────────────────────────────
-       TENANT GRID LAYOUT
-       ────────────────────────────────────────────────────────── */
-    #tenantGridViewWrapper.grid-cards-container {
-        display: grid !important;
-        grid-template-columns: repeat(3, 1fr) !important;
-        gap: 20px !important;
-        padding: 16px 20px 28px 20px !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
-        flex: 1;
-        align-content: start;
-    }
-    @@media (max-width: 1024px) { #tenantGridViewWrapper.grid-cards-container { grid-template-columns: repeat(2, 1fr) !important; padding: 14px 16px 24px 16px !important; } }
-    @@media (max-width: 767px)  { #tenantGridViewWrapper.grid-cards-container { grid-template-columns: 1fr !important; padding: 12px 12px 20px 12px !important; } }
-
-    /* ──────────────────────────────────────────────────────────
-       PREMIUM TENANT CARD STYLES
-       ────────────────────────────────────────────────────────── */
-    .tenant-grid-card {
-        background: #ffffff;
-        background-image: linear-gradient(160deg, rgba(236, 253, 245, 0.7) 0%, #ffffff 45%);
-        border: 1.5px solid #d7f2e6;
-        border-radius: 16px;
-        padding: 18px;
-        display: flex;
-        flex-direction: column;
-        position: relative;
-        box-shadow:
-            0 1px 3px rgba(0, 0, 0, 0.04),
-            0 4px 14px -3px rgba(23, 201, 142, 0.08);
-        transition:
-            transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-            box-shadow 0.25s ease,
-            border-color 0.25s ease;
-        height: 100%;
-        box-sizing: border-box;
-    }
-    html[data-theme="dark"] .tenant-grid-card {
-        background: #1a1f2b;
-        background-image: linear-gradient(160deg, rgba(14, 30, 55, 0.7) 0%, #1a1f2b 45%);
-        border-color: #262f42;
-        box-shadow:
-            0 1px 3px rgba(0, 0, 0, 0.35),
-            0 4px 14px -3px rgba(0, 0, 0, 0.4);
-    }
-    .tenant-grid-card:hover {
-        transform: translateY(-6px);
-        border-color: rgba(23, 201, 142, 0.45);
-        box-shadow:
-            0 2px 4px rgba(0, 0, 0, 0.04),
-            0 16px 32px -8px rgba(23, 201, 142, 0.18),
-            0 0 0 1px rgba(23, 201, 142, 0.18);
-    }
-    html[data-theme="dark"] .tenant-grid-card:hover {
-        border-color: rgba(23, 201, 142, 0.4);
-        box-shadow:
-            0 2px 4px rgba(0, 0, 0, 0.3),
-            0 16px 32px -8px rgba(0, 0, 0, 0.55),
-            0 0 0 1px rgba(23, 201, 142, 0.3);
-    }
-    .tenant-grid-card.selected { background: #f0fdfb; background-image: linear-gradient(160deg, rgba(204, 251, 241, 0.6) 0%, #f0fdfb 45%); border-color: #7c5cfc; box-shadow: 0 0 0 2px rgba(23, 201, 142, 0.18), 0 4px 12px -2px rgba(23, 201, 142, 0.12); }
-    html[data-theme="dark"] .tenant-grid-card.selected { background: #0f2030; background-image: none; border-color: #7c5cfc; }
-    .tenant-grid-card.inactive { opacity: 0.82; border-style: dashed; border-color: #cbd5e1; }
-    html[data-theme="dark"] .tenant-grid-card.inactive { border-color: #475569; }
-
-    .tenant-grid-card:hover .tenant-card-avatar { transform: scale(1.08) rotate(-2deg); }
-    .tenant-card-avatar {
-        width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center;
-        justify-content: center; font-size: 1rem; font-weight: 800; flex-shrink: 0; color: #fff;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 1px 4px rgba(0, 0, 0, 0.12);
-        letter-spacing: -0.5px;
-        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
-    }
-    .tenant-grid-card:hover .tenant-card-avatar {
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(0, 0, 0, 0.15);
-    }
-
-    .tenant-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; min-height: 26px; }
-    .tenant-card-checkbox { width: 15px; height: 15px; cursor: pointer; accent-color: #7c5cfc; margin: 0; flex-shrink: 0; }
-
-    .tenant-card-org-section { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-    .tenant-card-name-group { display: flex; flex-direction: column; min-width: 0; }
-    .tenant-card-name { font-size: 0.95rem; font-weight: 700; color: #0f172a; margin: 0; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    html[data-theme="dark"] .tenant-card-name { color: #f1f5f9; }
-    .tenant-card-code { font-size: 0.7rem; color: #64748b; font-family: 'SFMono-Regular','Consolas',monospace; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    html[data-theme="dark"] .tenant-card-code { color: #94a3b8; }
-
-    .tcard-divider { height: 1px; background: linear-gradient(90deg, #e6f9f2, #d7f2e6 50%, transparent); margin: 10px 0; }
-    html[data-theme="dark"] .tcard-divider { background: linear-gradient(90deg, #1e2d42, #262f42 50%, transparent); }
-
-    .tenant-card-fields { display: flex; flex-direction: column; gap: 8px; flex: 1; }
-    .tenant-card-field  { display: flex; align-items: center; gap: 8px; }
-    .tcf-label { font-size: 0.63rem; font-weight: 700; color: #64748b; letter-spacing: 0.07em; text-transform: uppercase; min-width: 56px; flex-shrink: 0; }
-    html[data-theme="dark"] .tcf-label { color: #64748b; }
-    .tcf-value { font-size: 0.78rem; color: #1e293b; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    html[data-theme="dark"] .tcf-value { color: #cbd5e1; }
-
-    /* Tenant status badges */
-    .tcard-s-active  { background: rgba(16,185,129,0.1); color: #059669; font-size:0.71rem; font-weight:600; padding:3px 9px; border-radius:999px; display:inline-flex; align-items:center; gap:5px; border:1px solid rgba(16,185,129,0.22); white-space:nowrap; }
-    html[data-theme="dark"] .tcard-s-active  { background:rgba(16,185,129,0.15); color:#34d399; border-color:rgba(16,185,129,0.25); }
-    .tcard-s-inactive { background: rgba(100,116,139,0.1); color:#475569; font-size:0.71rem; font-weight:600; padding:3px 9px; border-radius:999px; display:inline-flex; align-items:center; gap:5px; border:1px solid rgba(100,116,139,0.18); white-space:nowrap; }
-    html[data-theme="dark"] .tcard-s-inactive { background:rgba(100,116,139,0.15); color:#94a3b8; border-color:rgba(100,116,139,0.2); }
-    .tcard-sdot { width:6px; height:6px; border-radius:50%; display:inline-block; flex-shrink:0; }
-
-    /* DB Mode & Plan Badges */
-    .tcard-db-isolated { background: rgba(24,167,223,0.1); color: #0f7fb0; font-size:0.71rem; font-weight:600; padding:2px 7px; border-radius:6px; display:inline-flex; align-items:center; gap:4px; border: 1px solid rgba(24,167,223,0.2); }
-    html[data-theme="dark"] .tcard-db-isolated { background: rgba(24,167,223,0.15); color: #60c1ef; border-color: rgba(24,167,223,0.25); }
-    .tcard-db-shared   { background: rgba(124,92,252,0.08); color: #6d4aef; font-size:0.71rem; font-weight:600; padding:2px 7px; border-radius:6px; display:inline-flex; align-items:center; gap:4px; border: 1px solid rgba(124,92,252,0.18); }
-    html[data-theme="dark"] .tcard-db-shared   { background: rgba(124,92,252,0.14); color: #a78bfa; border-color: rgba(124,92,252,0.25); }
-    .tcard-plan-txt    { font-size:0.78rem; font-weight:600; color: #7c5cfc; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:150px; }
-    html[data-theme="dark"] .tcard-plan-txt { color: #34d399; }
-
-    /* Action buttons */
-    .tenant-card-actions { display: flex; gap: 6px; margin-top: 14px; }
-    .btn-tcard-view {
-        flex: 1; display: inline-flex; align-items: center; justify-content: center;
-        gap: 5px; font-size: 0.79rem; font-weight: 600; height: 34px; padding: 0 10px;
-        border-radius: 9px; border: 1.5px solid #d7f2e6; background: rgba(236,253,245,0.8);
-        color: #334155; cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
-    }
-    html[data-theme="dark"] .btn-tcard-view { border-color: #262f42; background: rgba(20, 30, 45, 0.8); color: #e2e8f0; }
-    .btn-tcard-view:hover { background: #7c5cfc; border-color: #7c5cfc; color: #fff; box-shadow: 0 4px 12px rgba(23, 201, 142, 0.3); }
-    html[data-theme="dark"] .btn-tcard-view:hover { background: #7c5cfc; border-color: #7c5cfc; color: #fff; }
-    .btn-tcard-action {
-        width: 34px; height: 34px; border-radius: 9px; border: 1.5px solid #d7f2e6;
-        background: rgba(236,253,245,0.8); color: #64748b; display: inline-flex; align-items: center;
-        justify-content: center; cursor: pointer; transition: all 0.2s ease; padding: 0; flex-shrink: 0;
-    }
-    html[data-theme="dark"] .btn-tcard-action { border-color: #262f42; background: rgba(20, 30, 45, 0.8); color: #94a3b8; }
-    .btn-tcard-action:hover { background: var(--bg-surface-hover); border-color: var(--border-strong); color: var(--text-main); transform: scale(1.05); }
-    html[data-theme="dark"] .btn-tcard-action:hover { background: #262f42; border-color: #3a4a60; color: #fff; }
-    .btn-tcard-action.danger { color: #ef4444; border-color: rgba(239,68,68,0.2); }
-    html[data-theme="dark"] .btn-tcard-action.danger { color: #f87171; border-color: rgba(239,68,68,0.2); }
-    .btn-tcard-action.danger:hover { background: #fef2f2; border-color: #fca5a5; color: #dc2626; transform: scale(1.05); }
-    html[data-theme="dark"] .btn-tcard-action.danger:hover { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.4); color: #f87171; }
-
-</style>
-
-<!-- -- Unified page card: hero + table read as ONE continuous surface -- -->
-<div class="th-page-card">
-
-<!-- -- Hero Header (mint/teal gradient banner, matches target design) --- -->
-<div class="th-hero">
-    <div class="th-hero-left">
-        <div class="th-hero-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-            </svg>
-        </div>
-        <div>
-            <h1 class="th-hero-title">Tenants &amp; Licenses</h1>
-            <p class="th-hero-subtitle">Manage organizations using your SSO platform. Provision licenses, monitor activity and enforce regional residency.</p>
-            <div class="th-hero-underline"></div>
-        </div>
+<div class="page-header">
+    <div>
+        <h1>Organization Tenants</h1>
+        <p style="color: var(--text-muted); margin-top: 4px;">
+            Manage child tenants, database
+            connections, and licensing quotas.
+        </p>
     </div>
-
-    <!-- Compact KPI cards -->
-    <div class="sub-kpi-container">
-        <!-- Card 1: Total Organizations -->
-        <div class="tabler-card tabler-stat-card sub-kpi-card" id="kpiTotalTenants" data-value="all">
-            <div class="tabler-card-body">
-                <div class="tabler-stat-header">
-                    <div class="tabler-stat-icon total-icon">
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                        </svg>
-                    </div>
-                    <span class="tabler-stat-title">Total<br />Organizations</span>
-                </div>
-                <div class="tabler-stat-main">
-                    <div class="tabler-stat-value" id="totalTenantsCountKpi">—</div>
-                </div>
-                <svg class="kpi-mini-visual" width="52" height="40" viewBox="0 0 52 40" fill="none">
-                    <rect x="4" y="18" width="12" height="20" rx="1.5" fill="#7c5cfc" opacity="0.16" />
-                    <rect x="18" y="8" width="14" height="30" rx="1.5" fill="#7c5cfc" opacity="0.22" />
-                    <rect x="34" y="14" width="12" height="24" rx="1.5" fill="#7c5cfc" opacity="0.16" />
-                    <rect x="7" y="22" width="3" height="3" fill="#7c5cfc" opacity="0.4" />
-                    <rect x="12" y="22" width="3" height="3" fill="#7c5cfc" opacity="0.4" />
-                    <rect x="21" y="12" width="3" height="3" fill="#7c5cfc" opacity="0.4" />
-                    <rect x="26" y="12" width="3" height="3" fill="#7c5cfc" opacity="0.4" />
-                    <rect x="21" y="18" width="3" height="3" fill="#7c5cfc" opacity="0.4" />
-                    <rect x="26" y="18" width="3" height="3" fill="#7c5cfc" opacity="0.4" />
-                    <rect x="37" y="18" width="3" height="3" fill="#7c5cfc" opacity="0.4" />
-                    <rect x="42" y="18" width="3" height="3" fill="#7c5cfc" opacity="0.4" />
-                </svg>
-            </div>
-        </div>
-
-        <!-- Card 2: Active Licenses -->
-        <div class="tabler-card tabler-stat-card sub-kpi-card" id="kpiActiveTenants" data-value="true">
-            <div class="tabler-card-body">
-                <div class="tabler-stat-header">
-                    <div class="tabler-stat-icon monthly-icon">
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="9" cy="7" r="4"></circle>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                        </svg>
-                    </div>
-                    <span class="tabler-stat-title">Active<br />Licenses</span>
-                </div>
-                <div class="tabler-stat-main">
-                    <div class="tabler-stat-value" id="activeTenantsCountKpi">—</div>
-                </div>
-                <svg class="kpi-mini-visual" width="52" height="30" viewBox="0 0 52 30" fill="none">
-                    <path d="M2,26 8,17 15,21 23,9 31,14 40,4 50,10 50,30 2,30 Z" fill="#f59e0b" opacity="0.16" />
-                    <polyline points="2,26 8,17 15,21 23,9 31,14 40,4 50,10" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
-                </svg>
-            </div>
-        </div>
-
-        <!-- Card 3: Isolated Databases -->
-        <div class="tabler-card tabler-stat-card sub-kpi-card" id="kpiIsolatedTenants" data-value="Isolated">
-            <div class="tabler-card-body">
-                <div class="tabler-stat-header">
-                    <div class="tabler-stat-icon yearly-icon">
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-                        </svg>
-                    </div>
-                    <span class="tabler-stat-title">Isolated<br />Databases</span>
-                </div>
-                <div class="tabler-stat-main">
-                    <div class="tabler-stat-value" id="isolatedTenantsCountKpi">—</div>
-                </div>
-                <svg class="kpi-mini-visual" width="42" height="34" viewBox="0 0 42 34" fill="none">
-                    <circle cx="30" cy="17" r="5" fill="#18a7df" opacity="0.5" />
-                    <circle cx="16" cy="10" r="2.6" fill="#18a7df" opacity="0.35" />
-                    <circle cx="37" cy="8" r="2.2" fill="#18a7df" opacity="0.3" />
-                    <circle cx="22" cy="22" r="2" fill="#18a7df" opacity="0.35" />
-                    <circle cx="36" cy="26" r="2.4" fill="#18a7df" opacity="0.3" />
-                    <circle cx="10" cy="20" r="1.8" fill="#18a7df" opacity="0.25" />
-                </svg>
-            </div>
-        </div>
+    <div style="display: flex; gap: 12px;">
+        <button class="btn btn-primary" id="openCreateTenantModal">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Create Tenant
+        </button>
+        <a href="/Home/ExportTenants" class="btn btn-secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Export Excel
+        </a>
     </div>
 </div>
 
-<!-- -- Main Panel --------------------------------------------------- -->
-<div class="if-panel">
-
-    <!-- Toolbar -->
-    <div class="if-toolbar">
-        <button class="if-toolbar-pill-btn" id="btnAllColumns" type="button">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="7" height="7"></rect>
-                <rect x="14" y="3" width="7" height="7"></rect>
-                <rect x="14" y="14" width="7" height="7"></rect>
-                <rect x="3" y="14" width="7" height="7"></rect>
-            </svg>
-            All Columns
-            <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        </button>
-
-        <div class="if-search-wrap">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" id="ifSearchInput" class="if-search-input"
-                   placeholder="Search tenants...">
-        </div>
-
-        <div class="if-filter-group">
-            <button class="if-toolbar-pill-btn" id="btnFilterDbMode" type="button">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
+<div class="panel">
+    <div class="table-toolbar">
+        <div class="table-filters">
+            <div style="position: relative;">
+                <svg style="position: absolute; left: 10px; top: 10px; color: var(--text-muted);"
+                     width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
-                All
-                <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </button>
-            <button class="if-toolbar-pill-btn" id="btnFilterPlan" type="button" style="display:none;">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect>
-                    <line x1="2" y1="10" x2="22" y2="10"></line>
-                </svg>
-                Plan
-            </button>
-            <button class="if-toolbar-pill-btn" id="btnFilterStatus">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                </svg>
-                Filter
-            </button>
-        </div>
-
-        @if (canExportTenant)
-        {
-            <div class="smart-export-dropdown-wrapper">
-                <button type="button" class="btn btn-secondary smart-export-dropdown-btn smart-export-btn btn-toolbar if-toolbar-pill-btn" id="exportTenantsBtn" title="More Options">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="1.5"></circle>
-                        <circle cx="12" cy="5" r="1.5"></circle>
-                        <circle cx="12" cy="19" r="1.5"></circle>
-                    </svg>
-                </button>
-                <span class="smart-export-badge" id="tenantSelectionBadge"></span>
-                <div class="smart-export-menu glass-dropdown">
-                    <button type="button" class="dropdown-item smart-import-option" onclick="window.openImportModal('Tenants & Licenses')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        Import
-                    </button>
-                    <button type="button" class="dropdown-item smart-export-option" onclick="window.smartExport('tenantTable', '/Home/ExportTenants')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        Export
-                    </button>
-                </div>
+                <input type="text" class="form-input" placeholder="Filter by Name or Code..."
+                       style="padding-left: 32px; width: 250px;">
             </div>
-        }
-        @if (canCreateTenant)
-        {
-            <button class="btn btn-primary btn-toolbar" id="openCreateTenantModal" type="button">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                New Tenant
-            </button>
-        }
-
-        <!-- View Switcher -->
-        <div class="view-toggle-wrapper">
-            <button class="view-toggle-btn active" id="btnTenantListView" data-view="list" data-target="tenantTable" title="List View">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="4" y1="6" x2="20" y2="6"></line>
-                    <line x1="4" y1="12" x2="20" y2="12"></line>
-                    <line x1="4" y1="18" x2="20" y2="18"></line>
-                </svg>
-            </button>
-            <button class="view-toggle-btn" id="btnTenantGridView" data-view="grid" data-target="tenantTable" title="Grid View">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
-                    <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
-                    <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
-                    <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
-                </svg>
-            </button>
         </div>
     </div>
 
-    <div class="table-filters-data" style="display:none;">
-        <div class="filter-group">
-            <label class="form-label">Plan</label>
-            <select class="form-select filter-SubscriptionId" name="filter-SubscriptionId" id="planFilter" data-url="/api/v1/Subscription/GetAll">
-                <option value="">All Plans</option>
-            </select>
-        </div>
-        <div class="filter-group">
-            <label class="form-label">Database Mode</label>
-            <select class="form-select filter-DatabaseMode" name="filter-DatabaseMode" id="filter-DatabaseMode">
-                <option value="">All Modes</option>
-                <option value="Shared">Shared</option>
-                <option value="Isolated">Isolated</option>
-            </select>
-        </div>
-        <div class="filter-group">
-            <label class="form-label">Status</label>
-            <select class="form-select filter-IsActive" name="filter-IsActive" id="filter-IsActive">
-                <option value="">All Statuses</option>
-                <option value="true">Active</option>
-                <option value="false">Disabled</option>
-            </select>
-        </div>
-    </div>
-
-    <!-- Table View -->
-    <div class="table-responsive view-wrapper active" id="tenantTableViewWrapper">
-        <table id="tenantTable" class="if-table manual-init" style="width:100%;">
+    <div class="table-responsive">
+        <table id="tenantTable" class="data-table table-hoverable manual-init">
             <thead>
                 <tr>
-                    <th class="text-center" style="width: 40px; min-width: 40px; text-align: center; padding-left: 10px; padding-right: 10px;">
-                        <input type="checkbox" class="master-select-cb" data-table="tenantTable" />
+                    <th style="width: 48px;"><input type="checkbox" class="custom-checkbox"></th>
+                    <th class="sorted">
+                        Tenant Organization
+                        <svg class="sort-icon" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2">
+                            <path d="M12 5v14M5 12l7-7 7 7" />
+                        </svg>
                     </th>
-                    <th class="text-left">Tenant</th>
-                    <th class="text-center">Database Mode</th>
-                    <th class="text-left">Plan / Subscription</th>
-                    <th class="text-center">Grace (Days)</th>
-                    <th class="text-center">Status</th>
-                    <th class="text-left">Tenant Code</th>
-                    <th class="text-left">Database Provider</th>
-                    <th class="text-left">Database Name</th>
-                    <th class="text-left">Email</th>
-                    <th class="text-left">Phone</th>
-                    <th class="text-left">Website</th>
-                    <th class="text-left">Billing Address</th>
-                    <th class="text-center">Currency</th>
-                    <th class="text-center">Actions</th>
+                    <th>Database Mode</th>
+                    <th>License / Subscription</th>
+                    <th>Grace (Days)</th>
+                    <th>Max Conc. Users</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Actions</th>
                 </tr>
             </thead>
-            <tbody></tbody>
+            <tbody>
+            </tbody>
         </table>
     </div>
-
-    <!-- Grid View -->
-    <div class="grid-cards-container view-wrapper" id="tenantGridViewWrapper">
-        <!-- Dynamically populated via drawCallback -->
-    </div>
-
 </div>
 
-</div>
-<!-- /.th-page-card -->
 
 <script type="text/javascript">
-$(function () {
-    const $panel = $('#tenantTable').closest('.if-panel');
-    const $searchInput = $('#ifSearchInput');
-    const canEditTenant = @canEditTenant.ToString().ToLower();
-    const canDeleteTenant = @canDeleteTenant.ToString().ToLower();
-    const canManageSubs = @canManageSubs.ToString().ToLower();
+    $(function () {
+        const $panel = $('#tenantTable').closest('.panel');
+        const $customSearch = $panel.find('.table-toolbar .form-input');
+        const $customFilters = $panel.find('.table-toolbar .form-select');
 
-    const dt = $('#tenantTable').DataTable({
-        processing: true,
-        serverSide: true,
-        ajax: {
-            url: '/Home/GetTenants',
-            type: 'POST',
-            data: function (d) {
-                d.customSearchValue = $searchInput.val();
-            }
-        },
-        responsive: false,
-dom: '<"table-toolbar datatables-injected"<"table-filters">f>t<"if-table-footer-wrap"<"footer-right"<"if-pill-pagination-mount">>>',
-
-        columns: [
-            {
-                data: null,
-                orderable: false,
-                searchable: false,
-                className: 'text-center align-middle',
-                render: function (data, type, row) {
-                    return '<input type="checkbox" class="row-select-cb" data-row-id="' + (row.id || row.Id || '') + '">';
-                }
-            },
-            /* 0 - Tenant Name + Code */
-            {
-                data: 'name',
-                className: 'text-left align-middle',
-                render: function (data, type, row, meta) {
-                    const tintPalette = [
-                        { bg: 'rgba(124, 92, 252, 0.14)', fg: '#7c5cfc' },
-                        { bg: 'rgba(245, 158, 11, 0.14)', fg: '#f59e0b' },
-                        { bg: 'rgba(24, 167, 223, 0.14)', fg: '#18a7df' },
-                        { bg: 'rgba(236, 72, 153, 0.14)', fg: '#ec4899' },
-                        { bg: 'rgba(16, 185, 129, 0.14)', fg: '#10b981' },
-                        { bg: 'rgba(99, 102, 241, 0.14)', fg: '#6366f1' }
-                    ];
-                    const tint = tintPalette[(meta && typeof meta.row === 'number' ? meta.row : 0) % tintPalette.length];
-                    const iconContent = row.logoUrl 
-                        ? `<img src="${row.logoUrl}" alt="${_tEsc(data)}" style="width: 100%; height: 100%; object-fit: cover;" />`
-                        : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                           </svg>`;
-                    return `<div class="if-tenant-cell">
-                                <div class="if-tenant-icon" style="overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 0; background: ${tint.bg}; color: ${tint.fg};">
-                                    ${iconContent}
-                                </div>
-                                <div>
-                                    <div class="if-tenant-name">${data || 'Unknown Tenant'}</div>
-                                    <div class="if-tenant-code">${row.code || '-'}</div>
-                                </div>
-                              </div>`;
-                }
-            },
-            /* 1 - Database Mode */
-            {
-                data: 'databaseMode',
-                className: 'text-center align-middle',
-                render: function (data) {
-                    const label = data || 'Standard';
-                    const isIsolated = /separate|isolated/i.test(label);
-                    return `<span class="if-db-badge ${isIsolated ? 'isolated' : ''}">
-                                ${isIsolated
-                                    ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>'
-                                    : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>'}
-                                ${label}
-                            </span>`;
-                }
-            },
-            /* 2 - Subscription */
-            {
-                data: 'subscriptionName',
-                orderable: false,
-                className: 'text-left align-middle',
-                render: function (data, type, row) {
-                    const name   = data || 'No Active Plan';
-                    const expiry = row.subscriptionExpiry
-                        ? new Date(row.subscriptionExpiry).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
-                        : 'N/A';
-                    return `<div class="if-plan-cell">
-                                <h5>${name}</h5>
-                                <p>Expires: ${expiry}</p>
-                            </div>`;
-                }
-            },
-            /* 3 - Grace Period */
-            {
-                data: 'gracePeriodDays',
-                className: 'text-center align-middle',
-                render: function (data) {
-                    return `<span class="if-grace">${data != null ? data : '-'} d</span>`;
-                }
-            },
-            /* 4 - Status */
-            {
-                data: 'isActive',
-                className: 'text-center align-middle',
-                render: function (data) {
-                    return data
-                        ? `<span class="if-status if-status-active"><span class="if-status-dot"></span>Active</span>`
-                        : `<span class="if-status if-status-disabled"><span class="if-status-dot"></span>Disabled</span>`;
-                }
-            },
-            { data: 'code', visible: false, className: 'text-left align-middle', render: function(d){ return d || '—'; } },
-            { data: 'databaseProvider', visible: false, className: 'text-left align-middle', render: function(d){ return d || '—'; } },
-            { data: 'databaseName', visible: false, className: 'text-left align-middle', render: function(d){ return d || '—'; } },
-            { data: 'email', visible: false, className: 'text-left align-middle', render: function(d){ return d || '—'; } },
-            { data: 'phone', visible: false, className: 'text-left align-middle', render: function(d){ return d || '—'; } },
-            { data: 'website', visible: false, className: 'text-left align-middle', render: function(d){ return d || '—'; } },
-            { data: 'billingAddress', visible: false, className: 'text-left align-middle', render: function(d){ return d || '—'; } },
-            { data: 'currency', visible: false, className: 'text-center align-middle', render: function(d){ return d || '—'; } },
-            /* 5 - Actions */
-            {
-                data: null,
-                orderable: false,
-                className: 'text-center align-middle',
-                render: function (data, type, row) {
-                    let html = `<div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                                <button class="action-btn action-btn-view" title="View Details" data-type="tenant" data-id="${row.id}">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <circle cx="12" cy="12" r="3"></circle>
-                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    </svg>
-                                </button>`;
-                    if (canManageSubs) {
-                        html += `<button class="action-btn action-btn-manage" title="Manage Subscriptions" onclick="manageSubscriptions('${row.id}')">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3a4.5 4.5 0 0 0 0-9H6"></path>
-                                    </svg>
-                                </button>`;
+        const dt = $('#tenantTable').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: {
+                url: '/Home/GetTenants',
+                type: 'POST',
+                data: function (d) {
+                    if ($customSearch.length > 0) {
+                        d.customSearchValue = $customSearch.val();
                     }
-                    if (canEditTenant) {
-                        html += `<button class="action-btn action-btn-edit" title="Edit Tenant" onclick="editTenant('${row.id}')">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                    </svg>
-                                </button>`;
-                    }
-                    if (canDeleteTenant) {
-                        html += `<button class="action-btn action-btn-delete" title="Delete Tenant" onclick="deleteTenant('${row.id}')">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <polyline points="3 6 5 6 21 6"></polyline>
-                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                    </svg>
-                                </button>`;
-                    }
-                    html += `</div>`;
-                    return html;
                 }
-            }
-        ],
-        drawCallback: function () {
-            const api        = this.api();
-            const info       = api.page.info();
-            const shown      = api.rows({ page: 'current' }).count();
-            const total      = info.recordsTotal;
-            const current    = info.page;
-            const totalPages = info.pages;
-
-            // Calculate stats based on loaded page records and scale to total records
-            const rowsData = api.rows({ page: 'current' }).data().toArray();
-            const activeCount = rowsData.filter(t => t.isActive).length;
-            const isolatedCount = rowsData.filter(t => /separate|isolated/i.test(t.databaseMode || '')).length;
-
-            const activeRatio = shown > 0 ? (activeCount / shown) : 0;
-            const isolatedRatio = shown > 0 ? (isolatedCount / shown) : 0;
-
-            const totalActive = Math.round(activeRatio * total) || 0;
-            const totalIsolated = Math.round(isolatedRatio * total) || 0;
-
-            $('#statTotalTenants').text(total);
-            $('#statActiveTenants').text(totalActive);
-            $('#statIsolatedDb').text(totalIsolated);
-
-            renderTenantArrowPagination(api, '.if-pill-pagination-mount', 'tenants');
-
-            // Sync KPI highlights and counts
-            const activeFilters = $panel.data('active-filters') || {};
-            $('.sub-kpi-card').removeClass('active');
-            if (activeFilters.IsActive === 'true') {
-                $('#kpiActiveTenants').addClass('active');
-            } else if (activeFilters.DatabaseMode === 'Isolated') {
-                $('#kpiIsolatedTenants').addClass('active');
-            } else {
-                $('#kpiTotalTenants').addClass('active');
-            }
-
-            // Self-correcting count logic
-            if (typeof activeFilters.IsActive === 'undefined' && typeof activeFilters.DatabaseMode === 'undefined') {
-                $panel.data('total-tenants-kpi', total);
-                $panel.data('active-tenants-kpi', totalActive);
-                $panel.data('isolated-tenants-kpi', totalIsolated);
-            } else if (activeFilters.IsActive === 'true') {
-                const jsonResult = api.ajax.json();
-                $panel.data('active-tenants-kpi', jsonResult ? jsonResult.recordsFiltered : totalActive);
-            } else if (activeFilters.DatabaseMode === 'Isolated') {
-                const jsonResult = api.ajax.json();
-                $panel.data('isolated-tenants-kpi', jsonResult ? jsonResult.recordsFiltered : totalIsolated);
-            }
-
-            $('#totalTenantsCountKpi').text($panel.data('total-tenants-kpi') || total || 0);
-            $('#activeTenantsCountKpi').text($panel.data('active-tenants-kpi') || 0);
-            $('#isolatedTenantsCountKpi').text($panel.data('isolated-tenants-kpi') || 0);
-
-            // Render grid view with current page data
-            renderTenantGridView(rowsData);
-
-            // Sync footer when grid is active
-            var _sTView = localStorage.getItem('view-mode-tenantTable') || 'list';
-            if (_sTView === 'grid') {
-                var $tF = $panel.find('.if-table-footer-wrap');
-                if ($tF.length) $panel.append($tF);
-            }
-        }
-    });
-
-    /* -- Search debounce -- */
-    let searchTimer;
-    $searchInput.on('keyup', function () {
-        clearTimeout(searchTimer);
-        const val = this.value;
-        searchTimer = setTimeout(() => dt.search(val).draw(), 400);
-    });
-
-    /* -- Open Create Modal -- */
-    $('#openCreateTenantModal').on('click', () => openTenantModal());
-
-    // Initialize row selection for smart export
-    window.initRowSelection('tenantTable', 'id');
-
-    /* ── KPI Cards Click Routing ── */
-    $('.sub-kpi-card').on('click', function () {
-        const id = $(this).attr('id');
-        const activeFilters = $panel.data('active-filters') || {};
-        
-        if (id === 'kpiTotalTenants') {
-            delete activeFilters.IsActive;
-            delete activeFilters.DatabaseMode;
-        } else if (id === 'kpiActiveTenants') {
-            if (activeFilters.IsActive === 'true') {
-                delete activeFilters.IsActive;
-            } else {
-                activeFilters.IsActive = 'true';
-                delete activeFilters.DatabaseMode;
-            }
-        } else if (id === 'kpiIsolatedTenants') {
-            if (activeFilters.DatabaseMode === 'Isolated') {
-                delete activeFilters.DatabaseMode;
-            } else {
-                activeFilters.DatabaseMode = 'Isolated';
-                delete activeFilters.IsActive;
-            }
-        }
-        
-        $panel.data('active-filters', activeFilters);
-        const hasFilters = Object.keys(activeFilters).length > 0;
-        $panel.find('.filter-trigger-btn').toggleClass('active', hasFilters);
-        
-        // Sync values to select inputs in hidden repo
-        const $isActiveFilter = $panel.find('.table-filters-repo [name="filter-IsActive"], .table-filters-repo .filter-IsActive');
-        if ($isActiveFilter.length) {
-            $isActiveFilter.val(activeFilters.IsActive ? [activeFilters.IsActive] : []).trigger('change');
-        }
-        const $dbModeFilter = $panel.find('.table-filters-repo [name="filter-DatabaseMode"], .table-filters-repo .filter-DatabaseMode');
-        if ($dbModeFilter.length) {
-            $dbModeFilter.val(activeFilters.DatabaseMode ? [activeFilters.DatabaseMode] : []).trigger('change');
-        }
-        
-        dt.draw();
-    });
-
-    // Sync KPI highlights if filter changes from filter drawer select
-    $(document).on('change', '.table-filters-repo [name="filter-IsActive"], .table-filters-repo .filter-IsActive, .table-filters-repo [name="filter-DatabaseMode"], .table-filters-repo .filter-DatabaseMode', function () {
-        const activeFilters = $panel.data('active-filters') || {};
-        $('.sub-kpi-card').removeClass('active');
-        if (activeFilters.IsActive === 'true') {
-            $('#kpiActiveTenants').addClass('active');
-        } else if (activeFilters.DatabaseMode === 'Isolated') {
-            $('#kpiIsolatedTenants').addClass('active');
-        } else {
-            $('#kpiTotalTenants').addClass('active');
-        }
-    });
-
-    /* ═══════════════════════════════════════════════════════════
-       TENANT GRID VIEW
-       ═══════════════════════════════════════════════════════════ */
-    var _tAvatarPalette = ['#7c5cfc','#18a7df','#8b5cf6','#f59e0b','#ef4444','#06b6d4','#ec4899','#6366f1'];
-
-    function _tInitials(name) {
-        if (!name) return '?';
-        var p = name.trim().split(/\s+/);
-        return p.length >= 2 ? (p[0][0] + p[1][0]).toUpperCase() : name.substring(0,2).toUpperCase();
-    }
-
-    function _tEsc(s) { return $('<div>').text(s || '').html(); }
-
-    function renderTenantGridView(dataArray) {
-        var $c = $('#tenantGridViewWrapper');
-        $c.empty();
-        if (!dataArray || dataArray.length === 0) {
-            $c.html('<div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 20px;color:var(--text-muted);text-align:center;background:var(--bg-surface);border:1px dashed var(--border-strong);border-radius:var(--radius-lg);margin:16px;">' +
-                '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:12px;opacity:0.7;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>' +
-                '<h5 style="margin:0 0 4px;font-weight:600;color:var(--text-main);">No Tenants Found</h5>' +
-                '<p style="margin:0;font-size:0.75rem;">Try adjusting your search terms or filters.</p></div>');
-            return;
-        }
-        var sel       = (window.getSelectionSet ? window.getSelectionSet('tenantTable') : new Set());
-        var colDb     = dt.column(2).visible();
-        var colPlan   = dt.column(3).visible();
-        var colGrace  = dt.column(4).visible();
-        var colStatus = dt.column(5).visible();
-
-        $.each(dataArray, function (idx, row) {
-            var color    = _tAvatarPalette[idx % _tAvatarPalette.length];
-            var initials = _tInitials(row.name);
-            var isSel    = sel.has(String(row.id));
-            var inactive = !row.isActive;
-            var isIso    = /separate|isolated/i.test(row.databaseMode || '');
-            var planName = row.subscriptionName || 'No Active Plan';
-            var expiry   = row.subscriptionExpiry
-                ? new Date(row.subscriptionExpiry).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})
-                : 'N/A';
-
-            var dbBadge = colDb
-                ? '<div class="tenant-card-field"><span class="tcf-label">DB Mode</span>' +
-                  '<span class="' + (isIso ? 'tcard-db-isolated' : 'tcard-db-shared') + '">' +
-                  (isIso
-                      ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>'
-                      : '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>') +
-                  _tEsc(row.databaseMode || 'Standard') + '</span></div>'
-                : '';
-
-            var planField = colPlan
-                ? '<div class="tenant-card-field"><span class="tcf-label">Plan</span>' +
-                  '<span class="tcard-plan-txt" title="' + _tEsc(planName) + ' · Exp: ' + expiry + '">' + _tEsc(planName) + '</span></div>'
-                : '';
-
-            var graceField = colGrace
-                ? '<div class="tenant-card-field"><span class="tcf-label">Grace</span>' +
-                  '<span class="tcf-value" style="font-family:monospace;">' + (row.gracePeriodDays != null ? row.gracePeriodDays + ' d' : '—') + '</span></div>'
-                : '';
-
-            var statusBadge = colStatus
-                ? (row.isActive
-                    ? '<span class="tcard-s-active"><span class="tcard-sdot" style="background:#10b981;"></span>Active</span>'
-                    : '<span class="tcard-s-inactive"><span class="tcard-sdot" style="background:#94a3b8;"></span>Disabled</span>')
-                : '';
-
-            var fields    = dbBadge + planField + graceField;
-            var fieldsHtml = fields ? '<div class="tcard-divider"></div><div class="tenant-card-fields">' + fields + '</div>' : '';
-
-            var actions = '<button class="btn-tcard-view action-btn-view" data-type="tenant" data-id="' + row.id + '" title="View Details">' +
-                '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path></svg>View</button>';
-            if (canManageSubs) {
-                actions += '<button class="btn-tcard-action" title="Manage Subscriptions" onclick="manageSubscriptions(\'' + row.id + '\')">' +
-                    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3a4.5 4.5 0 0 0 0-9H6"></path></svg></button>';
-            }
-            if (canEditTenant) {
-                actions += '<button class="btn-tcard-action" title="Edit Tenant" onclick="editTenant(\'' + row.id + '\')">' +
-                    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>';
-            }
-            if (canDeleteTenant) {
-                actions += '<button class="btn-tcard-action danger" title="Delete Tenant" onclick="deleteTenant(\'' + row.id + '\')">' +
-                    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>';
-            }
-
-            var card = '<div class="tenant-grid-card' + (inactive ? ' inactive' : '') + (isSel ? ' selected' : '') + '" data-id="' + row.id + '">' +
-                '<div class="tenant-card-header">' +
-                '<input type="checkbox" class="tenant-card-checkbox" data-id="' + row.id + '"' + (isSel ? ' checked' : '') + '>' +
-                statusBadge +
-                '</div>' +
-                '<div class="tenant-card-org-section">' +
-                '<div class="tenant-card-avatar" style="background:' + color + '; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 0;">' + 
-                (row.logoUrl ? '<img src="' + row.logoUrl + '" alt="' + _tEsc(row.name) + '" style="width: 100%; height: 100%; object-fit: cover;" />' : _tEsc(initials)) + 
-                '</div>' +
-                '<div class="tenant-card-name-group">' +
-                '<h4 class="tenant-card-name" title="' + _tEsc(row.name) + '">' + _tEsc(row.name || 'Unknown') + '</h4>' +
-                '<div class="tenant-card-code">' + _tEsc(row.code || '—') + '</div>' +
-                '</div></div>' +
-                fieldsHtml +
-                '<div class="tcard-divider"></div>' +
-                '<div class="tenant-card-actions">' + actions + '</div>' +
-                '</div>';
-            $c.append(card);
+            },
+            responsive: true,
+            dom: '<"table-toolbar datatables-injected"<"table-filters"l>f>t<"pagination"ip>',
+            columns: [
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    render: function () { return '<input type="checkbox" class="custom-checkbox">'; }
+                },
+                {
+                    data: 'name',
+                    render: function (data, type, row) {
+                        return `<div class="cell-flex">
+                                    <div class="cell-avatar primary">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="cell-text">
+                                        <h5>${data || 'Unknown Tenant'}</h5>
+                                        <p>${row.code || 'No Code'}</p>
+                                    </div>
+                                </div>`;
+                    }
+                },
+                {
+                    data: 'databaseMode',
+                    render: function (data) {
+                        return `<span class="badge badge-neutral">${data || 'Standard'}</span>`;
+                    }
+                },
+                {
+                    data: 'subscriptionName',
+                    orderable: false,
+                    render: function (data, type, row) {
+                        const expiry = row.subscriptionExpiry ? new Date(row.subscriptionExpiry).toLocaleDateString() : 'N/A';
+                        return `<div class="cell-text"><h5 style="color: var(--brand-primary);">${data || 'No Active Plan'}</h5><p>Expires: ${expiry}</p></div>`;
+                    }
+                },
+                {
+                    data: 'gracePeriodDays',
+                    render: function (data) {
+                        return `<span style="font-weight: 600; font-family: monospace;">${data} d</span>`;
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function (data) {
+                        return `<div title="Usage">
+                                    <div class="progress-track">
+                                        <div class="progress-fill" style="width: 50%;"></div>
+                                    </div>
+                                    <span style="font-family: monospace; font-size: 0.75rem; color: var(--text-muted);">50%</span>
+                                </div>`;
+                    }
+                },
+                {
+                    data: 'isActive',
+                    render: function (data) {
+                        return data ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-error">Disabled</span>';
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    render: function (data, type, row) {
+                        return `<div style="text-align: right;">
+                                    <button class="action-btn" title="Manage Subscriptions" onclick="manageSubscriptions('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></button>
+                                    <button class="action-btn" title="Edit Tenant" onclick="editTenant('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                    <button class="action-btn text-error" title="Delete Tenant" onclick="deleteTenant('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                                </div>`;
+                    }
+                }
+            ]
         });
-    }
 
-    /* Card checkbox → table row sync */
-    $('#tenantGridViewWrapper').on('change', '.tenant-card-checkbox', function () {
-        var id = $(this).data('id'), chk = this.checked;
-        if (window.toggleSelection) window.toggleSelection('tenantTable', id, chk);
-        $(this).closest('.tenant-grid-card').toggleClass('selected', chk);
-        var $rc = $('#tenantTable').find('input.row-select-cb[data-row-id="' + id + '"]');
-        if ($rc.length) { $rc.prop('checked', chk); $rc.closest('tr').toggleClass('selected-row', chk); }
-        var s = window.getSelectionSet ? window.getSelectionSet('tenantTable') : new Set();
-        var vis = $('#tenantTable').find('input.row-select-cb').map(function () { return String($(this).data('row-id')); }).get();
-        var $m = $('.master-select-cb[data-table="tenantTable"]');
-        $m.prop('checked', vis.length > 0 && vis.every(function (i) { return s.has(i); }));
-        var cc = vis.filter(function (i) { return s.has(i); }).length;
-        $m.prop('indeterminate', cc > 0 && cc < vis.length);
-    });
-
-    /* Global selection → card sync */
-    $(document).on('selection:changed', function (e, data) {
-        if (data && data.tableId === 'tenantTable') {
-            $('.tenant-card-checkbox').each(function () {
-                var id = $(this).data('id'), chk = data.ids && data.ids.includes(String(id));
-                $(this).prop('checked', chk);
-                $(this).closest('.tenant-grid-card').toggleClass('selected', chk);
+        if ($customSearch.length > 0) {
+            let searchTimeout;
+            $customSearch.on('keyup', function () {
+                clearTimeout(searchTimeout);
+                const val = this.value;
+                searchTimeout = setTimeout(() => {
+                    dt.search(val).draw();
+                }, 400);
             });
         }
+
+        $('#openCreateTenantModal').on('click', function() {
+            openTenantModal();
+        });
     });
 
-    /* applyViewMode override for tenantTable */
-    var _origTVM = window.applyViewMode;
-    window.applyViewMode = function (targetTableId, mode) {
-        if (targetTableId === 'tenantTable') {
-            var $grid = $('#tenantGridViewWrapper');
-            var $tbl  = $('#tenantTableViewWrapper');
-            var $foot = $panel.find('.if-table-footer-wrap');
-            var $btns = $panel.find('.view-toggle-btn[data-target="tenantTable"]');
-            if (mode === 'grid') {
-                $tbl.removeClass('active'); $grid.addClass('active');
-                if ($foot.length) $panel.append($foot);
-                $btns.removeClass('active');
-                $panel.find('.view-toggle-btn[data-target="tenantTable"][data-view="grid"]').addClass('active');
-                localStorage.setItem('view-mode-tenantTable', 'grid');
-            } else {
-                $grid.removeClass('active'); $tbl.addClass('active');
-                var $dtw = $('#tenantTable_wrapper');
-                if ($foot.length && $dtw.length) $dtw.append($foot);
-                $btns.removeClass('active');
-                $panel.find('.view-toggle-btn[data-target="tenantTable"][data-view="list"]').addClass('active');
-                localStorage.setItem('view-mode-tenantTable', 'list');
-            }
-        } else if (typeof _origTVM === 'function') {
-            _origTVM(targetTableId, mode);
-        }
-    };
-
-    /* View toggle click → animate wrappers */
-    $(document).on('click', '.view-toggle-btn[data-target="tenantTable"]', function () {
-        var mode = $(this).data('view');
-        window.applyViewMode('tenantTable', mode);
-        if (mode === 'grid') {
-            $('#tenantTableViewWrapper').removeClass('active');
-            setTimeout(function () { $('#tenantGridViewWrapper').addClass('active'); }, 50);
-        } else {
-            $('#tenantGridViewWrapper').removeClass('active');
-            setTimeout(function () { $('#tenantTableViewWrapper').addClass('active'); }, 50);
-        }
-    });
-
-    /* Init from localStorage – no flicker */
-    (function initTenantView() {
-        var saved = localStorage.getItem('view-mode-tenantTable') || 'list';
-        window.applyViewMode('tenantTable', saved);
-        if (saved === 'grid') {
-            $('#tenantTableViewWrapper').removeClass('active');
-            $('#tenantGridViewWrapper').addClass('active');
-        } else {
-            $('#tenantGridViewWrapper').removeClass('active');
-            $('#tenantTableViewWrapper').addClass('active');
-        }
-    })();
-
-});
-
-function renderTenantArrowPagination(dt, mountSelector, label) {
-    const info = dt.page.info();
-    const totalPages = Math.max(info.pages, 1);
-    const current = info.page + 1;
-    const total = info.recordsTotal;
-    const perPage = info.length;
-    const $mount = $(mountSelector);
-
-    if (!$mount.length) return;
-
-    if ($mount.find('.if-pill-pagination').length === 0) {
-        $mount.html(`
-            <div class="if-pill-pagination">
-                <div class="if-pill-rows-group">
-                    <span class="if-pill-range-info">Rows</span>
-                    <select class="if-pill-rows-select">
-                        <option value="10">10</option>
-                        <option value="25">25</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                        <option value="200">200</option>
-                    </select>
-                    <span class="if-pill-range-info if-pill-range-info-label"></span>
-                </div>
-                <div class="tenant-arrow-pagination">
-                    <button type="button" class="tenant-page-arrow tenant-prev-page" title="Previous Page">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="15 18 9 12 15 6"></polyline>
-                        </svg>
-                    </button>
-                    <span class="tenant-page-circle">1</span>
-                    <button type="button" class="tenant-page-arrow tenant-next-page" title="Next Page">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        `);
-
-        $mount.on('change', '.if-pill-rows-select', function () {
-            dt.page.len(parseInt(this.value, 10)).draw();
-        });
-
-        $mount.on('click', '.tenant-prev-page', function () {
-            if (dt.page.info().page > 0) {
-                dt.page('previous').draw('page');
-            }
-        });
-
-        $mount.on('click', '.tenant-next-page', function () {
-            const inf = dt.page.info();
-            if (inf.page < inf.pages - 1) {
-                dt.page('next').draw('page');
+    function openTenantModal(id = '') {
+        const isEdit = id !== '';
+        openModal({
+            title: isEdit ? 'Update Organization' : 'Provision New Tenant',
+            subtitle: isEdit ? 'Modify organizational boundaries and settings.' : 'Scale your ecosystem by adding a new organization boundary.',
+            icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>',
+            url: '/Home/CreateTenant?Id=' + id,
+            onSuccess: function() {
+                $('#tenantTable').DataTable().ajax.reload();
             }
         });
     }
 
-    $mount.find('.if-pill-rows-select').val(perPage);
+    function editTenant(id) {
+        openTenantModal(id);
+    }
 
-    const start = total === 0 ? 0 : (current - 1) * perPage + 1;
-    const end = Math.min(current * perPage, total);
-    $mount.find('.if-pill-range-info-label').text(`${start}\u2013${end} of ${total} ${label}`);
+    function manageSubscriptions(id) {
+        window.openModal({
+            title: 'Manage Subscriptions',
+            subtitle: 'Configure service tiers and licensing dates.',
+            icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>',
+            url: '/Home/ManageTenantSubscriptions?TenantId=' + id,
+            onSuccess: function() {
+                $('#tenantTable').DataTable().ajax.reload();
+            }
+        });
+    }
 
-    $mount.find('.tenant-page-circle').text(current);
-    $mount.find('.tenant-prev-page').prop('disabled', current <= 1);
-    $mount.find('.tenant-next-page').prop('disabled', current >= totalPages);
-}
-
-/* ----------------------------------------------------------- */
-function openTenantModal(id = '') {
-    const isEdit = id !== '';
-    openModal({
-        title   : isEdit ? 'Update Organization'   : 'Provision New Tenant',
-        subtitle: isEdit ? 'Modify organizational boundaries and settings.'
-                         : 'Scale your ecosystem by adding a new organization boundary.',
-        icon    : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>',
-        url     : '/Home/CreateTenant?Id=' + id,
-        onSuccess: () => $('#tenantTable').DataTable().ajax.reload()
-    });
-}
-
-function editTenant(id)            { openTenantModal(id); }
-
-function manageSubscriptions(id) {
-    window.openModal({
-        title   : 'Manage Subscriptions',
-        subtitle: 'Configure service tiers and licensing dates.',
-        icon    : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>',
-        url     : '/Home/ManageTenantSubscriptions?TenantId=' + id,
-        onSuccess: () => $('#tenantTable').DataTable().ajax.reload()
-    });
-}
-
-function deleteTenant(id) {
-    openModal({
-        title   : 'Decommission Tenant',
-        subtitle: 'Confirm permanent destruction of this organizational boundary.',
-        icon    : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-error">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    function deleteTenant(id) {
+        openModal({
+            title: 'Decommission Tenant',
+            subtitle: 'Confirm permanent destruction of this organizational boundary.',
+            icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-error">
+                    <polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                   </svg>`,
-        url     : '/Home/DeleteTenant?Id=' + id,
-        onSuccess: () => $('#tenantTable').DataTable().ajax.reload()
-    });
-}
+            url: '/Home/DeleteTenant?Id=' + id,
+            onSuccess: function() {
+                $('#tenantTable').DataTable().ajax.reload();
+            }
+        });
+    }
 </script>

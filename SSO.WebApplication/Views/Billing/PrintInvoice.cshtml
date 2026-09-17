@@ -19,438 +19,150 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice - @Model.InvoiceNumber</title>
-    
-    <!-- Google Fonts for Modern Typography -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-
     <style>
         :root {
-            --primary-color: #2563eb;
-            --primary-hover: #1d4ed8;
-            --text-main: #0f172a;
+            --primary: #3b82f6;
+            --text-dark: #1e293b;
             --text-muted: #64748b;
-            --border-subtle: #f1f5f9;
-            --border-strong: #e2e8f0;
-            --bg-surface: #ffffff;
-            --bg-base: #f8fafc;
-            --radius-lg: 12px;
-            --radius-md: 8px;
-        }
-
-        * {
-            box-sizing: border-box;
+            --border: #e2e8f0;
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: 0;
-            color: var(--text-main);
-            background: var(--bg-base);
+            padding: 40px;
+            color: var(--text-dark);
+            background: white;
             line-height: 1.5;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .no-print-toolbar {
-            position: sticky;
-            top: 16px;
-            z-index: 100;
-            background: rgba(15, 23, 42, 0.85); /* Slate 900 with opacity */
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            padding: 12px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            max-width: 900px;
-            margin: 16px auto 0 auto;
-            border-radius: var(--radius-lg);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-        }
-
-        .btn-back {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: #94a3b8; /* Slate 400 */
-            font-size: 14px;
-            font-weight: 500;
-            text-decoration: none;
-            transition: color 0.2s, transform 0.2s;
-        }
-
-        .btn-back:hover {
-            color: #f8fafc;
-            transform: translateX(-2px);
-        }
-
-        .btn-print {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
-        }
-
-        .btn-print:hover {
-            background: var(--primary-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
-        }
-
-        .btn-print:active {
-            transform: translateY(0);
         }
 
         .invoice-box {
-            max-width: 900px;
-            margin: 30px auto 60px auto;
-            background: var(--bg-surface);
-            padding: 60px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02), 0 10px 40px rgba(0, 0, 0, 0.04);
-            border: 1px solid var(--border-strong);
-            position: relative;
+            max-width: 800px;
+            margin: auto;
         }
 
-        /* ─── Header ─── */
-        .invoice-header {
+        header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            border-bottom: 1px solid var(--border-strong);
-            padding-bottom: 40px;
-            margin-bottom: 40px;
-            gap: 20px;
+            margin-bottom: 60px;
         }
 
-        .brand-section {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .logo-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 44px;
-            height: 44px;
-            border-radius: 10px;
-            background: var(--border-subtle);
-            color: var(--primary-color);
-        }
-
-        .brand-name-group h1 {
+        .brand-section h1 {
             margin: 0;
-            color: var(--text-main);
-            font-size: 22px;
-            font-weight: 800;
+            color: var(--primary);
+            font-size: 28px;
             letter-spacing: -0.5px;
-            line-height: 1.1;
         }
 
-        .brand-tagline {
-            font-size: 12px;
+        .brand-section p {
+            margin: 5px 0 0;
             color: var(--text-muted);
-            font-weight: 500;
-            display: block;
-            margin-top: 2px;
+            font-size: 14px;
         }
 
-        .brand-address {
-            margin: 8px 0 0 0;
-            color: var(--text-muted);
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        .invoice-meta {
+        .invoice-details {
             text-align: right;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
         }
 
-        .invoice-meta h2 {
-            margin: 0 0 16px 0;
-            font-size: 26px;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            color: var(--text-main);
-        }
-
-        .invoice-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 6px 14px;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            border-radius: 50px;
-            margin-bottom: 20px;
+        .invoice-details h2 {
+            margin: 0;
+            font-size: 24px;
             text-transform: uppercase;
+            color: var(--text-dark);
         }
 
-        .invoice-badge.paid {
-            background: #ecfdf5;
-            color: #059669;
-            border: 1px solid #a7f3d0;
+        .invoice-details p {
+            margin: 5px 0 0;
+            font-family: monospace;
+            font-size: 16px;
         }
 
-        .invoice-badge.unpaid, .invoice-badge.pending {
-            background: #fffbeb;
-            color: #d97706;
-            border: 1px solid #fde68a;
-        }
-
-        .invoice-badge.overdue {
-            background: #fef2f2;
-            color: #dc2626;
-            border: 1px solid #fecaca;
-        }
-
-        .meta-row {
-            display: flex;
-            gap: 16px;
-            margin-bottom: 6px;
-            font-size: 13px;
-        }
-
-        .meta-label {
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-
-        .meta-value {
-            color: var(--text-main);
-            font-weight: 600;
-        }
-
-        .font-mono {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12.5px;
-            letter-spacing: -0.2px;
-        }
-
-        /* ─── Info Grid ─── */
         .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 40px;
-            margin-bottom: 40px;
+            margin-bottom: 60px;
         }
 
-        .info-block {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .info-block h3 {
-            margin: 0 0 16px 0;
-            font-size: 12px;
-            font-weight: 700;
+        .info-block h4 {
+            margin: 0 0 10px;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            font-size: 12px;
+            letter-spacing: 1px;
             color: var(--text-muted);
-            border-bottom: 1px solid var(--border-strong);
-            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 5px;
         }
 
-        .client-info {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .client-name {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--text-main);
-            margin-bottom: 4px;
-        }
-
-        .client-email, .client-phone {
-            font-size: 13px;
-            color: var(--text-muted);
-        }
-
-        .client-address {
-            margin-top: 8px;
-            font-size: 13px;
-            line-height: 1.5;
-            color: var(--text-muted);
+        .info-block div {
+            font-size: 15px;
             white-space: pre-line;
         }
 
-        .payment-method-info {
-            font-size: 13px;
-            color: var(--text-muted);
-            line-height: 1.6;
-        }
-
-        .bank-details {
-            margin-top: 12px;
-            background: var(--bg-base);
-            border: 1px solid var(--border-strong);
-            border-radius: var(--radius-md);
-            padding: 12px 16px;
-            font-size: 13px;
-        }
-
-        /* ─── Table ─── */
-        .items-table {
+        table {
             width: 100%;
             border-collapse: collapse;
-            margin: 40px 0 30px 0;
+            margin-bottom: 40px;
         }
 
-        .items-table th {
+        th {
             text-align: left;
-            background: var(--bg-base);
-            padding: 14px 20px;
-            font-size: 11px;
-            font-weight: 700;
+            background: #f8fafc;
+            padding: 12px 15px;
+            font-size: 13px;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
             color: var(--text-muted);
-            border-bottom: 2px solid var(--border-strong);
+            border-bottom: 2px solid var(--border);
         }
 
-        .items-table td {
-            padding: 20px;
-            border-bottom: 1px solid var(--border-subtle);
-            font-size: 14px;
-            vertical-align: top;
-        }
-
-        .items-table tr:last-child td {
-            border-bottom: 2px solid var(--border-strong);
-        }
-
-        .item-desc {
-            font-size: 14px;
-        }
-
-        .item-desc strong {
-            display: block;
+        td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
             font-size: 15px;
-            color: var(--text-main);
-            margin-bottom: 4px;
-        }
-
-        .item-desc span {
-            font-size: 12px;
-            color: var(--text-muted);
         }
 
         .amount-col {
             text-align: right;
-            font-weight: 600;
+            font-weight: 500;
         }
 
-        /* ─── Summary Section ─── */
-        .summary-section {
-            display: flex;
-            justify-content: space-between;
-            gap: 40px;
-            margin-top: 20px;
-        }
-
-        .notes-block {
-            flex: 1;
-            max-width: 450px;
-        }
-
-        .notes-block h4 {
-            margin: 0 0 8px 0;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-muted);
-        }
-
-        .notes-block p {
-            margin: 0;
-            font-size: 13px;
-            color: var(--text-muted);
-            line-height: 1.6;
-        }
-
-        .totals-block {
-            width: 320px;
-            flex-shrink: 0;
+        .totals {
+            width: 300px;
+            margin-left: auto;
         }
 
         .total-row {
             display: flex;
             justify-content: space-between;
-            padding: 10px 0;
-            font-size: 13.5px;
-            color: var(--text-muted);
+            padding: 8px 0;
         }
 
         .total-row.grand-total {
-            border-top: 2px solid var(--border-strong);
+            border-top: 2px solid var(--primary);
             margin-top: 10px;
-            padding-top: 16px;
+            padding-top: 15px;
             font-weight: 700;
-            font-size: 19px;
-            color: var(--text-main);
+            font-size: 20px;
+            color: var(--primary);
         }
 
-        .total-row.grand-total .value {
-            color: var(--primary-color);
-        }
-
-        /* ─── Footer ─── */
-        .invoice-footer {
-            margin-top: 60px;
+        footer {
+            margin-top: 80px;
             text-align: center;
-            border-top: 1px solid var(--border-subtle);
-            padding-top: 30px;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
             color: var(--text-muted);
-            font-size: 12.5px;
-            line-height: 1.6;
-        }
-
-        .invoice-footer p {
-            margin: 4px 0;
-        }
-
-        .support-info {
             font-size: 12px;
-            opacity: 0.85;
         }
 
-        /* ─── Print Styles ─── */
         @@media print {
             * {
                 -webkit-print-color-adjust: exact !important;
                 color-adjust: exact !important;
                 box-sizing: border-box !important;
             }
-
             body {
                 padding: 0 !important;
                 margin: 0 !important;
@@ -458,44 +170,66 @@
                 width: 100% !important;
                 height: auto !important;
             }
-
             .no-print, .no-print-toolbar, footer.no-print {
                 display: none !important;
                 height: 0 !important;
                 margin: 0 !important;
                 padding: 0 !important;
             }
-
             .invoice-box {
                 width: 100% !important;
                 max-width: 100% !important;
                 margin: 0 !important;
-                padding: 0 !important;
+                padding: 5mm !important; 
                 box-shadow: none !important;
                 border: none !important;
-                border-radius: 0 !important;
             }
-
             @@page {
                 margin: 15mm !important;
                 size: portrait;
             }
         }
+
+        .no-print-toolbar {
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .btn-print {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-back {
+            background: transparent;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
 
-    <!-- Print / Back Navigation Toolbar -->
     <div class="no-print no-print-toolbar">
-        <a href="/Billing/Invoices" class="btn-back">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="19" y1="12" x2="5" y2="12"></line>
-                <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
-            Back to Portal
-        </a>
+        <a href="/Billing/Invoices" class="btn-back">← Back to Portal</a>
         <button onclick="window.print()" class="btn-print">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="6 9 6 2 18 2 18 9"></polyline>
                 <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
                 <rect x="6" y="14" width="12" height="8"></rect>
@@ -504,145 +238,87 @@
         </button>
     </div>
 
-    <!-- Main Invoice Document -->
     <div class="invoice-box">
-        
-        <!-- Header -->
-        <header class="invoice-header">
+        <header>
             <div class="brand-section">
-                <div class="logo-wrapper">
-                    <div class="logo-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                            <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
-                        </svg>
-                    </div>
-                    <div class="brand-name-group">
-                        <h1>Auxinz SSO Server</h1>
-                        <span class="brand-tagline">Enterprise Identity & Single Sign-On Platform</span>
-                    </div>
-                </div>
-                <p class="brand-address">
-                    123 Security Blvd, Cyber City<br>
-                    billing-support@auxinz.com | +1 (555) 019-2834
-                </p>
+                <h1>Auxinz Identity</h1>
+                <p>Enterprise SaaS Single Sign-On Platform</p>
+                <p>123 Security Blvd, Cyber City</p>
             </div>
-            
-            <div class="invoice-meta">
-                <div class="invoice-badge @(Model.Status.ToLower())">
-                    @Model.Status
-                </div>
-                <h2>INVOICE</h2>
-                <div class="meta-row">
-                    <span class="meta-label">Invoice #</span>
-                    <span class="meta-value font-mono">@Model.InvoiceNumber</span>
-                </div>
-                <div class="meta-row">
-                    <span class="meta-label">Date Issued</span>
-                    <span class="meta-value">@Model.InvoiceDate.ToString("MMM dd, yyyy")</span>
-                </div>
-                <div class="meta-row">
-                    <span class="meta-label">Due Date</span>
-                    <span class="meta-value">@Model.DueDate.ToString("MMM dd, yyyy")</span>
+            <div class="invoice-details">
+                <h2>Invoice</h2>
+                <p>#@Model.InvoiceNumber</p>
+                <div style="margin-top: 10px; font-size: 14px; color: var(--text-muted);">
+                    Date: @Model.InvoiceDate.ToShortDateString()<br>
+                    Due: @Model.DueDate.ToShortDateString()
                 </div>
             </div>
         </header>
 
-        <!-- Information Info Blocks -->
         <div class="info-grid">
             <div class="info-block">
-                <h3>Bill To</h3>
-                <div class="client-info">
-                    <strong class="client-name">@Model.TenantName</strong>
-                    <span class="client-email">@Model.TenantEmail</span>
-                    @if (!string.IsNullOrEmpty(Model.TenantPhone))
-                    {
-                        <span class="client-phone">@Model.TenantPhone</span>
-                    }
-                    <div class="client-address">@Model.BillingAddress</div>
+                <h4>Bill To</h4>
+                <div>
+                    <strong>@Model.TenantName</strong><br>
+                    @Model.BillingAddress<br>
+                    @Model.TenantEmail<br>
+                    @Model.TenantPhone
                 </div>
             </div>
-            
             <div class="info-block">
-                <h3>Payment Context</h3>
-                <div class="payment-method-info">
-                    @if (Model.Status == "Paid")
-                    {
-                        <p style="margin: 0; color: #059669; font-weight: 600;">
-                            ✓ Payment received in full. Thank you for your business!
-                        </p>
-                    }
-                    else
-                    {
-                        <p style="margin: 0 0 10px 0;">
-                            Please pay via portal or direct bank transfer:
-                        </p>
-                        <div class="bank-details">
-                            <strong>Bank:</strong> City National Bank<br>
-                            <strong>Routing No:</strong> 123456789<br>
-                            <strong>Account No:</strong> 9876543210
-                        </div>
-                    }
+                <h4>Payment Status</h4>
+                <div style="font-weight: 600; color: @(Model.Status == "Paid" ? "#10b981" : "#f59e0b")">
+                    @Model.Status
                 </div>
             </div>
         </div>
 
-        <!-- Table -->
-        <table class="items-table">
+        <table>
             <thead>
                 <tr>
-                    <th style="width: 55%;">Description</th>
-                    <th style="text-align: center; width: 10%;">Qty</th>
-                    <th style="text-align: right; width: 15%;">Unit Price</th>
-                    <th style="text-align: right; width: 20%;">Total</th>
+                    <th>Description</th>
+                    <th style="text-align: center;">Qty</th>
+                    <th style="text-align: right;">Unit Price</th>
+                    <th style="text-align: right;">Total</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td>
-                        <div class="item-desc">
-                            <strong>@Model.SubscriptionName Plan</strong>
-                            <span>Monthly SaaS Subscription for Enterprise Identity Services</span>
-                        </div>
+                        <strong>@Model.SubscriptionName Plan</strong><br>
+                        <span style="font-size: 12px; color: var(--text-muted);">Monthly SaaS Subscription Fee</span>
                     </td>
-                    <td style="text-align: center; font-weight: 500;">1</td>
-                    <td style="text-align: right; font-weight: 500;">@symbol@Model.Amount.ToString("N2")</td>
-                    <td class="amount-col">@symbol@Model.Amount.ToString("N2")</td>
+                    <td style="text-align: center;">1</td>
+                    <td style="text-align: right;">@symbol@Model.Amount.ToString("N2")</td>
+                    <td style="text-align: right;">@symbol@Model.Amount.ToString("N2")</td>
                 </tr>
             </tbody>
         </table>
 
-        <!-- Summary & Totals -->
-        <div class="summary-section">
-            <div class="notes-block">
-                <h4>Terms & Notes</h4>
-                <p>
-                    Subscribers are billed monthly in advance. Payment is due within 30 days from the invoice date. 
-                    If you have any billing inquiries, please reach out to billing-support@auxinz.com.
-                </p>
+        <div class="totals">
+            <div class="total-row">
+                <span>Subtotal</span>
+                <span>@symbol@Model.Amount.ToString("N2")</span>
             </div>
-            
-            <div class="totals-block">
-                <div class="total-row">
-                    <span class="label">Subtotal</span>
-                    <span class="value">@symbol@Model.Amount.ToString("N2")</span>
-                </div>
-                <div class="total-row">
-                    <span class="label">Tax (10%)</span>
-                    <span class="value">@symbol@Model.TaxAmount.ToString("N2")</span>
-                </div>
-                <div class="total-row grand-total">
-                    <span class="label">Total Due</span>
-                    <span class="value">@symbol@Model.TotalAmount.ToString("N2")</span>
-                </div>
+            <div class="total-row">
+                <span>Tax (10%)</span>
+                <span>@symbol@Model.TaxAmount.ToString("N2")</span>
+            </div>
+            <div class="total-row grand-total">
+                <span>Total Amount</span>
+                <span>@symbol@Model.TotalAmount.ToString("N2")</span>
             </div>
         </div>
 
-        <!-- Footer -->
-        <footer class="invoice-footer">
-            <p>Thank you for choosing Auxinz SSO Server.</p>
-            <p class="support-info">Auxinz Technology Inc. &bull; 123 Security Blvd, Cyber City &bull; help.auxinz.com</p>
+        <footer class="no-print">
+            <p>Thank you for choosing Auxinz Identity. We appreciate your business!</p>
+            <p>If you have any questions, please contact billing-support@@auxinz.com</p>
         </footer>
     </div>
+    
+    <script>
+        // Optional: Auto-print on load if needed
+        // window.onload = function() { window.print(); }
+    </script>
 </body>
 </html>

@@ -11,11 +11,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.AppHost" Version="13.4.6" />
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="13.2.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SSO.InternalApi\SSO.InternalApi.csproj" />
     <ProjectReference Include="..\SSO.WebApplication\SSO.WebApplication.csproj" SkipGetTargetFrameworkProperties="true" />
   </ItemGroup>
 

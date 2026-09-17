@@ -1,4 +1,4 @@
-using LazyCache;
+﻿using LazyCache;
 using Microsoft.EntityFrameworkCore.Storage;
 using SSO.Application.Interfaces.Repos;
 using SSO.Application.Interfaces.Services;
@@ -43,14 +43,9 @@ namespace SSO.Infrastructure.Services.Repositories
             return (IRepositoryAsync<TEntity, TId>)_repositories[type];
         }
 
-        public async Task<int> Commit(CancellationToken cancellationToken, string? remarks = null)
+        public async Task<int> Commit(CancellationToken cancellationToken)
         {
-            int result;
-            if (!string.IsNullOrWhiteSpace(remarks))
-                result = await _dbContext.SaveChangesAsync(remarks, cancellationToken);
-            else
-                result = await _dbContext.SaveChangesAsync(cancellationToken);
-
+            var result= await _dbContext.SaveChangesAsync(cancellationToken);
             if (_transaction != null)
             {
                 await _transaction.CommitAsync(cancellationToken);

@@ -25,11 +25,6 @@ namespace SSO.Application.Features.Payments.Queries.GetPaged
             this.Draw = request.Draw;
             this.SortColumn = request.SortColumn;
             this.SortDirection = request.SortDirection;
-            this.SearchColumn = request.SearchColumn;
-            this.Filters = request.Filters;
-            this.StartDate = request.StartDate;
-            this.EndDate = request.EndDate;
-            this.SelectedIds = request.SelectedIds;
             this.InvoiceId = invoiceId;
         }
     }
@@ -75,8 +70,7 @@ namespace SSO.Application.Features.Payments.Queries.GetPaged
                         PaymentDate = e.PaymentDate,
                         Amount = e.Amount,
                         Method = e.Method.ToString(),
-                        Status = e.Status.ToString(),
-                        Currency = e.Invoice.Currency
+                        Status = e.Status.ToString()
                     },
                     e => true,
                     new List<string> { "TransactionId", "PaymentDate", "Amount" },

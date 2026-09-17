@@ -1,4 +1,4 @@
-
+﻿
 
 using SSO.Domain.Contract;
 
@@ -15,7 +15,5 @@ namespace SSO.Domain.Models.Audit
         public string? NewValues { get; set; }
         public string? AffectedColumns { get; set; }
         public string? PrimaryKey { get; set; }
-        /// <summary>Optional free-text change description supplied by the user when editing a record.</summary>
-        public string? Remarks { get; set; }
     }
 }

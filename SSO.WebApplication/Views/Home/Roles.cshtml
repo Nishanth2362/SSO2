@@ -1,690 +1,78 @@
-Roles.cshtml
-
 @using SSO.Application.Responses.Features
 
 @{
     ViewData["Title"] = "Roles & Permissions";
-    var canCreateRole = (await AuthorizationService.AuthorizeAsync(User, Permissions.Roles.Create)).Succeeded;
-    var canExportRole = (await AuthorizationService.AuthorizeAsync(User, Permissions.Roles.View)).Succeeded;
-    var canEditRole = (await AuthorizationService.AuthorizeAsync(User, Permissions.Roles.Edit)).Succeeded;
-    var canDeleteRole = (await AuthorizationService.AuthorizeAsync(User, Permissions.Roles.Delete)).Succeeded;
-    var canManagePermissions = (await AuthorizationService.AuthorizeAsync(User, Permissions.RoleClaims.View)).Succeeded;
 }
 
-<style>
-    /* Full-page background for seamless integration - Subtle Amber Gradient Theme */
-    body {
-        background: linear-gradient(150deg,
-                        rgba(245, 158, 11, 0.09) 0%,
-                        rgba(217, 119, 6, 0.04) 25%,
-                        rgba(254, 243, 199, 0.35) 60%,
-                        rgba(255, 255, 255, 0.98) 100%) !important;
-        background-attachment: fixed !important;
-        background-repeat: no-repeat !important;
-        background-size: cover !important;
-    }
-
-    html[data-theme="dark"] body {
-        background: linear-gradient(150deg,
-                        rgba(245, 158, 11, 0.16) 0%,
-                        rgba(217, 119, 6, 0.08) 25%,
-                        rgba(69, 26, 3, 0.45) 60%,
-                        rgba(9, 12, 20, 0.96) 100%) !important;
-        background-attachment: fixed !important;
-        background-repeat: no-repeat !important;
-        background-size: cover !important;
-    }
-
-    .page-wrapper, .content-wrapper, .container-xl, main, #content, .page-body {
-        background: transparent !important;
-    }
-
-    .th-page-card {
-        background: transparent;
-        border: none;
-        border-radius: 0;
-        box-shadow: none;
-        overflow: visible;
-        margin-bottom: 8px;
-    }
-
-    .roles-hero {
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 24px;
-        flex-wrap: wrap;
-        background: transparent;
-        border: none;
-        border-radius: 0;
-        padding: 12px 4px 6px;
-        margin-bottom: 0;
-        overflow: hidden;
-    }
-
-    /* Scattered Background Pattern (8-12% opacity outline SVGs) - Amber Theme */
-    .roles-hero-bg-pattern {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        overflow: hidden;
-        z-index: 0;
-    }
-
-    .hero-bg-icon {
-        position: absolute;
-        stroke: #f59e0b;
-        stroke-width: 1.5;
-        fill: none;
-        opacity: 0.10;
-        transition: opacity 0.3s ease;
-    }
-
-    html[data-theme="dark"] .hero-bg-icon {
-        stroke: #fbbf24;
-        opacity: 0.12;
-    }
-
-    .hero-bg-icon.icon-shield-1  { top: 8%; left: 1%; width: 32px; height: 32px; transform: rotate(-12deg); }
-    .hero-bg-icon.icon-key-1     { top: 14%; left: 36%; width: 26px; height: 26px; transform: rotate(10deg); }
-    .hero-bg-icon.icon-lock-1    { bottom: 10%; left: 18%; width: 30px; height: 30px; transform: rotate(-8deg); }
-    .hero-bg-icon.icon-tree-1    { top: 58%; left: 3%; width: 28px; height: 28px; transform: rotate(6deg); }
-    .hero-bg-icon.icon-check-1   { top: 10%; left: 22%; width: 28px; height: 28px; transform: rotate(-10deg); }
-    .hero-bg-icon.icon-sliders-1 { top: 62%; left: 44%; width: 26px; height: 26px; transform: rotate(-14deg); }
-    .hero-bg-icon.icon-users-1   { top: 12%; right: 44%; width: 28px; height: 28px; transform: rotate(18deg); }
-    .hero-bg-icon.icon-award-1   { bottom: 8%; right: 36%; width: 32px; height: 32px; transform: rotate(-10deg); }
-    .hero-bg-icon.icon-layers-1  { top: 10%; right: 26%; width: 26px; height: 26px; transform: rotate(8deg); }
-
-    .th-hero-left { 
-        position: relative; 
-        display: flex; 
-        align-items: center; 
-        gap: 18px; 
-        min-width: 260px; 
-        flex: 1 1 320px; 
-        z-index: 1; 
-    }
-    .th-hero-icon {
-        width: 52px; 
-        height: 52px; 
-        flex-shrink: 0; 
-        border-radius: 14px;
-        background: linear-gradient(135deg, #f59e0b, #d97706);
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        color: #fff;
-        box-shadow: 0 6px 16px rgba(245, 158, 11, 0.25);
-    }
-    .th-hero-title {
-        font-size: 1.7rem !important;
-        font-weight: 800 !important;
-        color: var(--text-main);
-        letter-spacing: -0.02em;
-        margin: 0 0 6px;
-        line-height: 1.2;
-    }
-    .th-hero-subtitle {
-        font-size: 0.86rem;
-        color: var(--text-muted);
-        margin: 0;
-        max-width: 480px;
-        line-height: 1.5;
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       COMPACT KPI CARDS (Subtle Amber Gradient Theme)
-       ═══════════════════════════════════════════════════════════ */
-    .sub-kpi-container {
-        position: relative;
-        display: flex;
-        gap: 14px;
-        align-items: stretch;
-        z-index: 1;
-        flex-wrap: wrap;
-        margin-left: 0;
-        margin-right: 0;
-    }
-    .sub-kpi-card {
-        cursor: pointer;
-        user-select: none;
-        width: 178px;
-        flex-shrink: 0;
-        background: var(--bg-surface);
-        border: 1px solid var(--border-subtle);
-        border-radius: 14px;
-        padding: 10px 14px;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 6px 16px -8px rgba(15,23,42,0.08);
-        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-    }
-    .sub-kpi-card:hover { 
-        transform: translateY(-2px); 
-        box-shadow: 0 4px 10px rgba(0,0,0,0.05), 0 10px 24px -8px rgba(15,23,42,0.14); 
-    }
-    .sub-kpi-card.active {
-        border-color: #f59e0b !important;
-        box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.18), var(--shadow-sm) !important;
-    }
-
-    .sub-kpi-card .tabler-stat-header { 
-        display: flex; 
-        align-items: center; 
-        gap: 10px; 
-        margin-bottom: 8px; 
-    }
-    .sub-kpi-card .tabler-stat-title { 
-        font-size: 0.66rem; 
-        font-weight: 700; 
-        letter-spacing: 0.04em; 
-        text-transform: uppercase; 
-        color: #64748b; 
-        line-height: 1.3; 
-    }
-    html[data-theme="dark"] .sub-kpi-card .tabler-stat-title { 
-        color: #94a3b8; 
-    }
-    .sub-kpi-card .tabler-stat-value { 
-        font-size: 1.6rem; 
-        font-weight: 800; 
-        color: var(--text-main); 
-        line-height: 1; 
-    }
-    .tabler-stat-icon {
-        width: 38px; 
-        height: 38px; 
-        border-radius: 10px; 
-        flex-shrink: 0;
-        display: flex; 
-        align-items: center; 
-        justify-content: center;
-        transition: transform 0.2s ease;
-    }
-    .sub-kpi-card:hover .tabler-stat-icon { 
-        transform: scale(1.08); 
-    }
-    .tabler-stat-icon.total-icon { 
-        background: rgba(245, 158, 11, 0.14) !important; 
-        color: #f59e0b !important; 
-    }
-    .tabler-stat-icon.system-icon { 
-        background: rgba(59, 130, 246, 0.14) !important; 
-        color: #3b82f6 !important; 
-    }
-    .tabler-stat-icon.tenant-icon { 
-        background: rgba(16, 185, 129, 0.14) !important; 
-        color: #10b981 !important; 
-    }
-
-    .kpi-mini-visual {
-        position: absolute;
-        right: 10px;
-        bottom: 6px;
-        opacity: 0.7;
-        pointer-events: none;
-    }
-
-    /* Page specific button overrides for Amber Gradient theme */
-    #openCreateRoleModal, .btn-primary-roles {
-        background: linear-gradient(135deg, #f59e0b, #d97706) !important;
-        border-color: #d97706 !important;
-        color: #ffffff !important;
-        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25) !important;
-    }
-    #openCreateRoleModal:hover, .btn-primary-roles:hover {
-        background: linear-gradient(135deg, #d97706, #b45309) !important;
-        box-shadow: 0 6px 16px rgba(245, 158, 11, 0.35) !important;
-    }
-
-    @@media (max-width: 1024px) {
-        .sub-kpi-container {
-            margin-left: 0;
-            margin-right: 0;
-            width: 100%;
-            justify-content: flex-start;
-        }
-    }
-    @@media (max-width: 768px) {
-        .sub-kpi-container {
-            flex-direction: column;
-            align-items: stretch;
-            width: 100%;
-        }
-        .sub-kpi-card {
-            width: 100% !important;
-        }
-    }
-
-    /* ──────────────────────────────────────────────────────────
-       VIEW SWITCHER & WRAPPERS
-       ────────────────────────────────────────────────────────── */
-    .view-toggle-wrapper {
-        display: flex; background: #f8fafc; border: 1px solid #e2e8f0;
-        border-radius: 8px; padding: 3px; gap: 2px; align-items: center; flex-shrink: 0;
-    }
-    html[data-theme="dark"] .view-toggle-wrapper { background: #18181b; border-color: #27272a; }
-    .view-toggle-wrapper .view-toggle-btn {
-        display: flex; align-items: center; justify-content: center;
-        width: 28px; height: 28px; border: 1px solid transparent; background: transparent;
-        border-radius: 6px; color: #94a3b8; cursor: pointer; transition: all 0.2s ease;
-        padding: 0; outline: none; box-shadow: none;
-    }
-    .view-toggle-wrapper .view-toggle-btn:hover { color: var(--text-main); background: rgba(0,0,0,0.05); }
-    html[data-theme="dark"] .view-toggle-wrapper .view-toggle-btn:hover { background: rgba(255,255,255,0.05); }
-    .view-toggle-wrapper .view-toggle-btn.active {
-        background: #ffffff; border-color: #e2e8f0; color: #3b82f6; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    html[data-theme="dark"] .view-toggle-wrapper .view-toggle-btn.active {
-        background: #27272a; border-color: #3f3f46; color: #3b82f6;
-    }
-    .view-wrapper {
-        opacity: 0; transform: translateY(10px);
-        transition: opacity 0.25s cubic-bezier(0.4,0,0.2,1), transform 0.25s cubic-bezier(0.4,0,0.2,1);
-    }
-    .view-wrapper.active  { opacity: 1; transform: translateY(0); }
-    .view-wrapper:not(.active) { display: none !important; }
-
-    /* ──────────────────────────────────────────────────────────
-       ROLE GRID LAYOUT
-       ────────────────────────────────────────────────────────── */
-    #roleGridViewWrapper.grid-cards-container {
-        display: grid !important;
-        grid-template-columns: repeat(3, 1fr) !important;
-        gap: 20px !important;
-        padding: 16px 20px 28px 20px !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
-    }
-    @@media (max-width: 1024px) { #roleGridViewWrapper.grid-cards-container { grid-template-columns: repeat(2, 1fr) !important; padding: 14px 16px 24px 16px !important; } }
-    @@media (max-width: 767px)  { #roleGridViewWrapper.grid-cards-container { grid-template-columns: 1fr !important; padding: 12px 12px 20px 12px !important; } }
-
-    /* ──────────────────────────────────────────────────────────
-       PREMIUM ROLE CARD STYLES
-       ────────────────────────────────────────────────────────── */
-    .role-grid-card {
-        background: #ffffff;
-        background-image: linear-gradient(160deg, rgba(245, 243, 255, 0.8) 0%, #ffffff 50%);
-        border: 1.5px solid #e5dff5;
-        border-radius: 16px;
-        display: flex; flex-direction: column; position: relative; overflow: hidden;
-        box-shadow:
-            0 1px 3px rgba(0, 0, 0, 0.04),
-            0 4px 14px -3px rgba(109, 40, 217, 0.08);
-        transition:
-            transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-            box-shadow 0.25s ease,
-            border-color 0.25s ease;
-        height: 100%; box-sizing: border-box;
-    }
-    html[data-theme="dark"] .role-grid-card {
-        background: #1c1726;
-        background-image: linear-gradient(160deg, rgba(44, 24, 80, 0.5) 0%, #1c1726 50%);
-        border-color: #2e2540;
-        box-shadow:
-            0 1px 3px rgba(0, 0, 0, 0.35),
-            0 4px 14px -3px rgba(0, 0, 0, 0.45);
-    }
-    .role-grid-card:hover {
-        transform: translateY(-6px);
-        border-color: rgba(139, 92, 246, 0.45);
-        box-shadow:
-            0 2px 4px rgba(0, 0, 0, 0.04),
-            0 16px 32px -8px rgba(139, 92, 246, 0.2),
-            0 0 0 1px rgba(139, 92, 246, 0.2);
-    }
-    html[data-theme="dark"] .role-grid-card:hover {
-        border-color: rgba(167, 139, 250, 0.45);
-        box-shadow:
-            0 2px 4px rgba(0, 0, 0, 0.3),
-            0 16px 32px -8px rgba(0, 0, 0, 0.6),
-            0 0 0 1px rgba(167, 139, 250, 0.35);
-    }
-    .role-grid-card.rselected {
-        border-color: #8b5cf6;
-        box-shadow:
-            0 0 0 2px rgba(139, 92, 246, 0.2),
-            0 4px 12px -2px rgba(139, 92, 246, 0.15);
-        background-image: linear-gradient(160deg, rgba(237, 233, 254, 0.6) 0%, #ffffff 50%);
-    }
-    html[data-theme="dark"] .role-grid-card.rselected {
-        background-image: linear-gradient(160deg, rgba(76, 40, 130, 0.4) 0%, #1c1726 50%);
-        border-color: #a78bfa;
-    }
-
-    /* Gradient banner — premium security accent */
-    .role-card-banner {
-        padding: 18px 16px 16px; display: flex; align-items: center;
-        justify-content: space-between; position: relative; border-radius: 14px 14px 0 0;
-    }
-    /* Light mode banner colors are defined inline per-card via JS palette */
-    /* Dark mode: use a darker, more subtle version of the same hue (no brightness filter!) */
-    html[data-theme="dark"] .role-card-banner {
-        opacity: 0.85;
-    }
-    .role-card-banner-icon {
-        width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center;
-        justify-content: center;
-        background: rgba(255, 255, 255, 0.45);
-        backdrop-filter: blur(6px);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
-    }
-    .role-grid-card:hover .role-card-banner-icon {
-        transform: scale(1.1) rotate(-3deg);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-    .role-card-checkbox {
-        width: 15px; height: 15px; cursor: pointer; accent-color: #8b5cf6; margin: 0; flex-shrink: 0;
-    }
-
-    .role-card-body { display: flex; flex-direction: column; padding: 14px 16px; flex: 1; }
-    .role-card-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-    .role-card-name { font-size: 0.95rem; font-weight: 700; color: #1e1b4b; margin: 0; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
-    html[data-theme="dark"] .role-card-name { color: #ede9fe; }
-    .role-card-desc { font-size: 0.78rem; color: #64748b; line-height: 1.5; margin: 0 0 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; flex: 1; }
-    html[data-theme="dark"] .role-card-desc { color: #94a3b8; }
-
-    .rcard-divider { height: 1px; background: linear-gradient(90deg, #ede9fe, #e5dff5 50%, transparent); margin: 10px 0; }
-    html[data-theme="dark"] .rcard-divider { background: linear-gradient(90deg, #2e2540, #3b2f5a 50%, transparent); }
-
-    /* Action Buttons */
-    .role-card-actions { display: flex; gap: 6px; margin-top: auto; }
-    .btn-rcard-view {
-        flex: 1; display: inline-flex; align-items: center; justify-content: center;
-        gap: 5px; font-size: 0.79rem; font-weight: 600; height: 34px; padding: 0 10px;
-        border-radius: 9px; border: 1.5px solid #e5dff5; background: rgba(245,243,255,0.9);
-        color: #4c1d95; cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
-    }
-    html[data-theme="dark"] .btn-rcard-view { border-color: #2e2540; background: rgba(30,23,60,0.9); color: #c4b5fd; }
-    .btn-rcard-view:hover { background: #8b5cf6; border-color: #8b5cf6; color: #fff; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); }
-    html[data-theme="dark"] .btn-rcard-view:hover { background: #7c3aed; border-color: #7c3aed; color: #fff; }
-    .btn-rcard-action {
-        width: 34px; height: 34px; border-radius: 9px; border: 1.5px solid #e5dff5;
-        background: rgba(245,243,255,0.9); color: #6d28d9; display: inline-flex; align-items: center;
-        justify-content: center; cursor: pointer; transition: all 0.2s ease; padding: 0; flex-shrink: 0;
-    }
-    html[data-theme="dark"] .btn-rcard-action { border-color: #2e2540; background: rgba(30,23,60,0.9); color: #a78bfa; }
-    .btn-rcard-action:hover { background: var(--bg-surface-hover); border-color: #8b5cf6; color: #7c3aed; transform: scale(1.05); }
-    html[data-theme="dark"] .btn-rcard-action:hover { background: #2e2540; border-color: #7c3aed; color: #c4b5fd; }
-    .btn-rcard-action.rdanger { color: #ef4444; border-color: rgba(239,68,68,0.2); }
-    html[data-theme="dark"] .btn-rcard-action.rdanger { color: #f87171; border-color: rgba(239,68,68,0.2); }
-    .btn-rcard-action.rdanger:hover { background: #fef2f2; border-color: #fca5a5; color: #dc2626; transform: scale(1.05); }
-    html[data-theme="dark"] .btn-rcard-action.rdanger:hover { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.4); color: #f87171; }
-
-</style>
-
 <div class="breadcrumbs">
-    <span>Auxinz SSO Server</span>
+    <span>Auxinz Identity</span>
     <a href="#">Identity & Access</a>
     <span class="current">Roles</span>
 </div>
 
-<div class="th-page-card">
-    <div class="roles-hero">
-        <!-- Scattered background outline icons -->
-        <div class="roles-hero-bg-pattern">
-            <!-- Shield -->
-            <svg class="hero-bg-icon icon-shield-1" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-            <!-- Key -->
-            <svg class="hero-bg-icon icon-key-1" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.778-7.778zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
-            <!-- Lock -->
-            <svg class="hero-bg-icon icon-lock-1" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-            <!-- Access Hierarchy / Tree -->
-            <svg class="hero-bg-icon icon-tree-1" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-            <!-- User Check -->
-            <svg class="hero-bg-icon icon-check-1" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
-            <!-- Sliders / Permissions -->
-            <svg class="hero-bg-icon icon-sliders-1" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
-            <!-- Users -->
-            <svg class="hero-bg-icon icon-users-1" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
-            <!-- Layers -->
-            <svg class="hero-bg-icon icon-layers-1" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-            <!-- Sparkles & Geometry -->
-            <svg class="hero-bg-icon" style="top:18%; left:48%; width:16px; height:16px;" viewBox="0 0 24 24"><path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5Z" fill="#f59e0b" opacity="0.16"></path></svg>
-            <svg class="hero-bg-icon" style="top:62%; right:22%; width:14px; height:14px;" viewBox="0 0 24 24"><path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5Z" fill="#d97706" opacity="0.18"></path></svg>
-            <svg class="hero-bg-icon" style="top:25%; right:14%; width:10px; height:10px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f59e0b" opacity="0.25"></circle></svg>
-        </div>
-
-        <div class="th-hero-left">
-            <div class="th-hero-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 6px 16px rgba(245, 158, 11, 0.25);">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                    <polyline points="2 17 12 22 22 17"></polyline>
-                    <polyline points="2 12 12 17 22 12"></polyline>
-                </svg>
-            </div>
-            <div>
-                <h1 class="th-hero-title">Security Roles</h1>
-                <p class="th-hero-subtitle">Define user roles and assign granular permissions across tenants.</p>
-            </div>
-        </div>
-
-        <!-- Compact KPI cards -->
-        <div class="sub-kpi-container">
-            <!-- Card 1: Total Roles -->
-            <div class="tabler-card tabler-stat-card sub-kpi-card" id="kpiTotalRoles" data-value="all">
-                <div class="tabler-card-body">
-                    <div class="tabler-stat-header">
-                        <div class="tabler-stat-icon total-icon">
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                                <polyline points="2 17 12 22 22 17"></polyline>
-                                <polyline points="2 12 12 17 22 12"></polyline>
-                            </svg>
-                        </div>
-                        <span class="tabler-stat-title">Total Roles</span>
-                    </div>
-                    <div class="tabler-stat-main">
-                        <div class="tabler-stat-value" id="totalRolesCountKpi">—</div>
-                    </div>
-                    <svg class="kpi-mini-visual" width="52" height="40" viewBox="0 0 52 40" fill="none">
-                        <rect x="4" y="18" width="12" height="20" rx="1.5" fill="#f59e0b" opacity="0.16" />
-                        <rect x="18" y="8" width="14" height="30" rx="1.5" fill="#f59e0b" opacity="0.22" />
-                        <rect x="34" y="14" width="12" height="24" rx="1.5" fill="#f59e0b" opacity="0.16" />
-                    </svg>
-                </div>
-            </div>
-
-            <!-- Card 2: System Defined -->
-            <div class="tabler-card tabler-stat-card sub-kpi-card" id="kpiSystemRoles" data-value="true">
-                <div class="tabler-card-body">
-                    <div class="tabler-stat-header">
-                        <div class="tabler-stat-icon system-icon">
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
-                        </div>
-                        <span class="tabler-stat-title">System Defined</span>
-                    </div>
-                    <div class="tabler-stat-main">
-                        <div class="tabler-stat-value" id="systemRolesCountKpi">—</div>
-                    </div>
-                    <svg class="kpi-mini-visual" width="52" height="30" viewBox="0 0 52 30" fill="none">
-                        <path d="M2,26 8,17 15,21 23,9 31,14 40,4 50,10 50,30 2,30 Z" fill="#3b82f6" opacity="0.16" />
-                        <polyline points="2,26 8,17 15,21 23,9 31,14 40,4 50,10" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
-                    </svg>
-                </div>
-            </div>
-
-            <!-- Card 3: Custom & Tenant -->
-            <div class="tabler-card tabler-stat-card sub-kpi-card" id="kpiTenantRoles" data-value="false">
-                <div class="tabler-card-body">
-                    <div class="tabler-stat-header">
-                        <div class="tabler-stat-icon tenant-icon">
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="9" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                        <span class="tabler-stat-title">Custom &amp; Tenant</span>
-                    </div>
-                    <div class="tabler-stat-main">
-                        <div class="tabler-stat-value" id="tenantRolesCountKpi">—</div>
-                    </div>
-                    <svg class="kpi-mini-visual" width="42" height="34" viewBox="0 0 42 34" fill="none">
-                        <circle cx="30" cy="17" r="5" fill="#10b981" opacity="0.5" />
-                        <circle cx="16" cy="10" r="2.6" fill="#10b981" opacity="0.35" />
-                        <circle cx="22" cy="22" r="2" fill="#10b981" opacity="0.35" />
-                    </svg>
-                </div>
-            </div>
-        </div>
+<div class="page-header">
+    <div>
+        <h1>Security Roles</h1>
+        <p style="color: var(--text-muted); margin-top: 4px;">
+            Define user roles and assign granular permissions across tenants.
+        </p>
     </div>
-</div>
-
-<div class="grid-stats" id="roleStatsGrid" style="margin-top: 16px; display: none;">
-    <div class="stat-box tabler-stat-card">
-        <div class="stat-header">
-            <span>Total Security Roles</span>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-        </div>
-        <div class="stat-value" id="totalRolesCount">-</div>
-        <div class="stat-trend text-primary">System access roles</div>
-    </div>
-    <div class="stat-box tabler-stat-card">
-        <div class="stat-header">
-            <span>System Defined</span>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-        </div>
-        <div class="stat-value" id="systemRolesCount">-</div>
-        <div class="stat-trend up" style="color: var(--status-success);">Protected from deletion</div>
-    </div>
-    <div class="stat-box tabler-stat-card">
-        <div class="stat-header">
-            <span>Custom &amp; Tenant</span>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
-        </div>
-        <div class="stat-value" id="tenantRolesCount">-</div>
-        <div class="stat-trend text-warning">Manage user mappings</div>
+    <div style="display: flex; gap: 12px;">
+        <button class="btn btn-primary" id="openCreateRoleModal">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Create Role
+        </button>
+        <a href="/Home/ExportRoles" class="btn btn-secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Export Excel
+        </a>
     </div>
 </div>
 
 <div class="panel">
-    <div class="table-filters-data" style="display:none;">
-        @if (ViewBag.IsMasterTenant ?? false)
-        {
-            <div class="filter-group">
-                <label class="form-label">Tenant Organization</label>
-                <select class="form-select filter-TenantId" name="filter-TenantId" id="filter-TenantId">
-                    <option value="">All Tenants</option>
-                    @foreach (var tenant in ViewBag.Tenants as List<TenantResponse> ?? new List<TenantResponse>())
-                    {
-                        <option value="@tenant.Id">@tenant.Name</option>
-                    }
-                </select>
-            </div>
-        }
-    </div>
-    <div class="table-toolbar" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-        <div class="table-filters" style="display: flex; gap: 8px; align-items: center;">
+    <div class="table-toolbar">
+        <div class="table-filters">
             <div style="position: relative;">
-                <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"
+                <svg style="position: absolute; left: 10px; top: 10px; color: var(--text-muted);"
                      width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                      stroke-width="2">
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
                 <input type="text" class="form-input" placeholder="Filter by Role Name..."
-                       style="padding-left: 32px; width: 250px; height: 38px;">
-            </div>
-        </div>
-
-        <!-- Right: Export + Create + View Switcher -->
-        <div style="display: flex; gap: 10px; align-items: center;">
-            @if (canExportRole)
-            {
-                <div class="smart-export-dropdown-wrapper">
-                    <button type="button" class="btn btn-secondary smart-export-dropdown-btn smart-export-btn btn-toolbar" id="exportRolesBtn" title="More Options">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="1.5"></circle>
-                            <circle cx="12" cy="5" r="1.5"></circle>
-                            <circle cx="12" cy="19" r="1.5"></circle>
-                        </svg>
-                    </button>
-                    <span class="smart-export-badge" id="roleSelectionBadge"></span>
-                    <div class="smart-export-menu glass-dropdown">
-                        <button type="button" class="dropdown-item smart-import-option" onclick="window.openImportModal('Roles & Permissions')">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                            Import
-                        </button>
-                        <button type="button" class="dropdown-item smart-export-option" onclick="window.smartExport('roleTable','/Home/ExportRoles')">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                            Export
-                        </button>
-                    </div>
-                </div>
-            }
-            @if (canCreateRole)
-            {
-                <button class="btn btn-primary btn-toolbar" id="openCreateRoleModal">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Create Role
-                </button>
-            }
-
-            <!-- View Switcher -->
-            <div class="view-toggle-wrapper">
-                <button class="view-toggle-btn active" id="btnRoleListView" data-view="list" data-target="roleTable" title="List View">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="4" y1="6" x2="20" y2="6"></line>
-                        <line x1="4" y1="12" x2="20" y2="12"></line>
-                        <line x1="4" y1="18" x2="20" y2="18"></line>
-                    </svg>
-                </button>
-                <button class="view-toggle-btn" id="btnRoleGridView" data-view="grid" data-target="roleTable" title="Grid View">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
-                        <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
-                        <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
-                        <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
-                    </svg>
-                </button>
+                       style="padding-left: 32px; width: 250px;">
             </div>
         </div>
     </div>
 
-    <!-- Table View -->
-    <div class="table-responsive view-wrapper active" id="roleTableViewWrapper">
+    <div class="table-responsive">
         <table id="roleTable" class="data-table table-hoverable manual-init">
             <thead>
                 <tr>
-                    <th class="text-center" style="width: 48px;"><input type="checkbox" class="master-select-cb" data-table="roleTable"></th>
-                    <th class="text-left">Role Name</th>
-                    <th class="text-left">Description</th>
-                    <th class="text-center">Role Type</th>
-                    <th class="text-center">Tenant</th>
-                    <th class="text-center">Actions</th>
+                    <th style="width: 48px;"><input type="checkbox" class="custom-checkbox"></th>
+                    <th class="sorted">Role Name</th>
+                    <th>Description</th>
+                    <th style="text-align: right;">Actions</th>
                 </tr>
             </thead>
             <tbody>
             </tbody>
         </table>
     </div>
-
-    <!-- Grid View -->
-    <div class="grid-cards-container view-wrapper" id="roleGridViewWrapper">
-        <!-- Grid items loaded dynamically here -->
-    </div>
-
-
 </div>
 
 <script type="text/javascript">
-
-
     $(function () {
         const $panel = $('#roleTable').closest('.panel');
         const $customSearch = $panel.find('.table-toolbar .form-input');
-        const $customFilters = $panel.find('.table-toolbar .form-select');
-        const canEditRole = @canEditRole.ToString().ToLower();
-        const canDeleteRole = @canDeleteRole.ToString().ToLower();
-        const canManagePermissions = @canManagePermissions.ToString().ToLower();
 
         const dt = $('#roleTable').DataTable({
             processing: true,
@@ -698,88 +86,17 @@ Roles.cshtml
                     }
                 }
             },
-            responsive: false,
-            dom: '<"table-toolbar datatables-injected"<"table-filters">f>t<"if-table-footer-wrap"<"footer-right"<"if-pill-pagination-mount">>>',
-            drawCallback: function(settings) {
-                const api = this.api();
-                
-                // Render standardized pill pagination
-                window.renderPillPagination(api, '.if-pill-pagination-mount', 'roles');
-
-                const rows = api.rows({ page: 'current' }).data();
-                const json = api.ajax.json();
-                
-                // Sync KPI highlights and counts
-                const activeFilters = $panel.data('active-filters') || {};
-                $('.sub-kpi-card').removeClass('active');
-                if (activeFilters.IsSystemRole === 'true') {
-                    $('#kpiSystemRoles').addClass('active');
-                } else if (activeFilters.IsSystemRole === 'false') {
-                    $('#kpiTenantRoles').addClass('active');
-                } else {
-                    $('#kpiTotalRoles').addClass('active');
-                }
-
-                // Update stats cards
-                if (json) {
-                    const total = json.recordsTotal || rows.length;
-                    
-                    // Self-correcting count logic
-                    if (typeof activeFilters.IsSystemRole === 'undefined' || activeFilters.IsSystemRole === '') {
-                        let systemCount = 0;
-                        rows.each(function(r) {
-                            if (r.isSystemRole || r.IsSystemRole) systemCount++;
-                        });
-                        
-                        if (rows.length === total) {
-                            $panel.data('total-roles-kpi', total);
-                            $panel.data('system-roles-kpi', systemCount);
-                            $panel.data('custom-roles-kpi', total - systemCount);
-                        } else {
-                            const ratio = rows.length > 0 ? (systemCount / rows.length) : 0;
-                            const approxSystem = Math.round(ratio * total) || 0;
-                            $panel.data('total-roles-kpi', total);
-                            $panel.data('system-roles-kpi', approxSystem);
-                            $panel.data('custom-roles-kpi', total - approxSystem);
-                        }
-                    } else if (activeFilters.IsSystemRole === 'true') {
-                        $panel.data('system-roles-kpi', json.recordsFiltered);
-                    } else if (activeFilters.IsSystemRole === 'false') {
-                        $panel.data('custom-roles-kpi', json.recordsFiltered);
-                    }
-
-                    const totalVal = $panel.data('total-roles-kpi') || total || 0;
-                    const systemVal = $panel.data('system-roles-kpi') || 0;
-                    const customVal = $panel.data('custom-roles-kpi') || 0;
-
-                    $('#totalRolesCount, #totalRolesCountKpi').text(totalVal);
-                    $('#systemRolesCount, #systemRolesCountKpi').text(systemVal);
-                    $('#tenantRolesCount, #tenantRolesCountKpi').text(customVal);
-                }
-
-                // Render grid view with current page data
-                renderRoleGridView(rows.toArray());
-
-                // Sync footer when grid is active
-                var _sRView = localStorage.getItem('view-mode-roleTable') || 'list';
-                if (_sRView === 'grid') {
-                    var $rF = $panel.find('.if-table-footer-wrap');
-                    if ($rF.length) $panel.append($rF);
-                }
-            },
+            responsive: true,
+            dom: '<"table-toolbar datatables-injected"<"table-filters"l>f>t<"pagination"ip>',
             columns: [
                 {
                     data: null,
                     orderable: false,
                     searchable: false,
-                    className: 'text-center align-middle',
-                    render: function (data, type, row) {
-                        return '<input type="checkbox" class="row-select-cb" data-row-id="' + (row.id || '') + '">';
-                    }
+                    render: function () { return '<input type="checkbox" class="custom-checkbox">'; }
                 },
                 {
                     data: 'name',
-                    className: 'text-left align-middle',
                     render: function (data, type, row) {
                         return `<div class="cell-flex">
                                     <div class="cell-avatar warning">
@@ -797,38 +114,17 @@ Roles.cshtml
                 },
                 { 
                     data: 'description',
-                    className: 'text-left align-middle',
                     render: function(data) { return data || '<span class="text-muted">No description</span>'; }
                 },
-                { 
-                    data: 'isSystemRole', 
-                    visible: false, 
-                    className: 'text-center align-middle',
-                    render: function(d){ 
-                        return d 
-                            ? '<span class="badge badge-info" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">System</span>' 
-                            : '<span class="badge badge-neutral" style="background: rgba(100, 116, 139, 0.1); color: #64748b;">Custom</span>'; 
-                    } 
-                },
-                { data: 'tenantName', visible: false, className: 'text-center align-middle', render: function(d){ return d || 'Global'; } },
                 {
                     data: null,
                     orderable: false,
-                    className: 'text-center align-middle',
                     render: function (data, type, row) {
-                        let html = `<div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                                    <button class="action-btn action-btn-view" title="View Details" data-type="role" data-id="${row.id}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path></svg></button>`;
-                        if (canManagePermissions) {
-                            html += `<button class="action-btn action-btn-shield" title="Manage Permissions" onclick="managePermissions('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></button>`;
-                        }
-                        if (canEditRole) {
-                            html += `<button class="action-btn action-btn-edit" title="Edit Role" onclick="editRole('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>`;
-                        }
-                        if (canDeleteRole) {
-                            html += `<button class="action-btn action-btn-delete" title="Delete Role" onclick="deleteRole('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>`;
-                        }
-                        html += `</div>`;
-                        return html;
+                        return `<div style="text-align: right;">
+                                    <button class="action-btn" title="Manage Permissions" onclick="managePermissions('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></button>
+                                    <button class="action-btn" title="Edit Role" onclick="editRole('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                    <button class="action-btn text-error" title="Delete Role" onclick="deleteRole('${row.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                                </div>`;
                     }
                 }
             ]
@@ -848,207 +144,7 @@ Roles.cshtml
         $('#openCreateRoleModal').on('click', function() {
             openRoleModal();
         });
-
-        // Initialize row selection for smart export
-        window.initRowSelection('roleTable', 'id');
-
-        /* ── KPI Cards Click Routing ── */
-        $('.sub-kpi-card').on('click', function () {
-            const id = $(this).attr('id');
-            const activeFilters = $panel.data('active-filters') || {};
-            
-            if (id === 'kpiTotalRoles') {
-                delete activeFilters.IsSystemRole;
-            } else if (id === 'kpiSystemRoles') {
-                if (activeFilters.IsSystemRole === 'true') {
-                    delete activeFilters.IsSystemRole;
-                } else {
-                    activeFilters.IsSystemRole = 'true';
-                }
-            } else if (id === 'kpiTenantRoles') {
-                if (activeFilters.IsSystemRole === 'false') {
-                    delete activeFilters.IsSystemRole;
-                } else {
-                    activeFilters.IsSystemRole = 'false';
-                }
-            }
-            
-            $panel.data('active-filters', activeFilters);
-            const hasFilters = Object.keys(activeFilters).length > 0;
-            $panel.find('.filter-trigger-btn').toggleClass('active', hasFilters);
-            
-            dt.draw();
-        });
-
-    /* ═══════════════════════════════════════════════════════════
-       ROLE GRID VIEW
-       ═══════════════════════════════════════════════════════════ */
-
-    function _rEsc(s) { return $('<div>').text(s || '').html(); }
-
-    function renderRoleGridView(dataArray) {
-        var $c = $('#roleGridViewWrapper');
-        $c.empty();
-        if (!dataArray || dataArray.length === 0) {
-            $c.html('<div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 20px;color:var(--text-muted);text-align:center;background:var(--bg-surface);border:1px dashed var(--border-strong);border-radius:var(--radius-lg);margin:16px;">' +
-                '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:12px;opacity:0.7;"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>' +
-                '<h5 style="margin:0 0 4px;font-weight:600;color:var(--text-main);">No Roles Found</h5>' +
-                '<p style="margin:0;font-size:0.75rem;">Try adjusting your search terms or filters.</p></div>');
-            return;
-        }
-        var sel     = (window.getSelectionSet ? window.getSelectionSet('roleTable') : new Set());
-        var colName = dt.column(1).visible();
-        var colDesc = dt.column(2).visible();
-        var isDark  = document.documentElement.getAttribute('data-theme') === 'dark' ||
-                      (document.documentElement.getAttribute('data-theme') === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-        /* Light palette: security-themed purple/indigo/teal/amber/red/blue */
-        var _palLight = [
-            {bg:'#ede9fe', clr:'#6d28d9'},
-            {bg:'#e0e7ff', clr:'#4338ca'},
-            {bg:'#ccfbf1', clr:'#0d9488'},
-            {bg:'#fef3c7', clr:'#b45309'},
-            {bg:'#fee2e2', clr:'#b91c1c'},
-            {bg:'#dbeafe', clr:'#1d4ed8'}
-        ];
-        /* Dark palette: deeper, more vivid equivalents */
-        var _palDark = [
-            {bg:'#3b2f6e', clr:'#c4b5fd'},
-            {bg:'#1e2d6a', clr:'#a5b4fc'},
-            {bg:'#124040', clr:'#5eead4'},
-            {bg:'#44330a', clr:'#fcd34d'},
-            {bg:'#4a1818', clr:'#fca5a5'},
-            {bg:'#152248', clr:'#93c5fd'}
-        ];
-
-        $.each(dataArray, function (idx, row) {
-            var pal   = isDark ? _palDark[idx % _palDark.length] : _palLight[idx % _palLight.length];
-            var isSel = sel.has(String(row.id));
-            var isSys = row.isSystemRole || row.IsSystemRole;
-            var desc  = (row.description || '').substring(0, 120) + ((row.description || '').length > 120 ? '…' : '');
-
-            var typeBadge = isSys
-                ? '<span style="background:var(--brand-bg-subtle,#eff6ff);color:var(--brand-primary,#3b82f6);font-size:0.67rem;font-weight:700;padding:3px 8px;border-radius:999px;border:1px solid rgba(59,130,246,0.2);display:inline-flex;align-items:center;gap:4px;white-space:nowrap;">' +
-                  '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>System</span>'
-                : '<span style="background:var(--bg-surface-hover);color:var(--text-muted);font-size:0.67rem;font-weight:700;padding:3px 8px;border-radius:999px;border:1px solid var(--border-subtle);display:inline-flex;align-items:center;gap:4px;white-space:nowrap;">' +
-                  '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>Custom</span>';
-
-            var actions = '<button class="btn-rcard-view action-btn-view" data-type="role" data-id="' + row.id + '" title="View Details">' +
-                '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path></svg>View</button>';
-            if (canManagePermissions) {
-                actions += '<button class="btn-rcard-action" title="Manage Permissions" onclick="managePermissions(\'' + row.id + '\')">' +
-                    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></button>';
-            }
-            if (canEditRole) {
-                actions += '<button class="btn-rcard-action" title="Edit Role" onclick="editRole(\'' + row.id + '\')">' +
-                    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>';
-            }
-            if (canDeleteRole) {
-                actions += '<button class="btn-rcard-action rdanger" title="Delete Role" onclick="deleteRole(\'' + row.id + '\')">' +
-                    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>';
-            }
-
-            var card = '<div class="role-grid-card' + (isSel ? ' rselected' : '') + '" data-id="' + row.id + '">' +
-                '<div class="role-card-banner" style="background:' + pal.bg + ';">' +
-                '<div class="role-card-banner-icon" style="color:' + pal.clr + ';">' +
-                '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>' +
-                '</div>' +
-                '<input type="checkbox" class="role-card-checkbox" data-id="' + row.id + '"' + (isSel ? ' checked' : '') + '>' +
-                '</div>' +
-                '<div class="role-card-body">' +
-                '<div class="role-card-title-row">' +
-                (colName ? '<h4 class="role-card-name" title="' + _rEsc(row.name) + '">' + _rEsc(row.name || 'Unnamed Role') + '</h4>' : '<div></div>') +
-                typeBadge +
-                '</div>' +
-                (colDesc && desc ? '<p class="role-card-desc" title="' + _rEsc(row.description) + '">' + _rEsc(desc) + '</p>' : '') +
-                '<div class="rcard-divider"></div>' +
-                '<div class="role-card-actions">' + actions + '</div>' +
-                '</div></div>';
-            $c.append(card);
-        });
-    }
-
-    /* Card checkbox → table row sync */
-    $('#roleGridViewWrapper').on('change', '.role-card-checkbox', function () {
-        var id = $(this).data('id'), chk = this.checked;
-        if (window.toggleSelection) window.toggleSelection('roleTable', id, chk);
-        $(this).closest('.role-grid-card').toggleClass('rselected', chk);
-        var $rc = $('#roleTable').find('input.row-select-cb[data-row-id="' + id + '"]');
-        if ($rc.length) { $rc.prop('checked', chk); $rc.closest('tr').toggleClass('selected-row', chk); }
-        var s = window.getSelectionSet ? window.getSelectionSet('roleTable') : new Set();
-        var vis = $('#roleTable').find('input.row-select-cb').map(function () { return String($(this).data('row-id')); }).get();
-        var $m = $('.master-select-cb[data-table="roleTable"]');
-        $m.prop('checked', vis.length > 0 && vis.every(function (i) { return s.has(i); }));
-        var cc = vis.filter(function (i) { return s.has(i); }).length;
-        $m.prop('indeterminate', cc > 0 && cc < vis.length);
     });
-
-    /* Global selection → card sync */
-    $(document).on('selection:changed', function (e, data) {
-        if (data && data.tableId === 'roleTable') {
-            $('.role-card-checkbox').each(function () {
-                var id = $(this).data('id'), chk = data.ids && data.ids.includes(String(id));
-                $(this).prop('checked', chk);
-                $(this).closest('.role-grid-card').toggleClass('rselected', chk);
-            });
-        }
-    });
-
-    /* applyViewMode override for roleTable */
-    var _origRVM = window.applyViewMode;
-    window.applyViewMode = function (targetTableId, mode) {
-        if (targetTableId === 'roleTable') {
-            var $grid = $('#roleGridViewWrapper');
-            var $tbl  = $('#roleTableViewWrapper');
-            var $foot = $panel.find('.if-table-footer-wrap');
-            var $btns = $panel.find('.view-toggle-btn[data-target="roleTable"]');
-            if (mode === 'grid') {
-                $tbl.removeClass('active'); $grid.addClass('active');
-                if ($foot.length) $panel.append($foot);
-                $btns.removeClass('active');
-                $panel.find('.view-toggle-btn[data-target="roleTable"][data-view="grid"]').addClass('active');
-                localStorage.setItem('view-mode-roleTable', 'grid');
-            } else {
-                $grid.removeClass('active'); $tbl.addClass('active');
-                var $dtw = $('#roleTable_wrapper');
-                if ($foot.length && $dtw.length) $dtw.append($foot);
-                $btns.removeClass('active');
-                $panel.find('.view-toggle-btn[data-target="roleTable"][data-view="list"]').addClass('active');
-                localStorage.setItem('view-mode-roleTable', 'list');
-            }
-        } else if (typeof _origRVM === 'function') {
-            _origRVM(targetTableId, mode);
-        }
-    };
-
-    /* View toggle click → animate wrappers */
-    $(document).on('click', '.view-toggle-btn[data-target="roleTable"]', function () {
-        var mode = $(this).data('view');
-        window.applyViewMode('roleTable', mode);
-        if (mode === 'grid') {
-            $('#roleTableViewWrapper').removeClass('active');
-            setTimeout(function () { $('#roleGridViewWrapper').addClass('active'); }, 50);
-        } else {
-            $('#roleGridViewWrapper').removeClass('active');
-            setTimeout(function () { $('#roleTableViewWrapper').addClass('active'); }, 50);
-        }
-    });
-
-    /* Init from localStorage – no flicker */
-    (function initRoleView() {
-        var saved = localStorage.getItem('view-mode-roleTable') || 'list';
-        window.applyViewMode('roleTable', saved);
-        if (saved === 'grid') {
-            $('#roleTableViewWrapper').removeClass('active');
-            $('#roleGridViewWrapper').addClass('active');
-        } else {
-            $('#roleGridViewWrapper').removeClass('active');
-            $('#roleTableViewWrapper').addClass('active');
-        }
-    })();
-
-    });
-
 
     function openRoleModal(id = '') {
         const isEdit = id !== '';

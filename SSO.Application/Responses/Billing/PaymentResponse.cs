@@ -11,6 +11,5 @@ namespace SSO.Application.Responses.Billing
         public decimal Amount { get; set; }
         public string Method { get; set; }
         public string Status { get; set; }
-        public string Currency { get; set; }
     }
 }

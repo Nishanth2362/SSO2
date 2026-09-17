@@ -62,8 +62,6 @@ namespace SSO.Common.Constants.Permission
             public const string Create = "Permissions.EmailTemplates.Create";
             public const string Edit = "Permissions.EmailTemplates.Edit";
             public const string Delete = "Permissions.EmailTemplates.Delete";
-            public const string Export = "Permissions.EmailTemplates.Export";
-            public const string Search = "Permissions.EmailTemplates.Search";
         }
         
        
@@ -77,9 +75,6 @@ namespace SSO.Common.Constants.Permission
             public const string Delete = "Permissions.Users.Delete";
             public const string Export = "Permissions.Users.Export";
             public const string Search = "Permissions.Users.Search";
-            public const string Unlock = "Permissions.Users.Unlock";
-            public const string SendResetLink = "Permissions.Users.SendResetLink";
-            public const string ResetPassword = "Permissions.Users.ResetPassword";
         }
 
         [DisplayName("Roles")]
@@ -91,7 +86,6 @@ namespace SSO.Common.Constants.Permission
             public const string Edit = "Permissions.Roles.Edit";
             public const string Delete = "Permissions.Roles.Delete";
             public const string Search = "Permissions.Roles.Search";
-            public const string Export = "Permissions.Roles.Export";
         }
 
         [DisplayName("Role Claims")]
@@ -103,7 +97,6 @@ namespace SSO.Common.Constants.Permission
             public const string Edit = "Permissions.RoleClaims.Edit";
             public const string Delete = "Permissions.RoleClaims.Delete";
             public const string Search = "Permissions.RoleClaims.Search";
-            public const string Export = "Permissions.RoleClaims.Export";
         }
 
 
@@ -196,40 +189,6 @@ namespace SSO.Common.Constants.Permission
             public const string Import = "Permissions.Scope.Import";
         }
 
-        [DisplayName("Invoices")]
-        [Description("Invoices Permissions")]
-        public static class Invoices
-        {
-            public const string View = "Permissions.Invoices.View";
-            public const string Create = "Permissions.Invoices.Create";
-            public const string Edit = "Permissions.Invoices.Edit";
-            public const string Delete = "Permissions.Invoices.Delete";
-            public const string Export = "Permissions.Invoices.Export";
-            public const string Search = "Permissions.Invoices.Search";
-        }
-
-        [DisplayName("Payments")]
-        [Description("Payments Permissions")]
-        public static class Payments
-        {
-            public const string View = "Permissions.Payments.View";
-            public const string Create = "Permissions.Payments.Create";
-            public const string Edit = "Permissions.Payments.Edit";
-            public const string Delete = "Permissions.Payments.Delete";
-            public const string Export = "Permissions.Payments.Export";
-            public const string Search = "Permissions.Payments.Search";
-        }
-
-        [DisplayName("Restricted Access")]
-        [Description("Restricted Page Access Protocol Permissions")]
-        public static class RestrictedAccess
-        {
-            public const string View = "Permissions.RestrictedAccess.View";
-            public const string Revoke = "Permissions.RestrictedAccess.Revoke";
-            public const string Manage = "Permissions.RestrictedAccess.Manage";
-            public const string Export = "Permissions.RestrictedAccess.Export";
-        }
-
         /// <summary>
         /// Returns the minimal set of permissions for a read-only SSO Admin sub-administrator.
         /// Useful for seeding a default "SSO Admin Viewer" role.
@@ -253,13 +212,6 @@ namespace SSO.Common.Constants.Permission
                 RoleClaims.View,
                 Subscription.View,
                 Dashboards.View,
-                Invoices.View,
-                Payments.View,
-                AuditTrails.View,
-                Templates.View,
-                EmailTemplates.View,
-                Hangfire.View,
-                RestrictedAccess.View,
             };
         }
 

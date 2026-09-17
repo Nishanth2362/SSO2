@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using SSO.Domain.Contract;
 using System;
 using System.Collections.Generic;
@@ -17,12 +17,5 @@ namespace SSO.Domain.Entities
         public DateTime? LastModifiedOn { get ; set ; }
         public string? IPAddress { get ; set ; }
         public bool IsDeleted { get ; set ; }
-
-        /// <summary>
-        /// Stores the active OTP for 2FA/Mobile OTP flows.
-        /// Format: "{sha256_hex}|{unix_expiry_seconds}". Cleared on successful validation or expiry.
-        /// </summary>
-        public string? TwoFactorSecret { get; set; }
-
     }
 }

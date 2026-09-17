@@ -2,369 +2,78 @@
 @{
     Layout = null;
     var tenantId = ViewBag.TenantId;
-    var canCreateSubscription = (await AuthorizationService.AuthorizeAsync(User, Permissions.Subscription.Create)).Succeeded;
-    var canEditSubscription = (await AuthorizationService.AuthorizeAsync(User, Permissions.Subscription.Edit)).Succeeded;
 }
 
-<style>
-    /* Scoped AppModal container for Manage Subscriptions */
-    #appModal:has(#manageSubscriptionsWrapper) .modal-dialog {
-        max-width: 920px !important;
-        width: 92vw !important;
-        border-radius: 20px !important;
-        background: #ffffff !important;
-        overflow: hidden !important;
-        box-shadow: 0 25px 60px rgba(15, 23, 42, 0.16) !important;
-        border: 1px solid #e2e8f0 !important;
-    }
-
-    html[data-theme="dark"] #appModal:has(#manageSubscriptionsWrapper) .modal-dialog {
-        background: #0f172a !important;
-        border-color: #1e293b !important;
-        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45) !important;
-    }
-
-    #appModal:has(#manageSubscriptionsWrapper) #modalContent {
-        padding: 0 !important;
-    }
-
-    #appModal:has(#manageSubscriptionsWrapper) .modal-header {
-        padding: 24px 28px 18px 28px !important;
-        border-bottom: 1px solid #f1f5f9 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-    }
-
-    html[data-theme="dark"] #appModal:has(#manageSubscriptionsWrapper) .modal-header {
-        border-bottom-color: #1e293b !important;
-    }
-
-    #appModal:has(#manageSubscriptionsWrapper) #modalIcon {
-        background: rgba(99, 102, 241, 0.1) !important;
-        color: #6366f1 !important;
-        border-radius: 12px !important;
-        width: 44px !important;
-        height: 44px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }
-
-    /* Outer Wrapper for body content */
-    .manage-sub-wrapper {
-        padding: 22px 28px 28px 28px;
-    }
-
-    /* Toolbar Header Line */
-    .manage-sub-toolbar {
-        margin-bottom: 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 16px;
-    }
-
-    .manage-sub-desc {
-        font-size: 0.86rem;
-        font-weight: 500;
-        color: #64748b;
-        margin: 0;
-        line-height: 1.4;
-    }
-
-    html[data-theme="dark"] .manage-sub-desc {
-        color: #94a3b8;
-    }
-
-    /* Subscription Cards Grid */
-    .subscription-cards-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-        gap: 18px;
-        margin: 0;
-    }
-
-    /* Individual Card Layout */
-    .sub-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        padding: 18px 20px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        gap: 14px;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        box-sizing: border-box;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
-    }
-
-    html[data-theme="dark"] .sub-card {
-        background: #181c2b;
-        border-color: #262d42;
-        box-shadow: none;
-    }
-
-    .sub-card::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);
-        opacity: 0;
-        transition: opacity 0.25s ease;
-    }
-
-    .sub-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 25px rgba(99, 102, 241, 0.14);
-        border-color: #818cf8;
-    }
-
-    .sub-card:hover::before {
-        opacity: 1;
-    }
-
-    /* Card Top Header Section */
-    .sub-card-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        width: 100%;
-    }
-
-    .sub-card-header-left {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        min-width: 0;
-        flex: 1;
-    }
-
-    .sub-card-avatar {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        background: rgba(99, 102, 241, 0.1);
-        color: #6366f1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-
-    .sub-card-title {
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: #0f172a;
-        margin: 0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        letter-spacing: -0.01em;
-    }
-
-    html[data-theme="dark"] .sub-card-title {
-        color: #f8fafc;
-    }
-
-    /* Badges */
-    .ts-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        font-size: 0.72rem;
-        font-weight: 700;
-        flex-shrink: 0;
-        letter-spacing: 0.02em;
-    }
-
-    .ts-badge-success {
-        color: #16a34a;
-        background: rgba(22, 163, 74, 0.1);
-        border: 1px solid rgba(22, 163, 74, 0.2);
-    }
-
-    .ts-badge-neutral {
-        color: #64748b;
-        background: rgba(100, 116, 139, 0.1);
-        border: 1px solid rgba(100, 116, 139, 0.2);
-    }
-
-    .ts-status-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        display: inline-block;
-    }
-
-    .ts-status-dot.dot-active {
-        background-color: #16a34a;
-    }
-
-    .ts-status-dot.dot-inactive {
-        background-color: #94a3b8;
-    }
-
-    /* Dates Section */
-    .sub-card-dates {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        padding: 4px 0;
-        font-size: 0.8rem;
-    }
-
-    .sub-card-date-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: #64748b;
-    }
-
-    html[data-theme="dark"] .sub-card-date-item {
-        color: #94a3b8;
-    }
-
-    .sub-card-date-item svg {
-        flex-shrink: 0;
-        color: #6366f1;
-    }
-
-    .sub-card-date-item span {
-        font-size: 0.8rem;
-    }
-
-    .sub-card-date-item span strong {
-        color: #0f172a;
-        font-weight: 600;
-    }
-
-    html[data-theme="dark"] .sub-card-date-item span strong {
-        color: #f8fafc;
-    }
-
-    /* Footer & Action Buttons */
-    .sub-card-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-top: 1px solid #f1f5f9;
-        padding-top: 12px;
-        margin-top: 2px;
-    }
-
-    html[data-theme="dark"] .sub-card-footer {
-        border-color: #262d42;
-    }
-
-    .sub-card-footer-label {
-        font-size: 0.7rem;
-        color: #94a3b8;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-    }
-
-    .sub-card-actions {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .sub-card-actions .action-btn {
-        width: 32px !important;
-        height: 32px !important;
-        border-radius: 8px !important;
-        padding: 0 !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        border: 1px solid #e2e8f0 !important;
-        background: #f8fafc !important;
-        color: #64748b !important;
-        cursor: pointer !important;
-        transition: all 0.2s ease !important;
-    }
-
-    html[data-theme="dark"] .sub-card-actions .action-btn {
-        background: #11141f !important;
-        border-color: #262d42 !important;
-        color: #94a3b8 !important;
-    }
-
-    .sub-card-actions .action-btn:hover {
-        border-color: #6366f1 !important;
-        color: #6366f1 !important;
-        background: rgba(99, 102, 241, 0.08) !important;
-    }
-
-    /* Primary Provision Button */
-    .btn-primary-tenant {
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
-        border: none !important;
-        color: #ffffff !important;
-        font-weight: 600 !important;
-        height: 38px !important;
-        padding: 0 18px !important;
-        border-radius: 10px !important;
-        font-size: 0.84rem !important;
-        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3) !important;
-        transition: all 0.2s ease !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 8px !important;
-        cursor: pointer !important;
-        white-space: nowrap !important;
-    }
-
-    .btn-primary-tenant:hover {
-        transform: translateY(-1px) !important;
-        box-shadow: 0 6px 18px rgba(79, 70, 229, 0.42) !important;
-    }
-</style>
-
-<div id="manageSubscriptionsWrapper" class="manage-sub-wrapper">
-    <div class="manage-sub-toolbar">
-        @* <p class="manage-sub-desc">Configure entitlement plans and validation periods for this organization.</p> *@
-        @if (canCreateSubscription)
-        {
-            <button class="btn-primary-tenant" onclick="addNewSubscription('@tenantId')">
-                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+<div class="modal-body-content">
+    <div class="table-toolbar" style="margin-bottom: 16px;">
+        <div class="table-filters">
+            <button class="btn btn-primary btn-sm" onclick="addNewSubscription('@tenantId')">
+                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
                 Provision New Plan
             </button>
-        }
+        </div>
     </div>
 
-    <!-- Grid of subscription cards -->
-    <div id="tenantSubscriptionsContainer" class="subscription-cards-grid">
-        <div style="text-align: center; padding: 40px; grid-column: 1/-1;">
-            <span class="mt-spinner" style="width:24px;height:24px;border-width:2.5px;"></span>
-        </div>
+    <div class="table-responsive">
+        <table id="tenantSubscriptionTable" class="data-table table-hoverable">
+            <thead>
+                <tr>
+                    <th>Plan</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
     </div>
 </div>
 
 <script>
     $(document).ready(function() {
-        const canEditSubscription = @canEditSubscription.ToString().ToLower();
-        loadTenantSubscriptions();
-
-        function escapeHtml(str) {
-            if (!str) return '';
-            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-        }
+        var tsTable = $('#tenantSubscriptionTable').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: {
+                url: '/Home/GetTenantSubscriptions?TenantId=@tenantId',
+                type: 'POST'
+            },
+            columns: [
+                { 
+                    data: 'subscriptionName',
+                    render: function(data) {
+                        return `<span style="font-weight: 600; color: var(--brand-primary);">${data}</span>`;
+                    }
+                },
+                { 
+                    data: 'startDateUtc',
+                    render: function(data) { return new Date(data).toLocaleDateString(); }
+                },
+                { 
+                    data: 'endDateUtc',
+                    render: function(data) { return new Date(data).toLocaleDateString(); }
+                },
+                {
+                    data: 'isActive',
+                    render: function(data) {
+                        return data ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-neutral">Inactive</span>';
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    render: function(data, type, row) {
+                        return `<div style="text-align: right;">
+                                    <button class="action-btn" title="Edit" onclick="editTenantSubscription('${row.id}', '@tenantId')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>`;
+                    }
+                }
+            ]
+        });
 
         window.addNewSubscription = function(tId) {
             openAddEditSubscription(tId);
@@ -375,100 +84,17 @@
         };
 
         function openAddEditSubscription(tId, id = '') {
+            // Nested modal? Or replace content?
+            // User likely wants a simple flow. 
+            // We can use the same modal system to load the next view.
             window.openModal({
                 title: id ? 'Modify Subscription' : 'Provision New Subscription',
                 subtitle: 'Set license duration and entitlement tier.',
                 icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>',
                 url: `/Home/AddEditTenantSubscription?TenantId=${tId}&Id=${id}`,
                 onSuccess: function() {
-                   loadTenantSubscriptions();
+                   tsTable.ajax.reload();
                 }
-            });
-        }
-
-        function loadTenantSubscriptions() {
-            const $container = $('#tenantSubscriptionsContainer').html(`
-                <div style="text-align: center; padding: 40px; grid-column: 1/-1;">
-                    <span class="mt-spinner" style="width:24px;height:24px;border-width:2.5px;"></span>
-                </div>`);
-
-            $.post('/Home/GetTenantSubscriptions?TenantId=@tenantId', {
-                start: 0,
-                length: 1000,
-                __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val()
-            })
-            .done(function (res) {
-                const data = res.data || [];
-                $container.empty();
-                if (data.length === 0) {
-                    $container.html(`
-                        <div class="mt-empty" style="grid-column: 1/-1; padding: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--text-muted);">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.3; margin-bottom: 12px;">
-                                <rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect>
-                                <line x1="2" y1="10" x2="22" y2="10"></line>
-                            </svg>
-                            <p style="font-size: 0.85rem; margin: 0;">No active subscriptions provisioned for this organization.</p>
-                        </div>`);
-                    return;
-                }
-                data.forEach(function (row) {
-                    const badge = row.isActive 
-                        ? '<span class="ts-badge ts-badge-success"><span class="ts-status-dot dot-active"></span>Active</span>' 
-                        : '<span class="ts-badge ts-badge-neutral"><span class="ts-status-dot dot-inactive"></span>Inactive</span>';
-                    
-                    const startDate = row.startDateUtc ? new Date(row.startDateUtc).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-                    const endDate = row.endDateUtc ? new Date(row.endDateUtc).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-
-                    const cardHtml = `
-                        <div class="sub-card" id="sub-card-${row.id}">
-                            <div class="sub-card-header">
-                                <div class="sub-card-header-left">
-                                    <div class="sub-card-avatar">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-                                        </svg>
-                                    </div>
-                                    <h3 class="sub-card-title" title="${escapeHtml(row.subscriptionName || 'Subscription Plan')}">${escapeHtml(row.subscriptionName || 'Subscription Plan')}</h3>
-                                </div>
-                                ${badge}
-                            </div>
-                            <div class="sub-card-dates">
-                                <div class="sub-card-date-item">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                                    <span>Activated: <strong>${startDate}</strong></span>
-                                </div>
-                                <div class="sub-card-date-item">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                                    <span>Expires: <strong>${endDate}</strong></span>
-                                </div>
-                            </div>
-                            <div class="sub-card-footer">
-                                <span class="sub-card-footer-label">ACTIONS</span>
-                                <div class="sub-card-actions">
-                                    <button class="action-btn action-btn-view" title="View Details" data-type="license" data-id="${row.id}">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                            <circle cx="12" cy="12" r="3"></circle>
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                        </svg>
-                                    </button>
-                                    ${canEditSubscription ? `
-                                    <button class="action-btn" title="Modify Subscription" onclick="editTenantSubscription('${row.id}', '${row.tenantId || tenantId}')">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                        </svg>
-                                    </button>` : ''}
-                                </div>
-                            </div>
-                        </div>`;
-                    $container.append(cardHtml);
-                });
-            })
-            .fail(function () {
-                $container.html(`
-                    <div class="mt-empty" style="grid-column: 1/-1; padding: 48px; color: var(--status-error);">
-                        <p style="font-size: 0.85rem; margin: 0;">Failed to load subscriptions. Please refresh the page and try again.</p>
-                    </div>`);
             });
         }
     });

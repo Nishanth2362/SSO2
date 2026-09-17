@@ -27,10 +27,6 @@ namespace SSO.WebApplication.Services
 
         public bool IsAdmin => _httpContextAccessor.HttpContext?.User?.IsInRole("Admin") ?? false;
 
-        public Guid TenantId => _httpContextAccessor.HttpContext?.User?.FindFirstValue("TenantId") is string t && Guid.TryParse(t, out var id) ? id : Guid.Empty;
-
-        public bool IsMasterTenant => _httpContextAccessor.HttpContext?.User?.FindFirstValue("IsMasterTenant") is string m && bool.TryParse(m, out var isMaster) && isMaster;
-
         private Guid GetUserId(ClaimsPrincipal user)
         {
             var userIdClaim = user.FindFirstValue(ClaimTypes.NameIdentifier)

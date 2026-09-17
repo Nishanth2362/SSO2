@@ -35,14 +35,11 @@ namespace SSO.Application.Features.Tenants.Commands.AddEdit
         /// <summary>Number of days after invoice due date before SSO access is blocked. Default: 7.</summary>
         public int GracePeriodDays { get; set; } = 7;
         public string Currency { get; set; } = "INR";
+        public bool AllowPublicRegistration { get; set; }
 
         //public Guid SubscriptionId { get; set; }
         public bool IsActive { get; set; }
-        public string? BackgroundText { get; set; }
         public List<Guid>? ClientIds { get; set; } = new List<Guid>();
-
-        /// <summary>Mandatory change description when editing an existing tenant.</summary>
-        public string? Remarks { get; set; }
     }
 
     public class AddEditTenantValidator : IRequestValidator<AddEditTenentCommand>
@@ -108,16 +105,6 @@ namespace SSO.Application.Features.Tenants.Commands.AddEdit
             if (string.IsNullOrWhiteSpace(request.Currency) || !AllowedCurrencies.Contains(request.Currency))
                 errors.Add(new ValidationError { PropertyName = nameof(request.Currency), ErrorMessage = "A supported currency is required." });
 
-            if (request.Id != Guid.Empty)
-            {
-                if (string.IsNullOrWhiteSpace(request.Remarks))
-                    errors.Add(new ValidationError { PropertyName = nameof(request.Remarks), ErrorMessage = "A change description (remarks) is required when editing." });
-                else if (request.Remarks.Trim().Length < 5)
-                    errors.Add(new ValidationError { PropertyName = nameof(request.Remarks), ErrorMessage = "Remarks must be at least 5 characters." });
-                else if (request.Remarks.Length > 500)
-                    errors.Add(new ValidationError { PropertyName = nameof(request.Remarks), ErrorMessage = "Remarks cannot exceed 500 characters." });
-            }
-
             return Task.FromResult(errors.AsEnumerable());
         }
     }
@@ -171,7 +158,7 @@ namespace SSO.Application.Features.Tenants.Commands.AddEdit
                     tenant.BillingAddress = command.BillingAddress;
                     tenant.GracePeriodDays = command.GracePeriodDays;
                     tenant.Currency = command.Currency;
-                    tenant.BackgroundText = command.BackgroundText;
+                    tenant.AllowPublicRegistration = command.AllowPublicRegistration;
 
                     tenant.TenantClients.Clear();
                     if (command.ClientIds != null && command.ClientIds.Any())
@@ -183,7 +170,7 @@ namespace SSO.Application.Features.Tenants.Commands.AddEdit
                     }
 
                     await _unitOfWork.Repository<Domain.Entities.Tenants>().UpdateAsync(tenant).ConfigureAwait(false);
-                    await _unitOfWork.Commit(ct, remarks: command.Remarks).ConfigureAwait(false);
+                    await _unitOfWork.Commit(ct).ConfigureAwait(false);
                     return await Result<Guid>.SuccessAsync(tenant.Id, "Tenant updated successfully.").ConfigureAwait(false);
                 }
                 else
@@ -210,7 +197,7 @@ namespace SSO.Application.Features.Tenants.Commands.AddEdit
                         BillingAddress = command.BillingAddress,
                         GracePeriodDays = command.GracePeriodDays,
                         Currency = command.Currency,
-                        BackgroundText = command.BackgroundText
+                        AllowPublicRegistration = command.AllowPublicRegistration
                     };
 
                     if (command.ClientIds != null && command.ClientIds.Any())

@@ -1,23 +1,9 @@
 /* Jobs Management Premium Design System */
 :root {
-    --surface-tertiary: var(--bg-surface-hover);
+    --surface-tertiary: #27272a;
     --brand-primary-rgb: 59, 130, 246;
     --status-success-rgb: 16, 185, 129;
     --brand-error-rgb: 239, 68, 68;
-
-    --glass-bg: rgba(18, 18, 21, 0.9);
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --glass-shadow: rgba(0, 0, 0, 0.4);
-    --card-overlay-bg: rgba(255, 255, 255, 0.03);
-    --card-overlay-hover: rgba(255, 255, 255, 0.05);
-}
-
-html[data-theme="light"] {
-    --glass-bg: rgba(255, 255, 255, 0.95);
-    --glass-border: rgba(0, 0, 0, 0.08);
-    --glass-shadow: rgba(15, 23, 42, 0.1);
-    --card-overlay-bg: rgba(0, 0, 0, 0.02);
-    --card-overlay-hover: rgba(0, 0, 0, 0.04);
 }
 
 .jobs-container {
@@ -64,7 +50,7 @@ html[data-theme="light"] {
 
 .tab:hover {
     color: var(--text-main);
-    background: var(--card-overlay-bg);
+    background: rgba(255, 255, 255, 0.03);
 }
 
 .tab.active {
@@ -138,16 +124,16 @@ html[data-theme="light"] {
 
 /* Glass UI Components */
 .glass-modal {
-    background: var(--glass-bg) !important;
+    background: rgba(18, 18, 21, 0.9) !important;
     backdrop-filter: blur(20px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-    border: 1px solid var(--glass-border) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
     border-radius: 24px !important;
     color: var(--text-main) !important;
 }
 
 .border-glass {
-    box-shadow: 0 0 0 1px var(--glass-border), 0 20px 40px var(--glass-shadow) !important;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 20px 40px rgba(0, 0, 0, 0.4) !important;
 }
 
 /* DataTable Overrides for Dark Mode */
@@ -160,7 +146,7 @@ html[data-theme="light"] {
 
 #jobsTable_wrapper .top {
     padding: 16px 24px;
-    background: var(--card-overlay-bg);
+    background: rgba(255, 255, 255, 0.02);
 }
 
 #jobsTable thead th {
@@ -179,11 +165,11 @@ html[data-theme="light"] {
 }
 
 #jobsTable tr:hover td {
-    background: var(--bg-surface-hover) !important;
+    background: rgba(255, 255, 255, 0.03) !important;
 }
 
 .stat-glass-card {
-    background: var(--card-overlay-bg);
+    background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--border-subtle);
     border-radius: 16px;
     padding: 16px 20px;
@@ -194,9 +180,9 @@ html[data-theme="light"] {
 }
 
 .stat-glass-card:hover {
-    background: var(--card-overlay-hover);
+    background: rgba(255, 255, 255, 0.05);
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px var(--glass-shadow);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 .stat-label {
